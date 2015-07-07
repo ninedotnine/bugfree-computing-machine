@@ -1,0 +1,17 @@
+---------- assembler ----------
+expressions
+strings in DWs
+extern
+public
+equ
+labels silently truncated after 30 characters.
+check for multiply-defined labels
+
+---------- decommenter ----------
+bug: a string with a '#' in it will make it explode
+
+---------- linker ----------
+
+---------- hsxx ----------
+
+---------- compiler ----------
