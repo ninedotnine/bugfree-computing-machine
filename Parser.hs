@@ -1,4 +1,4 @@
-module Parser7 (Instruction(..), parseInstructions) where 
+module Parser8 (Instruction(..), parseInstructions) where 
 
 import Text.ParserCombinators.Parsec hiding (try)
 import Text.Parsec.Prim hiding (runParser)
@@ -40,17 +40,18 @@ data Word = Lit Integer
 
 --------------------------------- parser begins here
 
--- parseInstructions :: ParsecT String Integer (Writer String) (Integer, [Word])
-parseInstructions :: ParsecT String Integer (Writer [String]) (Integer, [Word])
+-- parseInstructions :: ParsecT String Integer (Writer [String]) (Integer, [Word])
+parseInstructions :: ParsecT String Integer (Writer [(String,Integer)]) (Integer, [Word])
 parseInstructions = do 
     res <- join <$> (many (try parseInstruction)) `sepBy` skipJunk
-    pos <- fmap sourceLine getPosition
+--     pos <- fmap sourceLine getPosition
     skipMany skipJunk
     eof
     count <- getState
     return (count, res)
 
-parseInstruction :: ParsecT String Integer (Writer [String]) Word
+-- parseInstruction :: ParsecT String Integer (Writer [String]) Word
+parseInstruction :: ParsecT String Integer (Writer [(String, Integer)]) Word
 parseInstruction = do
     skipMany skipJunk
     code <- parseInt <|> parseChar <|> try parseLabel <|> parseOpcode
@@ -58,16 +59,15 @@ parseInstruction = do
     return code
 
 -- parseLabel :: ParsecT String Integer (Writer String) Word
-parseLabel :: ParsecT String Integer (Writer [String]) Word
+parseLabel :: ParsecT String Integer (Writer [(String, Integer)]) Word
 parseLabel = do
     name <- many1 letter
     char ':' 
     skipMany skipJunk
-    lift $ tell [name] -- works
---     tell <$> [name]
---     tell <$> [name]
---     lift $ tell $ pure name
---     liftM $ liftM $ tell name
+--     pos <- toInteger <$> fmap sourceLine getPosition
+    pos <- getState -- get the current position in the count
+    lift $ tell [(name, pos)] -- works
+--     lift $ tell [(name, 99)] -- works
     modifyState (\x -> x-1) -- a label should not increase the text length
     return (Label name)
 
@@ -77,6 +77,7 @@ parseLabel = do
 -- addSym = void . updateState . (:) -- append a string to the symbol list
 
 -- skipJunk :: Parser ()
+skipJunk :: ParsecT String Integer (Writer [(String, Integer)]) ()
 skipJunk = skipSpaces <|> skipComment
 
 -- skipSpaces :: Parser ()
@@ -98,14 +99,6 @@ parseOpcode = (Op . readInstr . map toUpper) <$> many1 letter
 parseInt = Lit . read <$> (many1 digit)
 
 -- parseChar :: ParsecT String Integer (Writer String) Word
-{-
-parseChar = do -- this one works!!!
-    char '\''
-    x <- letter
-    return $ Lit $ toInteger $ ord x
-    -} 
-
--- equivalent!!
 parseChar = Lit . toInteger . ord <$> (char '\'' >> letter)
 
 -- skipComment :: Parser ()
@@ -116,6 +109,7 @@ skipComment = spaces >> char ';' >> skipToEOL
 -- skipToEOL = many (noneOf "\n") >> return ()
 -- skipToEOL = skipMany (noneOf "\n") >> skipMany1 space -- skip past the '\n'
 skipToEOL = anyChar `manyTill` newline >> skipMany space
+
 
 
 
