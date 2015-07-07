@@ -1,4 +1,4 @@
-module Parser6 (Instruction(..), parseInstructions) where 
+module Parser7 (Instruction(..), parseInstructions) where 
 
 import Text.ParserCombinators.Parsec hiding (try)
 import Text.Parsec.Prim hiding (runParser)
@@ -9,8 +9,8 @@ import Control.Monad (join)
 import Control.Monad.Identity
 import Control.Monad.Writer
 import Control.Monad.State (runState, evalState, execState)
--- import Control.Applicative hiding (many, (<|>))
-import Control.Applicative ((<$>))
+import Control.Applicative hiding (many, (<|>))
+-- import Control.Applicative ((<$>))
 -- import Control.Applicative hiding ((<|>))
 import Data.Char (toUpper, ord)
 import Text.Read (readMaybe)
@@ -40,8 +40,8 @@ data Word = Lit Integer
 
 --------------------------------- parser begins here
 
--- parseInstructions :: ParsecT String Integer (Writer String) (Integer, [Int])
-parseInstructions :: ParsecT String Integer (Writer String) (Integer, [Word])
+-- parseInstructions :: ParsecT String Integer (Writer String) (Integer, [Word])
+parseInstructions :: ParsecT String Integer (Writer [String]) (Integer, [Word])
 parseInstructions = do 
     res <- join <$> (many (try parseInstruction)) `sepBy` skipJunk
     pos <- fmap sourceLine getPosition
@@ -50,41 +50,31 @@ parseInstructions = do
     count <- getState
     return (count, res)
 
--- parseInstruction :: ParsecT String Integer (Writer String) Int
-parseInstruction :: ParsecT String Integer (Writer String) Word
+parseInstruction :: ParsecT String Integer (Writer [String]) Word
 parseInstruction = do
     skipMany skipJunk
---     code <- parseOpcode <|> parseInt <|> parseChar <|> parseLabel
---     code <- parseInt <|> parseChar <|> try parseOpcode <|> parseLabel
     code <- parseInt <|> parseChar <|> try parseLabel <|> parseOpcode
     modifyState (+1) -- add one to the count of instructions
-    -- FIXME: i don't think i should add one if i just parsed a label
     return code
 
-{-
-parseWord = do
-    word <- many1 letter `notFollowedBy` char ':'
-    let num = parseOpCode word
-    -}
-
-
-
-
-parseLabel :: ParsecT String Integer (Writer String) Word
+-- parseLabel :: ParsecT String Integer (Writer String) Word
+parseLabel :: ParsecT String Integer (Writer [String]) Word
 parseLabel = do
     name <- many1 letter
     char ':' 
     skipMany skipJunk
-    lift $ tell name
+    lift $ tell [name] -- works
+--     tell <$> [name]
+--     tell <$> [name]
+--     lift $ tell $ pure name
+--     liftM $ liftM $ tell name
     modifyState (\x -> x-1) -- a label should not increase the text length
---     return 100
     return (Label name)
 
-
-
 -- addSym :: String -> Parsec String [String] ()
+-- addSym :: String -> ParsecT String [String] Identity ()
+-- addSym = updateState . (:) -- append a string to the symbol list
 -- addSym = void . updateState . (:) -- append a string to the symbol list
-
 
 -- skipJunk :: Parser ()
 skipJunk = skipSpaces <|> skipComment
@@ -92,17 +82,8 @@ skipJunk = skipSpaces <|> skipComment
 -- skipSpaces :: Parser ()
 skipSpaces = skipMany1 space <?> "" -- silence this; it's handled elsewhere
 
-{-
-parseInstruction :: Parser Int
-parseInstruction = do 
-    parseOpcode -- like PUSHV
-    <|> parseInt   -- like 10
-    <|> parseChar  -- like 'y 
---     <?> "instruction, int, or 'y"
--}
-
 -- parseOpcode :: Parser Int
-parseOpcode :: ParsecT String Integer (Writer String) Word
+-- parseOpcode :: ParsecT String Integer (Writer String) Word
 -- parseOpcode = (fromEnum . readInstr . map toUpper) <$> many1 letter 
 parseOpcode = (Op . readInstr . map toUpper) <$> many1 letter 
     where 
@@ -113,10 +94,10 @@ parseOpcode = (Op . readInstr . map toUpper) <$> many1 letter
             Nothing -> ERROR -- what should i do here?
 --             Nothing -> fail <?> "borked" --  what should i do here?
 
-parseInt :: ParsecT String Integer (Writer String) Word
+-- parseInt :: ParsecT String Integer (Writer String) Word
 parseInt = Lit . read <$> (many1 digit)
 
-parseChar :: ParsecT String Integer (Writer String) Word
+-- parseChar :: ParsecT String Integer (Writer String) Word
 {-
 parseChar = do -- this one works!!!
     char '\''
@@ -135,5 +116,6 @@ skipComment = spaces >> char ';' >> skipToEOL
 -- skipToEOL = many (noneOf "\n") >> return ()
 -- skipToEOL = skipMany (noneOf "\n") >> skipMany1 space -- skip past the '\n'
 skipToEOL = anyChar `manyTill` newline >> skipMany space
+
 
 
