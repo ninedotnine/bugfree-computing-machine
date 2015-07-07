@@ -1,4 +1,4 @@
-module Parser14 (Instruction(..), Word(..), parseEverything) where 
+module Parser15 (Instruction(..), Word(..), parseEverything) where 
 
 import Text.ParserCombinators.Parsec hiding (try)
 -- import Text.Parsec.Prim hiding (runParser)
@@ -18,6 +18,9 @@ import Data.Char (toUpper, toLower, ord)
 import Data.List (genericLength)
 import Text.Read (readMaybe)
 
+import Data.Map.Strict (Map, (!))
+import qualified Data.Map.Strict as Map
+
 import Instructions
 
 testfile = "programs/testfile5"
@@ -29,11 +32,11 @@ main = do
     c <- readFile testfile
 --     let result = runWriter $ runParserT parseInstructions 0 testfile c
 --     let tempResult :: Writer 
---                         [(String, Integer)] 
+--                         Labels
 --                         (Either ParseError (Integer, String, [Word]))
     let tempResult = runParserT parseInstructions (0, "", "") testfile c
 
---         result :: (Either ParseError (Integer, String, [Word]), [(String, Integer)])
+--         result :: (Either ParseError (Integer, String, [Word]), Labels)
 --         result = runWriter $ runParserT parseInstructions (0, "") testfile c
         result = runWriter $ tempResult
     putStr "result is: " >> print result
@@ -43,44 +46,52 @@ main = do
         Right r -> print r
     putStrLn "okay"
 
+dumb :: IO ()
+dumb = case parseEverything "LOL" "DUMB@ " of
+    Left err -> putStrLn "LEFT: " >> print err
+    Right x -> putStrLn "RIGH: " >> print x
+
 parseEverything :: SourceName 
         -> String 
-        -> (Either ParseError (Integer, String, [Word]), [(String, Integer)])
--- parseEverything x y = runWriter $ runParserT parseInstructions (0, "", "") x y
--- parseEverything = runWriter . runParserT parseInstructions (0, "", "")
-parseEverything = (runWriter .) . runParserT parseInstructions (0, "", "")
+        -> Either ParseError (Integer, String, [Word], Map.Map String Integer)
+parseEverything name str = do
+    let either :: Either ParseError (Integer, String, [Word])
+        (either, labels) = parseEverything' name str
+    case either of
+        Left err -> Left err
+        Right (i, s, words) -> return (i, s, words, Map.fromList labels)
 
-dumb :: SourceName 
-        -> String 
-        -> Writer [(String, Integer)]
-            (Either ParseError (Integer, String, [Word]))
-dumb = runParserT parseInstructions (0,"","")
+parseEverything' :: SourceName -> String 
+        -> (Either ParseError (Integer, String, [Word]), Labels)
+parseEverything' = (runWriter .) . runParserT parseInstructions (0, "", "")
 
-dumb2 :: SourceName 
-        -> String 
-        -> (Either ParseError (Integer, String, [Word]), [(String, Integer)])
-dumb2 = (runWriter .) . dumb
 
 {-
 MyParser is a type 
 ParsecT is a monad transformer
 String is the stream type
-(Integer, String) is the state. 
-    i use the Integer to count words, both so i can output the text length and 
-        so i can track where the labels are.
-    the String is the name of the entry point after it has been found. 
-        it is the empty string if no entry point is found.
-    the last String is the name of the current non-local label.
-        it does not need to be known outside of the parsing stage.
-Writer [(String, Integer)] is the transformed monad. when a label is parsed,
+MyState is the state. 
+Writer Labels is the transformed monad.
+-}
+type MyParser a = ParsecT String MyState (Writer Labels) a
+
+
+{-
+i use the Integer to count words, both so i can output the text length and 
+    so i can track where the labels are.
+the String is the name of the entry point after it has been found. 
+    it is the empty string if no entry point is found.
+the last String is the name of the current non-local label.
+    it does not need to be known outside of the parsing stage.
+-}
+type MyState = (Integer, String, String)
+
+{-
+Writer Labels is the transformed monad. when a label is parsed,
     a (String, Integer) pair is appended using its monoid instance. the String
     in this case is the name of the label; the Integer is its location. 
 -}
-type MyParser a = ParsecT 
-                    String 
-                    (Integer, String, String) 
-                    (Writer [(String, Integer)]) 
-                    a
+type Labels = [(String, Integer)]
 
 {-
 Word is an algebraic data type
@@ -173,6 +184,7 @@ parseWord = readInstr <$> many1 labelChar where
         Just x -> Op x
         Nothing -> Label str
 {-
+        -- make this handle opcode synonyms?? 
         Nothing -> do 
 --             res <- option (Label str) (parseOpSynonym) 
             res <- optionMaybe (parseOpSynonym) 
@@ -184,8 +196,7 @@ parseWord = readInstr <$> many1 labelChar where
 
 parseOpSynonym :: MyParser Word
 parseOpSynonym = choice synonyms where
---     synonyms :: [ParsecT String (Integer, String) 
---                         (Writer [(String, Integer)]) Word]
+    synonyms :: [MyParser Word]
     synonyms = [(caseInsensitiveString "indir" >> return (Op PUSHS)),
                 (caseInsensitiveString "bt"    >> return (Op BNE)),
                 (caseInsensitiveString "bf"    >> return (Op BEQ)),
@@ -235,9 +246,7 @@ labelChar = letter <|> digit <|> oneOf "._"
 -- loc f applies f to the location counter
 loc :: (Integer -> Integer) -> MyParser ()
 loc = modifyState . updateLocationCounter where 
-    updateLocationCounter :: (Integer -> Integer) 
-                            -> (Integer, String, String) 
-                            -> (Integer, String, String)
+    updateLocationCounter :: (Integer -> Integer) -> MyState -> MyState
     updateLocationCounter f (i, s, label) = (f i, s, label)
 
 -- setEntry "main" makes the entry point "main", provided it isn't already set
