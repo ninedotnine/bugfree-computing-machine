@@ -1,8 +1,14 @@
-module Parser15 (Instruction(..), Word(..), parseEverything) where 
+{-# LANGUAGE OverloadedStrings #-} 
+{-# OPTIONS_GHC -Wall #-} 
 
-import Text.ParserCombinators.Parsec hiding (try)
+module Parser16 (Instruction(..), 
+                Word(..), 
+                EntryPoint(..),
+                parseEverything) where 
+
+import Text.ParserCombinators.Parsec hiding (try, label, labels)
 -- import Text.Parsec.Prim hiding (runParser)
-import Text.Parsec.Prim hiding (runParser)
+import Text.Parsec.Prim hiding (runParser, label, labels)
 -- import Text.Parsec.Prim hiding (try, runParser)
 -- import Text.Parsec.Prim (Parsec)
 -- import Text.Parsec.Prim
@@ -16,54 +22,50 @@ import Control.Applicative hiding (many, (<|>))
 -- import Control.Applicative hiding ((<|>))
 import Data.Char (toUpper, toLower, ord)
 import Data.List (genericLength)
+import Data.String (IsString, fromString)
 import Text.Read (readMaybe)
 
-import Data.Map.Strict (Map, (!))
-import qualified Data.Map.Strict as Map
+-- import Data.Map.Strict (Map, (!))
+import qualified Data.Map.Strict as Map (Map, singleton)
 
 import Instructions
 
+testfile :: FilePath
 testfile = "programs/testfile5"
 
 main :: IO ()
 main = do
-    putStrLn "%SXX+Object Module"
     putStrLn $ "# object module for file: TEST LOL"
     c <- readFile testfile
 --     let result = runWriter $ runParserT parseInstructions 0 testfile c
---     let tempResult :: Writer 
---                         Labels
---                         (Either ParseError (Integer, String, [Word]))
-    let tempResult = runParserT parseInstructions (0, "", "") testfile c
+    let tempResult :: Writer Labels 
+                        (Either ParseError (Integer, EntryPoint, [Word]))
+        tempResult = runParserT parseInstructions (0, "", "") testfile c
 
---         result :: (Either ParseError (Integer, String, [Word]), Labels)
+        result :: (Either ParseError (Integer, EntryPoint, [Word]), Labels)
 --         result = runWriter $ runParserT parseInstructions (0, "") testfile c
         result = runWriter $ tempResult
     putStr "result is: " >> print result
     putStrLn  "------------------------------------------"
     case fst result of
-        Left error -> putStrLn $ "error: " ++ (show error)
+        Left err -> putStrLn $ "error: " ++ (show err)
         Right r -> print r
     putStrLn "okay"
 
-dumb :: IO ()
-dumb = case parseEverything "LOL" "DUMB@ " of
-    Left err -> putStrLn "LEFT: " >> print err
-    Right x -> putStrLn "RIGH: " >> print x
-
 parseEverything :: SourceName 
         -> String 
-        -> Either ParseError (Integer, String, [Word], Map.Map String Integer)
+        -> Either ParseError (Integer, EntryPoint, [Word], Labels)
 parseEverything name str = do
-    let either :: Either ParseError (Integer, String, [Word])
-        (either, labels) = parseEverything' name str
-    case either of
+    let eith :: Either ParseError (Integer, EntryPoint, [Word])
+        (eith, labels) = parseEverything' name str
+    case eith of
         Left err -> Left err
-        Right (i, s, words) -> return (i, s, words, Map.fromList labels)
+        Right (i, m, xs) -> return (i, m, xs, labels)
 
 parseEverything' :: SourceName -> String 
-        -> (Either ParseError (Integer, String, [Word]), Labels)
-parseEverything' = (runWriter .) . runParserT parseInstructions (0, "", "")
+        -> (Either ParseError (Integer, EntryPoint, [Word]), Labels)
+-- parseEverything' = (runWriter .) . runParserT parseInstructions (0, EntryPoint "", "")
+parseEverything' x y = runWriter $ runParserT parseInstructions (0, "", "") x y
 
 
 {-
@@ -75,23 +77,23 @@ Writer Labels is the transformed monad.
 -}
 type MyParser a = ParsecT String MyState (Writer Labels) a
 
-
 {-
 i use the Integer to count words, both so i can output the text length and 
     so i can track where the labels are.
-the String is the name of the entry point after it has been found. 
+the EntryPoint is the name of the entry point after it has been found. 
     it is the empty string if no entry point is found.
 the last String is the name of the current non-local label.
     it does not need to be known outside of the parsing stage.
 -}
-type MyState = (Integer, String, String)
+type MyState = (Integer, EntryPoint, String)
 
 {-
 Writer Labels is the transformed monad. when a label is parsed,
-    a (String, Integer) pair is appended using its monoid instance. the String
-    in this case is the name of the label; the Integer is its location. 
+    a String and Integer pair is added to the Map using its Monoid instance.  
+    the String in this case is the name of the label; 
+        the Integer is its location. 
 -}
-type Labels = [(String, Integer)]
+type Labels = Map.Map String Integer
 
 {-
 Word is an algebraic data type
@@ -105,19 +107,27 @@ data Word = Lit Integer
           | NewLabel String
           | DS Integer
           | DW [Integer]
-          | Entry String
+--           | Entry String
+          | Entry EntryPoint
           deriving (Show)
+
+-- newtype EntryPoint = EntryPoint { name :: String } deriving (Eq)
+newtype EntryPoint = EntryPoint String deriving (Eq)
+
+instance Show EntryPoint where 
+    show (EntryPoint name) = name
+instance IsString EntryPoint where
+    fromString = EntryPoint
 
 --------------------------------- parser begins here
 
--- parseInstructions :: MyParser (Integer, [Word])
-parseInstructions :: MyParser (Integer, String, [Word])
+parseInstructions :: MyParser (Integer, EntryPoint, [Word])
 parseInstructions = do 
     res <- join <$> (many (try parseInstruction)) `sepBy` skipJunk
     skipMany skipJunk
     eof
-    (count, entry, label) <- getState
-    return (count, entry, res)
+    (counter, entry, _) <- getState
+    return (counter, entry, res)
 
 parseInstruction :: MyParser Word
 parseInstruction = do
@@ -158,8 +168,8 @@ parseEntry = do
     tailer <- many labelChar
     let name = (header:tailer)
     loc (\x -> x-1) -- the entry should not increase the text length
-    setEntry name
-    return (Entry name)
+    setEntry (EntryPoint name)
+    return (Entry (EntryPoint name))
 
 -- FIXME: local labels are not implemented
 parseNewLabel :: MyParser Word
@@ -169,11 +179,8 @@ parseNewLabel = do
     let name = (header:tailer)
     char ':' 
     skipMany skipJunk
---     pos <- getState -- get the current position in the count
-    pos <- getLocationCounter -- get the current position in the count
-    lift $ tell [(name, pos)] -- append it to the list of labels
---     modifyState (\x -> x-1) -- a label should not increase the text length
---     modifyState (updateLocationCounter (\x -> x-1)) -- a label should not increase the text length
+    pos <- getLoc -- get the current position in the count
+    lift $ tell (Map.singleton name pos) -- add it to the map of labels
     loc (\x -> x-1) -- a label should not increase the text length
     return (NewLabel name)
 
@@ -249,29 +256,41 @@ loc = modifyState . updateLocationCounter where
     updateLocationCounter :: (Integer -> Integer) -> MyState -> MyState
     updateLocationCounter f (i, s, label) = (f i, s, label)
 
+getLoc :: MyParser Integer
+getLoc = do
+    (i, _, _) <- getState
+    return i
+
 -- setEntry "main" makes the entry point "main", provided it isn't already set
-setEntry :: String -> MyParser ()
+setEntry :: EntryPoint -> MyParser ()
 setEntry = modifyState . setEntry' where 
-    setEntry' str (i, "", label) = (i, str, label) -- pattern match the empty string
+    setEntry' name (i, "", label) = (i, name, label) -- pattern match the empty string
     setEntry' _ _ = error "multiple entries?" 
 
 setLabelPrefix :: String -> MyParser ()
 setLabelPrefix = modifyState . setLabelPrefix' where
     setLabelPrefix' str (i, ent, _) = (i, ent, str)
 
+getLabelPrefix :: MyParser String
+getLabelPrefix = do 
+    (_, _, label) <- getState
+    return label
 
-getLocationCounter = do
-    (i, _, _) <- getState
-    return i
+expr   :: MyParser Integer
+expr   = term   `chainl1` addop
 
-expr    = term   `chainl1` addop
-term    = factor `chainl1` mulop
--- factor  = parens expr <|> integer
-factor  = between (char '(') (char ')') expr <|> parseIntOrChar
+term   :: MyParser Integer
+term   = factor `chainl1` mulop
 
+factor :: MyParser Integer
+factor = between (char '(') (char ')') expr <|> parseIntOrChar
+
+mulop   :: MyParser (Integer -> Integer -> Integer)
 mulop   =   do{ char '*'; return (*)   }
         <|> do{ char '/'; return (div) }
 
+addop   :: MyParser (Integer -> Integer -> Integer)
 addop   =   do{ char '+'; return (+) }
         <|> do{ char '-'; return (-) }
+
 
