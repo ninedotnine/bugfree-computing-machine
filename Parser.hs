@@ -1,4 +1,4 @@
-module Parser12 (Instruction(..), Word(..), parseInstructions) where 
+module Parser13 (Instruction(..), Word(..), parseInstructions) where 
 
 import Text.ParserCombinators.Parsec hiding (try)
 -- import Text.Parsec.Prim hiding (runParser)
@@ -31,6 +31,7 @@ main = do
                         [(String, Integer)] 
                         (Either ParseError (Integer, String, [Word]))
         tempResult = runParserT parseInstructions (0, "") testfile c
+
         result :: (Either ParseError (Integer, String, [Word]), [(String, Integer)])
 --         result = runWriter $ runParserT parseInstructions (0, "") testfile c
         result = runWriter $ tempResult
@@ -90,8 +91,9 @@ parseInstructions = do
 parseInstruction :: MyParser Word
 parseInstruction = do
     skipMany skipJunk
-    code <- parseInt 
-        <|> parseChar 
+--     code <- fmap Lit parseInt'
+--         <|> parseChar 
+    code <- fmap Lit parseIntOrChar
         <|> try parseDS 
         <|> try parseDW 
         <|> try parseEntry 
@@ -105,7 +107,7 @@ parseInstruction = do
 parseDS :: MyParser Word
 parseDS = do
     caseInsensitiveString "ds" >> skipSpaces
-    (Lit size) <- parseInt
+    size <- parseIntOrChar
 --     a DS should not increase the text length...
 --     modifyState (+size) -- but its operand should, by its value
 --     modifyState (updateLocationCounter (+size)) -- but its operand should, by its value
@@ -116,13 +118,14 @@ parseDS = do
 parseDW :: MyParser Word
 parseDW = do
     caseInsensitiveString "dw" >> skipSpaces
-    args <- map unLit <$> (parseInt <|> parseChar) `sepBy1` (char ',' >>spaces)
+--     args <- map unLit <$> (parseInt <|> parseChar) `sepBy1` (char ',' >>spaces)
+    args <- parseIntOrChar `sepBy1` (char ',' >>spaces)
         -- a DW should increase the text length by the number of arguments
 --     modifyState (\x -> x + (genericLength args) - 1) 
 --     modifyState (updateLocationCounter (\x -> x + (genericLength args) - 1))
     loc (\x -> x + (genericLength args) - 1)
     return (DW args)
-        where unLit (Lit x) = x
+--         where unLit (Lit x) = x
 
 parseEntry :: MyParser Word
 parseEntry = do 
@@ -155,17 +158,49 @@ parseNewLabel = do
     return (NewLabel name)
 
 parseWord :: MyParser Word
-parseWord = readInstr <$> many1 letter where 
+parseWord = readInstr <$> many1 labelChar where 
     readInstr :: String -> Word
     readInstr str = case readMaybe (map toUpper str) of
         Just x -> Op x
         Nothing -> Label str
+{-
+        Nothing -> do 
+--             res <- option (Label str) (parseOpSynonym) 
+            res <- optionMaybe (parseOpSynonym) 
+            case res of
+                Just x -> x
+                Nothing -> Label str
+--             return res
+-}
 
-parseInt :: MyParser Word
-parseInt = Lit . read <$> (many1 digit)
+parseOpSynonym :: MyParser Word
+-- parseOpSynonym = do { caseInsensitiveString "indir" ; return $ Op PUSHS }
+--                <|> do { caseInsensitiveString "bt" ; return $ Op BNE }
+--                <|> do { caseInsensitiveString "bf" ; return $ Op BEQ }
+--                <|> do { caseInsensitiveString "poppc" ; return $ Op RETURN }
+parseOpSynonym = choice synonyms where
+    synonyms :: [ParsecT String (Integer, String) 
+                        (Writer [(String, Integer)]) Word]
+    synonyms = [(caseInsensitiveString "indir" >> return (Op PUSHS)),
+                (caseInsensitiveString "bt"    >> return (Op BNE)),
+                (caseInsensitiveString "bf"    >> return (Op BEQ)),
+                (caseInsensitiveString "poppc" >> return (Op RETURN))]
 
-parseChar :: MyParser Word
-parseChar = Lit . toInteger . ord <$> (char '\'' >> anyChar)
+
+parseIntOrChar :: MyParser Integer
+parseIntOrChar = parseInt' <|> parseChar'
+
+-- parseInt :: MyParser Word
+-- parseInt = Lit . read <$> (many1 digit)
+
+parseInt' :: MyParser Integer
+parseInt' = read <$> (many1 digit)
+
+-- parseChar :: MyParser Word
+-- parseChar = Lit . toInteger . ord <$> (char '\'' >> anyChar)
+
+parseChar' :: MyParser Integer
+parseChar' = toInteger . ord <$> (char '\'' >> anyChar)
 
 skipJunk :: MyParser ()
 skipJunk = skipSpaces <|> skipComment
@@ -215,3 +250,14 @@ setEntry = modifyState . setEntry'
 getLocationCounter = do
     (i, s) <- getState
     return i
+
+expr    = term   `chainl1` addop
+term    = factor `chainl1` mulop
+-- factor  = parens expr <|> integer
+factor  = between (char '(') (char ')') expr <|> parseInt'
+
+mulop   =   do{ char '*'; return (*)   }
+        <|> do{ char '/'; return (div) }
+
+addop   =   do{ char '+'; return (+) }
+        <|> do{ char '-'; return (-) }
