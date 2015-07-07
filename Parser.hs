@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -Wall #-} 
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
 
-module Parser18 (Instruction(..), 
+module Parser19 (Instruction(..), 
                 Word(..), 
                 EntryPoint(..),
                 parseEverything) where 
@@ -66,7 +66,7 @@ parseEverything name str = do
 
 parseEverything' :: SourceName -> String 
         -> (Either ParseError (Integer, EntryPoint, [Word]), Labels)
-parseEverything' = (runWriter .) . runParserT parseInstructions (0, "", "")
+parseEverything' = (runWriter .) . runParserT instructions (0, "", "")
 
 
 {-
@@ -120,75 +120,61 @@ instance IsString EntryPoint where
 
 --------------------------------- parser begins here
 
-parseInstructions :: MyParser (Integer, EntryPoint, [Word])
-parseInstructions = do 
-    res <- join <$> (many (try parseInstruction)) `sepBy` skipJunk
-    skipMany skipJunk
-    eof
+instructions :: MyParser (Integer, EntryPoint, [Word])
+instructions = do 
+    res <- join <$> many (try instruction) `sepBy` skipJunk
+    skipMany skipJunk *> eof
     (counter, entry, _) <- getState
     return (counter, entry, res)
 
-parseInstruction :: MyParser Word
-parseInstruction = do
-    skipMany skipJunk
-    code <- Lit <$> parseIntOrChar <* loc (+1)
-        <|> try parseDS 
-        <|> try parseDW 
-        <|> try parseEntry 
-        <|> try parseNewLabel 
-        <|> try parseOpcode <* loc (+1)
-        <|> parseLabel <* loc (+1)
-    return code
+instruction :: MyParser Word
+instruction = skipMany skipJunk *>
+    fmap Lit intOrChar <* loc (+1)
+    <|> try asmDS 
+    <|> try asmDW 
+    <|> try asmEntry 
+    <|> try newLabel 
+    <|> try opcode <* loc (+1)
+    <|> label <* loc (+1)
 
 
+newLabel :: MyParser Word
+newLabel = NewLabel <$> (newGlobalLabel <|> newLocalLabel) <* skipMany skipJunk
 
+label :: MyParser Word
+label = Label <$> (localLabel <|> globalLabel) <* skipMany skipJunk
 
-parseNewLabel :: MyParser Word
-parseNewLabel = NewLabel <$> (parseNewGlobalLabel <|> parseNewLocalLabel) 
-                <* skipMany skipJunk
-
-parseLabel :: MyParser Word
-parseLabel = Label <$> (parseLocalLabel <|> parseGlobalLabel) 
-            <* skipMany skipJunk
-
-parseNewLocalLabel :: MyParser String
-parseNewLocalLabel = do
-    name <- parseLocalLabel
-    char ':'
+newLocalLabel :: MyParser String
+newLocalLabel = do
+    name <- localLabel <* char ':'
     pos <- getLoc -- get the current position in the count
     lift $ tell (Map.singleton name pos) -- add it to the map of labels
-    return (name)
+    return name
 
-parseNewGlobalLabel :: MyParser String
-parseNewGlobalLabel = do
-    name <- parseGlobalLabel
-    char ':' 
+newGlobalLabel :: MyParser String
+newGlobalLabel = do
+    name <- globalLabel <* char ':' 
     setLabelPrefix name -- new current scope
     pos <- getLoc -- get the current position in the count
     lift $ tell (Map.singleton name pos) -- add it to the map of labels
-    return (name)
+    return name
     
-parseLocalLabel :: MyParser String
-parseLocalLabel = do
+localLabel :: MyParser String
+localLabel = do
     char '@'
     tailer <- many labelChar
     header <- getLabelPrefix
-    let name = header ++ '-' : tailer -- join them with '-' to prevent clashes
-    return name
+    return (header ++ '-' : tailer) -- join them with '-' to prevent clashes
 
-parseGlobalLabel :: MyParser String
-parseGlobalLabel = do
+globalLabel :: MyParser String
+globalLabel = do
     header <- letter
     tailer <- many labelChar
-    let name = (header:tailer)
-    return name
+    return (header:tailer)
 
 
-
-
-
-parseOpcode :: MyParser Word
-parseOpcode = do 
+opcode :: MyParser Word
+opcode = do 
     uppers <- map toUpper <$> many1 letter -- all the opcodes are in capitals
      -- try to read it as an Instruction
     case readMaybe uppers `mplus` readOpSynonym uppers of --alternatively, <|>
@@ -202,13 +188,12 @@ parseOpcode = do
         readOpSynonym "POPPC" = Just RETURN
         readOpSynonym _       = Nothing
 
-
-parseIntOrChar :: MyParser Integer
-parseIntOrChar = parseInt <|> parseChar where 
-    parseInt :: MyParser Integer
-    parseInt = read <$> (many1 digit)
-    parseChar :: MyParser Integer
-    parseChar = toInteger . ord <$> (char '\'' >> anyChar)
+intOrChar :: MyParser Integer
+intOrChar = int <|> asmChar where 
+    int :: MyParser Integer
+    int = read <$> (many1 digit)
+    asmChar :: MyParser Integer
+    asmChar = toInteger . ord <$> (char '\'' *> anyChar)
 
 skipJunk :: MyParser ()
 skipJunk = skipSpaces <|> skipComment
@@ -218,17 +203,17 @@ skipSpaces :: MyParser ()
 skipSpaces = skipMany1 space <?> "" -- silence this; it's handled elsewhere
 
 skipComment :: MyParser ()
-skipComment = spaces >> char ';' >> skipToEOL
--- skipComment = char ';' >> skipToEOL
+skipComment = spaces *> char ';' *> skipToEOL
+-- skipComment = char ';' *> skipToEOL
 
 skipToEOL :: MyParser ()
-skipToEOL = anyChar `manyTill` newline >> skipMany space
--- skipToEOL = many (noneOf "\n") >> return ()
--- skipToEOL = skipMany (noneOf "\n") >> skipMany1 space -- skip past the '\n'
+skipToEOL = anyChar `manyTill` newline *> skipMany space
+-- skipToEOL = many (noneOf "\n") *> return ()
+-- skipToEOL = skipMany (noneOf "\n") *> skipMany1 space -- skip past the '\n'
 
 -- caseInsensitiveChar :: Char -> GenParser Char state Char
 caseInsensitiveChar :: Char -> MyParser Char
-caseInsensitiveChar = (\c -> (char (toLower c) <|> char (toUpper c)) >> pure c)
+caseInsensitiveChar = (\c -> (char (toLower c) <|> char (toUpper c)) *> pure c)
 
 -- caseInsensitiveString :: String -> GenParser Char state String
 caseInsensitiveString :: String -> MyParser String
@@ -245,7 +230,7 @@ labelChar = letter <|> digit <|> oneOf "._"
 
 -- loc f applies f to the location counter
 loc :: (Integer -> Integer) -> MyParser ()
-loc = modifyState . (\f (i, s, label) -> (f i, s, label))
+loc = modifyState . (\f (i, s, labl) -> (f i, s, labl))
 
 getLoc :: MyParser Integer
 getLoc = getState >>= \(i, _, _) -> return i
@@ -254,7 +239,7 @@ getLoc = getState >>= \(i, _, _) -> return i
 setEntry :: EntryPoint -> MyParser ()
 setEntry = modifyState . setEntry' where 
     -- pattern match the empty string
-    setEntry' name (i, "", label) = (i, name, label) 
+    setEntry' name (i, "", labl) = (i, name, labl) 
     setEntry' _ _ = error "multiple entries?" 
 
 setLabelPrefix :: String -> MyParser ()
@@ -262,11 +247,7 @@ setLabelPrefix = modifyState . setLabelPrefix' where
     setLabelPrefix' str (i, ent, _) = (i, ent, str)
 
 getLabelPrefix :: MyParser String
-getLabelPrefix = getState >>= \(_, _, label) -> return label
-
-
-
-
+getLabelPrefix = getState >>= \(_, _, labl) -> return labl
 
 
 
@@ -279,36 +260,36 @@ term   :: MyParser Integer
 term   = factor `chainl1` mulop
 
 factor :: MyParser Integer
-factor = between (char '(') (char ')') expr <|> parseIntOrChar
+factor = between (char '(') (char ')') expr <|> intOrChar
 
-mulop   :: MyParser (Integer -> Integer -> Integer)
-mulop   =   do{ char '*'; return (*)   }
-        <|> do{ char '/'; return (div) }
-        <|> do{ char '%'; return (rem) }
+mulop :: MyParser (Integer -> Integer -> Integer)
+mulop = char '*' *> return (*)
+    <|> char '/' *> return div 
+    <|> char '%' *> return rem
 
-addop   :: MyParser (Integer -> Integer -> Integer)
-addop   =   do{ char '+'; return (+) }
-        <|> do{ char '-'; return (-) }
+addop :: MyParser (Integer -> Integer -> Integer)
+addop = char '+' *> return (+)
+    <|> char '-' *> return (-)
 
-parseDS :: MyParser Word
-parseDS = do
-    caseInsensitiveString "ds" >> skipSpaces
-    size <- parseIntOrChar
---     a DS should not increase the text length...
+asmDS :: MyParser Word
+asmDS = do
+    caseInsensitiveString "ds" *> skipSpaces
+    size <- intOrChar
+-- a DS should not increase the text length...
     loc (+size) -- but its operand should, by its value
     return (DS size)
 
 -- FIXME: still doesn't handle strings or other fancy things like expressions
-parseDW :: MyParser Word
-parseDW = do
-    caseInsensitiveString "dw" >> skipSpaces
-    args <- parseIntOrChar `sepBy1` (char ',' >>spaces)
+asmDW :: MyParser Word
+asmDW = do
+    caseInsensitiveString "dw" *> skipSpaces
+    args <- intOrChar `sepBy1` (char ',' *> spaces)
         -- a DW should increase the location counter by the number of arguments
     loc (\x -> x + (genericLength args))
     return (DW args)
 
-parseEntry :: MyParser Word
-parseEntry = do 
+asmEntry :: MyParser Word
+asmEntry = do 
     caseInsensitiveString "entry"
     skipSpaces
     header <- letter
