@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-} 
 {-# OPTIONS_GHC -Wall #-} 
+{-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
 
-module Parser16 (Instruction(..), 
+module Parser17 (Instruction(..), 
                 Word(..), 
                 EntryPoint(..),
                 parseEverything) where 
@@ -28,26 +29,26 @@ import Text.Read (readMaybe)
 -- import Data.Map.Strict (Map, (!))
 import qualified Data.Map.Strict as Map (Map, singleton)
 
+import Debug.Trace (trace)
+
 import Instructions
 
+
+traceM :: (Monad m) => String -> m ()
+traceM string = trace string $ return ()
+
 testfile :: FilePath
-testfile = "programs/testfile5"
+testfile = "programs/testfile6"
 
 main :: IO ()
 main = do
-    putStrLn $ "# object module for file: TEST LOL"
+    putStrLn $ "# object module for file: " ++ testfile
     c <- readFile testfile
---     let result = runWriter $ runParserT parseInstructions 0 testfile c
-    let tempResult :: Writer Labels 
-                        (Either ParseError (Integer, EntryPoint, [Word]))
-        tempResult = runParserT parseInstructions (0, "", "") testfile c
-
-        result :: (Either ParseError (Integer, EntryPoint, [Word]), Labels)
---         result = runWriter $ runParserT parseInstructions (0, "") testfile c
-        result = runWriter $ tempResult
+    let result :: Either ParseError (Integer, EntryPoint, [Word], Labels)
+        result = parseEverything testfile c
     putStr "result is: " >> print result
     putStrLn  "------------------------------------------"
-    case fst result of
+    case result of
         Left err -> putStrLn $ "error: " ++ (show err)
         Right r -> print r
     putStrLn "okay"
@@ -64,8 +65,8 @@ parseEverything name str = do
 
 parseEverything' :: SourceName -> String 
         -> (Either ParseError (Integer, EntryPoint, [Word]), Labels)
--- parseEverything' = (runWriter .) . runParserT parseInstructions (0, EntryPoint "", "")
-parseEverything' x y = runWriter $ runParserT parseInstructions (0, "", "") x y
+parseEverything' = (runWriter .) . runParserT parseInstructions (0, "", "")
+-- parseEverything' x y = runWriter $ runParserT parseInstructions (0, "", "") x y
 
 
 {-
@@ -137,41 +138,15 @@ parseInstruction = do
         <|> try parseDW 
         <|> try parseEntry 
         <|> try parseNewLabel 
-        <|> parseWord
+--         <|> parseWord
+        <|> try parseOpcode
+        <|> fmap Label parseLabel
     loc (+1) -- add one to the location counter
+    traceM $ "parseInstruction: " ++ show code
     return code
 
-parseDS :: MyParser Word
-parseDS = do
-    caseInsensitiveString "ds" >> skipSpaces
-    size <- parseIntOrChar
---     a DS should not increase the text length...
---     modifyState (+size) -- but its operand should, by its value
---     modifyState (updateLocationCounter (+size)) -- but its operand should, by its value
-    loc (+size) -- but its operand should, by its value
-    return (DS size)
-
--- FIXME: still doesn't handle strings or other fancy things like expressions
-parseDW :: MyParser Word
-parseDW = do
-    caseInsensitiveString "dw" >> skipSpaces
-    args <- parseIntOrChar `sepBy1` (char ',' >>spaces)
-        -- a DW should increase the text length by the number of arguments
-    loc (\x -> x + (genericLength args) - 1)
-    return (DW args)
-
-parseEntry :: MyParser Word
-parseEntry = do 
-    caseInsensitiveString "entry"
-    skipSpaces
-    header <- letter
-    tailer <- many labelChar
-    let name = (header:tailer)
-    loc (\x -> x-1) -- the entry should not increase the text length
-    setEntry (EntryPoint name)
-    return (Entry (EntryPoint name))
-
 -- FIXME: local labels are not implemented
+{-
 parseNewLabel :: MyParser Word
 parseNewLabel = do
     header <- letter
@@ -183,31 +158,134 @@ parseNewLabel = do
     lift $ tell (Map.singleton name pos) -- add it to the map of labels
     loc (\x -> x-1) -- a label should not increase the text length
     return (NewLabel name)
+-}
 
+parseNewLabel :: MyParser Word
+parseNewLabel = parseNewGlobalLabel <|> parseNewLocalLabel
+
+parseNewLocalLabel :: MyParser Word
+parseNewLocalLabel = do
+    char '@' 
+    tailer <- many labelChar
+    char ':'
+    header <- getLabelPrefix
+    let name = header ++ '-' : tailer -- join them with '-' to prevent clashes
+    skipMany skipJunk
+    pos <- getLoc -- get the current position in the count
+    lift $ tell (Map.singleton name pos) -- add it to the map of labels
+    loc (\x -> x-1) -- a label should not increase the text length
+    return (NewLabel name)
+
+parseNewGlobalLabel :: MyParser Word
+parseNewGlobalLabel = do
+    header <- letter
+    tailer <- many labelChar
+    char ':' 
+    let name = (header:tailer)
+    setLabelPrefix name
+    pos <- getLoc -- get the current position in the count
+    lift $ tell (Map.singleton name pos) -- add it to the map of labels
+    loc (\x -> x-1) -- a label should not increase the text length
+    skipMany skipJunk
+    return (NewLabel name)
+
+-- parseLabel :: MyParser Word
+parseLabel :: MyParser String
+parseLabel = do
+    traceM "parseLabel"
+    result <- parseLocalLabel <|> parseGlobalLabel
+    traceM $ "parseLabel: " ++ result
+    return result
+    
+-- parseLocalLabel :: MyParser Word
+parseLocalLabel :: MyParser String
+parseLocalLabel = do
+    traceM "parseLocalLabel"
+    char '@'
+    tailer <- many labelChar
+    header <- getLabelPrefix
+    let name = header ++ '-' : tailer -- join them with '-' to prevent clashes
+    traceM $ "parseLocalLabel: " ++ name
+    skipMany skipJunk
+--     return (Label name)
+    return name
+
+parseGlobalLabel :: MyParser String
+-- parseGlobalLabel :: MyParser Word
+parseGlobalLabel = do
+    traceM "parseGlobalLabel"
+    header <- letter
+    tailer <- many labelChar
+    skipMany skipJunk
+    let name = (header:tailer)
+--     return (Label name)
+    traceM ("parseGlobalLabel: " ++ name)
+    return name
+
+{-
+-- OLD GOOD VERSION
 parseWord :: MyParser Word
 parseWord = readInstr <$> many1 labelChar where 
     readInstr :: String -> Word
     readInstr str = case readMaybe (map toUpper str) of
         Just x -> Op x
         Nothing -> Label str
-{-
-        -- make this handle opcode synonyms?? 
-        Nothing -> do 
---             res <- option (Label str) (parseOpSynonym) 
-            res <- optionMaybe (parseOpSynonym) 
-            case res of
-                Just x -> x
-                Nothing -> Label str
---             return res
--}
+--         Nothing -> parseLabel
+-- -}
 
-parseOpSynonym :: MyParser Word
+{-
+-- THIS WORKS BUT IS GROSS
+parseWord :: MyParser Word
+-- parseWord = readInstr <$> many1 labelChar where 
+parseWord = do 
+    str <- many1 labelChar
+    traceM $ "parseWord: " ++ str
+    let uppers = map toUpper str
+    case readMaybe uppers of
+        Just x -> return $ Op x
+--         Nothing -> return $ Label str
+--         Nothing -> Label <$> parseLabel
+        Nothing -> do 
+--             label <- parseOpSynonym <|> parseLabel 
+--             label <- parseLabel 
+--             return (Label label)
+            case parseOpSynonym uppers of
+                Just x -> return x
+                Nothing -> return (Label str)
+-- -}
+
+parseOpcode :: MyParser Word
+parseOpcode = do 
+    str <- many1 letter
+    let uppers = map toUpper str
+    case readMaybe uppers of 
+        Just x -> return (Op x)
+        Nothing -> do
+            case parseOpSynonym uppers of
+                Just x -> return x
+                Nothing -> fail "can't parse as opcode"
+-- -}
+    
+{-
+-- parseOpSynonym :: MyParser Word
+-- parseOpSynonym :: MyParser String
 parseOpSynonym = choice synonyms where
-    synonyms :: [MyParser Word]
-    synonyms = [(caseInsensitiveString "indir" >> return (Op PUSHS)),
-                (caseInsensitiveString "bt"    >> return (Op BNE)),
-                (caseInsensitiveString "bf"    >> return (Op BEQ)),
-                (caseInsensitiveString "poppc" >> return (Op RETURN))]
+    synonyms :: [MyParser String]
+    synonyms = [(caseInsensitiveString "indir" >> return ("PUSHS")),
+                (caseInsensitiveString "bt"    >> return ("BNE")),
+                (caseInsensitiveString "bf"    >> return ("BEQ")),
+                (caseInsensitiveString "poppc" >> return ("RETURN"))]
+--     synonyms = [(caseInsensitiveString "indir" >> return (Op PUSHS)),
+--                 (caseInsensitiveString "bt"    >> return (Op BNE)),
+--                 (caseInsensitiveString "bf"    >> return (Op BEQ)),
+--                 (caseInsensitiveString "poppc" >> return (Op RETURN))]
+-}
+parseOpSynonym :: String -> (Maybe Word)
+parseOpSynonym "INDIR" = Just (Op PUSHS)
+parseOpSynonym "BT"    = Just (Op BNE)
+parseOpSynonym "BF"    = Just (Op BEQ)
+parseOpSynonym "POPPC" = Just (Op RETURN)
+parseOpSynonym _       = Nothing
 
 
 parseIntOrChar :: MyParser Integer
@@ -248,7 +326,9 @@ is also called an identifier. Labels longer than 30 characters in length are
 silently truncated to 30 characters. 
 -}
 labelChar :: MyParser Char
-labelChar = letter <|> digit <|> oneOf "._"
+labelChar = do
+    traceM "labelChar"
+    letter <|> digit <|> oneOf "._"
 
 -- loc f applies f to the location counter
 loc :: (Integer -> Integer) -> MyParser ()
@@ -276,6 +356,13 @@ getLabelPrefix = do
     (_, _, label) <- getState
     return label
 
+
+
+
+
+
+
+
 expr   :: MyParser Integer
 expr   = term   `chainl1` addop
 
@@ -294,3 +381,33 @@ addop   =   do{ char '+'; return (+) }
         <|> do{ char '-'; return (-) }
 
 
+
+parseDS :: MyParser Word
+parseDS = do
+    caseInsensitiveString "ds" >> skipSpaces
+    size <- parseIntOrChar
+--     a DS should not increase the text length...
+--     modifyState (+size) -- but its operand should, by its value
+--     modifyState (updateLocationCounter (+size)) -- but its operand should, by its value
+    loc (+size) -- but its operand should, by its value
+    return (DS size)
+
+-- FIXME: still doesn't handle strings or other fancy things like expressions
+parseDW :: MyParser Word
+parseDW = do
+    caseInsensitiveString "dw" >> skipSpaces
+    args <- parseIntOrChar `sepBy1` (char ',' >>spaces)
+        -- a DW should increase the text length by the number of arguments
+    loc (\x -> x + (genericLength args) - 1)
+    return (DW args)
+
+parseEntry :: MyParser Word
+parseEntry = do 
+    caseInsensitiveString "entry"
+    skipSpaces
+    header <- letter
+    tailer <- many labelChar
+    let name = (header:tailer)
+    loc (\x -> x-1) -- the entry should not increase the text length
+    setEntry (EntryPoint name)
+    return (Entry (EntryPoint name))
