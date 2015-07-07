@@ -1,4 +1,4 @@
-module Parser5 (Instruction(..), parseInstructions) where 
+module Parser6 (Instruction(..), parseInstructions) where 
 
 import Text.ParserCombinators.Parsec hiding (try)
 import Text.Parsec.Prim hiding (runParser)
@@ -21,9 +21,11 @@ main :: IO ()
 main = do
     putStrLn "%SXX+Object Module"
     putStrLn $ "# object module for file: TEST LOL"
-    c <- readFile "testfile"
+--     c <- readFile "testfile"
+    c <- readFile "testfile2"
     let result = runWriter $ runParserT parseInstructions 0 "testfile" c
     putStr "result is: " >> print result
+    putStrLn  "------------------------------------------"
     case fst result of
         Left error -> putStrLn $ "error: " ++ (show error)
         Right r -> print r
@@ -52,7 +54,9 @@ parseInstructions = do
 parseInstruction :: ParsecT String Integer (Writer String) Word
 parseInstruction = do
     skipMany skipJunk
-    code <- parseOpcode <|> parseInt <|> parseChar
+--     code <- parseOpcode <|> parseInt <|> parseChar <|> parseLabel
+--     code <- parseInt <|> parseChar <|> try parseOpcode <|> parseLabel
+    code <- parseInt <|> parseChar <|> try parseLabel <|> parseOpcode
     modifyState (+1) -- add one to the count of instructions
     -- FIXME: i don't think i should add one if i just parsed a label
     return code
@@ -66,12 +70,15 @@ parseWord = do
 
 
 
+parseLabel :: ParsecT String Integer (Writer String) Word
 parseLabel = do
     name <- many1 letter
     char ':' 
     skipMany skipJunk
     lift $ tell name
-    return 100
+    modifyState (\x -> x-1) -- a label should not increase the text length
+--     return 100
+    return (Label name)
 
 
 
@@ -106,14 +113,10 @@ parseOpcode = (Op . readInstr . map toUpper) <$> many1 letter
             Nothing -> ERROR -- what should i do here?
 --             Nothing -> fail <?> "borked" --  what should i do here?
 
--- parseInt :: Parser Int
 parseInt :: ParsecT String Integer (Writer String) Word
 parseInt = Lit . read <$> (many1 digit)
 
--- parseChar :: Parser Int
 parseChar :: ParsecT String Integer (Writer String) Word
--- parseChar = (Lit . toInteger) $ (ord <$> (char '\'' >> letter))
--- parseChar = (return . Lit . toInteger) (ord <$> (char '\'' >> letter))
 {-
 parseChar = do -- this one works!!!
     char '\''
@@ -121,24 +124,8 @@ parseChar = do -- this one works!!!
     return $ Lit $ toInteger $ ord x
     -} 
 
-{-
-parseChar = do
-    x <- char '\'' >> letter
-    return $ Lit $ toInteger $ ord x
-    -}
-
-parseChar = (Lit . toInteger . ord) <$> (char '\'' >> letter)
---     return $ Lit $ toInteger $ ord x
-
--- dumbparseChar2 :: ParsecT String Integer (Writer String) Word
--- dumbparseChar2 = do
---     char '\''
---     x <- letter
---     return $ Lit $ toInteger $ ord x
-
--- dumbparseChar :: ParsecT String Integer (Writer String) Int
--- dumbparseChar = (ord <$> (char '\'' >> letter))
-
+-- equivalent!!
+parseChar = Lit . toInteger . ord <$> (char '\'' >> letter)
 
 -- skipComment :: Parser ()
 skipComment = spaces >> char ';' >> skipToEOL
@@ -148,4 +135,5 @@ skipComment = spaces >> char ';' >> skipToEOL
 -- skipToEOL = many (noneOf "\n") >> return ()
 -- skipToEOL = skipMany (noneOf "\n") >> skipMany1 space -- skip past the '\n'
 skipToEOL = anyChar `manyTill` newline >> skipMany space
+
 
