@@ -1,0 +1,5 @@
+main:   pushv   'y
+        printc
+        pushv   10
+        printc
+        br main

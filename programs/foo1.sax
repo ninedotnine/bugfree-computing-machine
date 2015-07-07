@@ -1,0 +1,30 @@
+
+NL	equ	10	; the ASCII code for newline
+FP	equ	1	; the frame pointer register
+
+inc:	; int inc(int x) { return x+1; }
+	; set up the stack frame
+	push  FP
+	push  SP
+	pop   FP
+	; push the three parameter values
+        push  FP
+	pushx 2		; x is now om the TOS
+	pushv 1	
+	add		; x+1 is now on the TOS
+	push    FP
+	swap		; x+1 followed by FP is on the TOS
+	popx	3	; put the value x+1 in FP+3 (the return value location)
+	pop	FP ; restore caller's frame pointer
+	retn	1  ; clean up the stack and return
+
+main:
+	addsp	-1      ; space for the return value
+	pushv	42
+	call	inc
+	print           ; this should print 43
+	pushv	10
+	printc
+	halt
+
+	entry	main
