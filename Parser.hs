@@ -1,4 +1,4 @@
-module Parser9 (Instruction(..), parseInstructions) where 
+module Parser10 (Instruction(..), parseInstructions) where 
 
 import Text.ParserCombinators.Parsec hiding (try)
 -- import Text.Parsec.Prim hiding (runParser)
@@ -18,14 +18,14 @@ import Text.Read (readMaybe)
 
 import Instructions
 
+testfile = "testfile4"
+
 main :: IO ()
 main = do
     putStrLn "%SXX+Object Module"
     putStrLn $ "# object module for file: TEST LOL"
---     c <- readFile "testfile"
---     c <- readFile "testfile2"
-    c <- readFile "testfile4"
-    let result = runWriter $ runParserT parseInstructions 0 "testfile" c
+    c <- readFile testfile
+    let result = runWriter $ runParserT parseInstructions 0 testfile c
     putStr "result is: " >> print result
     putStrLn  "------------------------------------------"
     case fst result of
@@ -54,6 +54,7 @@ a Label is a label
 data Word = Lit Integer
           | Op Instruction
           | Label String
+          | NewLabel String
           deriving (Show)
 
 --------------------------------- parser begins here
@@ -69,41 +70,38 @@ parseInstructions = do
 parseInstruction :: MyParser Word
 parseInstruction = do
     skipMany skipJunk
-    code <- parseInt <|> parseChar <|> try parseLabel <|> parseOpcode
+    code <- parseInt <|> parseChar <|> try parseNewLabel <|> parseWord
     modifyState (+1) -- add one to the count of instructions
     return code
 
-parseLabel :: MyParser Word
-parseLabel = do
+parseNewLabel :: MyParser Word
+parseNewLabel = do
     name <- many1 letter
     char ':' 
     skipMany skipJunk
     pos <- getState -- get the current position in the count
     lift $ tell [(name, pos)] -- append it to the list of labels
     modifyState (\x -> x-1) -- a label should not increase the text length
-    return (Label name)
+    return (NewLabel name)
 
-skipJunk :: MyParser ()
-skipJunk = skipSpaces <|> skipComment
-
-skipSpaces :: MyParser ()
-skipSpaces = skipMany1 space <?> "" -- silence this; it's handled elsewhere
-
-parseOpcode :: MyParser Word
-parseOpcode = (Op . readInstr . map toUpper) <$> many1 letter 
-    where 
-        readInstr :: String -> Instruction
-        -- readInstr = read
-        readInstr str = case readMaybe str of
-            Just x -> x
-            Nothing -> ERROR -- what should i do here?
---             Nothing -> fail <?> "borked" --  what should i do here?
+parseWord :: MyParser Word
+parseWord = readInstr <$> many1 letter where 
+    readInstr :: String -> Word
+    readInstr str = case readMaybe (map toUpper str) of
+        Just x -> Op x
+        Nothing -> Label str
 
 parseInt :: MyParser Word
 parseInt = Lit . read <$> (many1 digit)
 
 parseChar :: MyParser Word
 parseChar = Lit . toInteger . ord <$> (char '\'' >> anyChar)
+
+skipJunk :: MyParser ()
+skipJunk = skipSpaces <|> skipComment
+
+skipSpaces :: MyParser ()
+skipSpaces = skipMany1 space <?> "" -- silence this; it's handled elsewhere
 
 skipComment :: MyParser ()
 skipComment = spaces >> char ';' >> skipToEOL
@@ -113,3 +111,4 @@ skipToEOL :: MyParser ()
 skipToEOL = anyChar `manyTill` newline >> skipMany space
 -- skipToEOL = many (noneOf "\n") >> return ()
 -- skipToEOL = skipMany (noneOf "\n") >> skipMany1 space -- skip past the '\n'
+
