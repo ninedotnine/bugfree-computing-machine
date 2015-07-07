@@ -1,7 +1,8 @@
-module Parser3 (Instruction(..), parseInstructions) where 
+module Parser4 (Instruction(..), parseInstructions) where 
 
-import Text.ParserCombinators.Parsec
-import Text.Parsec.Prim hiding (try, runParser)
+import Text.ParserCombinators.Parsec hiding (try)
+import Text.Parsec.Prim hiding (runParser)
+-- import Text.Parsec.Prim hiding (try, runParser)
 -- import Text.Parsec.Prim (Parsec)
 -- import Text.Parsec.Prim
 import Control.Monad (join)
@@ -21,54 +22,27 @@ main = do
     putStrLn "%SXX+Object Module"
     putStrLn $ "# object module for file: TEST LOL"
     c <- readFile "testfile"
+    let result = runWriter $ runParserT parseInstructions 0 "testfile" c
 --     case runState (runParserT parseWords 0 "parser2" c) of
 --     case iParse parseWords 0 "parser2" c of
 --     case iParse parseWords "parser2" c of
 --     case c of
-    case runParser parseInstructions 0 "dum" c of
+--     case runParser parseInstructions 0 "dum" c of
 --     case runParsecT parseInstructions 0 "dum" c of
+    putStr "result is: " >> print result
+    case fst result of
         Left error -> putStrLn $ "error: " ++ (show error)
         Right r -> print r
 --         Right r -> putStrLn "success"
+    putStrLn "okay"
 
 -- type ParserCounter s u a = ParsecT s u (State Int) a
-type ParserCounter a = ParsecT String () (State Int) a
+type ParserCounter a = ParsecT String Integer (State Int) a
 
 --------------------------------- parser begins here
 
--- parseWords :: ParserCounter String () a
-parseWords :: ParserCounter a
-parseWords = undefined
-
-iParse :: ParserCounter a -> SourceName -> String -> Either ParseError a
-iParse aParser source_name input = 
---     execState source_name $ runParserT aParser () source_name input
-    undefined
-
-----------------------------------
-
-play :: String -> Either ParseError (Integer, Int)
-play s = runParser pmain 0 "parameter" s
-
-pmain :: ParsecT [Char] Int Identity (Integer, Int)
-pmain = do
-    x <- pnum `chainl1` pplus
-    eof
-    n <- getState
-    return (x,n)
-
-pnum :: ParsecT [Char] Int Identity Integer
-pnum = do
-    x <- read <$> many1 digit
-    modifyState (+1)
-    return x
-
-pplus :: ParsecT [Char] u Identity (Integer -> Integer -> Integer)
-pplus = char '+' >> return (+)
-
-------------------------------------------------------------
-
-parseInstructions :: ParsecT String Integer Identity (Integer, [Int])
+-- parseInstructions :: ParsecT String Integer Identity (Integer, [Int])
+parseInstructions :: ParsecT String Integer (Writer String) (Integer, [Int])
 parseInstructions = do 
 --     res <- join <$> (many (try parseInstruction)) `sepBy` skipSpaces
     res <- join <$> (many (try parseInstruction)) `sepBy` skipJunk
@@ -82,11 +56,31 @@ parseInstructions = do
     return (count, res)
 --     return (length (show st)):res
 
+parseInstruction :: ParsecT String Integer (Writer String) Int
 parseInstruction = do
     skipMany skipJunk
-    code <- parseOpcode <|> parseInt <|> parseChar
+--     code <- parseOpcode <|> parseInt <|> parseChar
+--     code <- try parseOpcode <|> parseInt <|> parseChar <|> parseLabel
+    code <- try parseWord <|> parseInt <|> parseChar <|> parseLabel
     modifyState (+1) -- add one to the count of instructions
+    -- FIXME: i don't think i should add one if i just parsed a label
     return code
+
+parseWord = do
+    word <- many1 letter `notFollowedBy` char ':'
+    let num = readOpCode word
+
+
+
+
+parseLabel = do
+    name <- many1 letter
+    char ':' 
+    skipMany skipJunk
+    lift $ tell name
+    return 100
+
+
 
 -- addSym :: String -> Parsec String [String] ()
 -- addSym = void . updateState . (:) -- append a string to the symbol list
@@ -107,7 +101,7 @@ parseInstruction = do
 --     <?> "instruction, int, or 'y"
 -}
 
-parseOpcode :: ParsecT String Integer Identity Int
+-- parseOpcode :: Parser Int
 parseOpcode = (fromEnum . readInstr . map toUpper) <$> many1 letter 
     where 
         readInstr :: String -> Instruction
@@ -115,23 +109,7 @@ parseOpcode = (fromEnum . readInstr . map toUpper) <$> many1 letter
         readInstr str = case readMaybe str of
             Just x -> x
             Nothing -> ERROR -- what should i do here?
---             Nothing -> parserFail "unrecognize opcode" -- what should i do here?
-
-{-
-parseOpcode :: ParsecT String Integer Identity Int
--- parseOpcode = undefined -- FIXME -- or uncomment the above
-parseOpcode = do 
-    res <- parseMaybeOpcode 
-    case res of 
-        Just x -> x
-        Nothing -> do
-            parserZero
---             parserFail "borked"
---             parserReturn 4
-parseMaybeOpcode :: ParsecT String Integer Identity (Maybe Int)
-parseMaybeOpcode = readMaybe . map toUpper <$> many1 letter 
-            -}
-
+--             Nothing -> fail <?> "borked" --  what should i do here?
 
 -- parseInt :: Parser Int
 parseInt = read <$> (many1 digit)
@@ -147,3 +125,4 @@ skipComment = spaces >> char ';' >> skipToEOL
 -- skipToEOL = many (noneOf "\n") >> return ()
 -- skipToEOL = skipMany (noneOf "\n") >> skipMany1 space -- skip past the '\n'
 skipToEOL = anyChar `manyTill` newline >> skipMany space
+
