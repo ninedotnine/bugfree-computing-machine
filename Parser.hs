@@ -1,4 +1,4 @@
-module Parser10 (Instruction(..), parseInstructions) where 
+module Parser11 (Instruction(..), Word(..), parseInstructions) where 
 
 import Text.ParserCombinators.Parsec hiding (try)
 -- import Text.Parsec.Prim hiding (runParser)
@@ -13,12 +13,14 @@ import Control.Monad.Writer (Writer, runWriter, tell, lift)
 import Control.Applicative hiding (many, (<|>))
 -- import Control.Applicative ((<$>))
 -- import Control.Applicative hiding ((<|>))
-import Data.Char (toUpper, ord)
+import Data.Char (toUpper, toLower, ord)
+import Data.List (genericLength)
 import Text.Read (readMaybe)
 
 import Instructions
 
-testfile = "testfile4"
+-- testfile = "testfile5.sax"
+testfile = "programs/testfile5.sax"
 
 main :: IO ()
 main = do
@@ -55,6 +57,9 @@ data Word = Lit Integer
           | Op Instruction
           | Label String
           | NewLabel String
+          | DS Integer
+          | DW [Integer]
+          | Entry String
           deriving (Show)
 
 --------------------------------- parser begins here
@@ -70,13 +75,52 @@ parseInstructions = do
 parseInstruction :: MyParser Word
 parseInstruction = do
     skipMany skipJunk
-    code <- parseInt <|> parseChar <|> try parseNewLabel <|> parseWord
+    code <- parseInt 
+        <|> parseChar 
+        <|> try parseDS 
+        <|> try parseDW 
+        <|> try parseEntry 
+        <|> try parseNewLabel 
+        <|> parseWord
     modifyState (+1) -- add one to the count of instructions
     return code
 
+parseDS :: MyParser Word
+parseDS = do
+    oneOf "Dd" >> oneOf "Ss" >> skipSpaces
+    (Lit size) <- parseInt
+    modifyState (\x -> x-1) -- a DS should not increase the text length...
+    modifyState (+size) -- but its operand should, by its value
+    return (DS size)
+
+-- FIXME: still doesn't handle strings or other fancy things like expressions
+parseDW :: MyParser Word
+parseDW = do
+    oneOf "Dd" >> oneOf "Ww" >> skipSpaces
+--     (Lit arg) <- parseInt <|> parseChar
+    args <- map unLit <$> (parseInt <|> parseChar) `sepBy1` (char ',' >>spaces)
+        -- a DW should increase the text length by the number of arguments
+    modifyState (\x -> x + (genericLength args) - 1) 
+--     return (DW [arg])
+    return (DW args)
+        where unLit (Lit x) = x
+
+parseEntry :: MyParser Word
+parseEntry = do 
+    caseInsensitiveString "entry"
+    skipSpaces
+    header <- letter
+    tailer <- many labelChar
+    let name = (header:tailer)
+    modifyState (\x -> x-1) -- the entry should not increase the text length
+    return (Entry name)
+
+-- FIXME: local labels are not implemented
 parseNewLabel :: MyParser Word
 parseNewLabel = do
-    name <- many1 letter
+    header <- letter
+    tailer <- many labelChar
+    let name = (header:tailer)
     char ':' 
     skipMany skipJunk
     pos <- getState -- get the current position in the count
@@ -99,6 +143,7 @@ parseChar = Lit . toInteger . ord <$> (char '\'' >> anyChar)
 
 skipJunk :: MyParser ()
 skipJunk = skipSpaces <|> skipComment
+-- skipJunk = spaces <|> skipComment
 
 skipSpaces :: MyParser ()
 skipSpaces = skipMany1 space <?> "" -- silence this; it's handled elsewhere
@@ -112,3 +157,24 @@ skipToEOL = anyChar `manyTill` newline >> skipMany space
 -- skipToEOL = many (noneOf "\n") >> return ()
 -- skipToEOL = skipMany (noneOf "\n") >> skipMany1 space -- skip past the '\n'
 
+-- caseInsensitiveChar :: Char -> GenParser Char state Char
+caseInsensitiveChar :: Char -> MyParser Char
+caseInsensitiveChar = (\c -> (char (toLower c) <|> char (toUpper c)) >> pure c)
+{-
+caseInsensitiveChar c = do
+  char (toLower c) <|> char (toUpper c)
+  return c
+-}
+
+-- caseInsensitiveString :: String -> GenParser Char state String
+caseInsensitiveString :: String -> MyParser String
+caseInsensitiveString = sequence . map caseInsensitiveChar
+
+{- from the assembler documentation:
+A label is any sequence of letters, digits, dots, and underscores, beginning 
+with a letter or at-sign '@' character, but excluding reserved words. A label 
+is also called an identifier. Labels longer than 30 characters in length are 
+silently truncated to 30 characters. 
+-}
+labelChar :: MyParser Char
+labelChar = letter <|> digit <|> oneOf "._"
