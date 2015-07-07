@@ -1,0 +1,27 @@
+; program to print and increment the value in memory location 15
+; version 0.1
+
+  	  entry main
+
+NL	  equ	0xa
+
+newline:  pushv NL
+	  printc
+	  return
+
+printL:	  push  L
+	  print
+	  call newline
+	  return
+
+L	  EQU	15
+
+	  ; first print the current value in L
+main:	  call printL
+	  push  L
+	  pushv 1
+	  add
+	  pop   L
+	  call  printL	  
+	  halt
+

@@ -1,0 +1,13 @@
+main:   call 12
+        read
+        call 12
+        read
+        add
+        print
+        pushv 10
+        printc
+        halt
+prompt: pushv '>
+        printc
+        return
+

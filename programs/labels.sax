@@ -1,0 +1,13 @@
+main:   call prompt
+        read
+@dum:   call prompt
+lol:    read
+@dum:   add
+@lol:   print
+        pushv 10
+dum:    printc
+@dum:   halt
+
+prompt: pushv '>
+@dum:   printc
+        poppc

@@ -1,0 +1,17 @@
+main:   call prompt
+        read
+        call prompt
+        read
+        add
+        print
+        pushv 10
+        printc
+        pushv 'k
+        printc
+        pushv 10
+        printc
+        halt
+
+prompt: pushv '>
+        printc
+        return
