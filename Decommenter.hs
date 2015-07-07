@@ -1,6 +1,7 @@
 module Decommenter (decomment) where
 
 -- FIXME : prints empty lines when they start with #
+-- FIXME : also a bug when '#' appears in quotes
 
 -- {-# LANGUAGE OverloadedStrings #-}
 
@@ -10,7 +11,6 @@ import Control.Applicative
 -- import Data.Text (Text, null, lines, unlines, takeWhile, head)
 import qualified Data.Text as T (Text, null, lines, unlines, takeWhile, head)
 -- import Data.Text.IO (interact)
--- import Prelude (not, (.), (||), (==), (/=), map, filter)
 -- import Prelude hiding (interact)
 
 {- 
