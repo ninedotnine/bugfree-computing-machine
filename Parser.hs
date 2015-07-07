@@ -1,4 +1,4 @@
-module Parser4 (Instruction(..), parseInstructions) where 
+module Parser5 (Instruction(..), parseInstructions) where 
 
 import Text.ParserCombinators.Parsec hiding (try)
 import Text.Parsec.Prim hiding (runParser)
@@ -23,52 +23,45 @@ main = do
     putStrLn $ "# object module for file: TEST LOL"
     c <- readFile "testfile"
     let result = runWriter $ runParserT parseInstructions 0 "testfile" c
---     case runState (runParserT parseWords 0 "parser2" c) of
---     case iParse parseWords 0 "parser2" c of
---     case iParse parseWords "parser2" c of
---     case c of
---     case runParser parseInstructions 0 "dum" c of
---     case runParsecT parseInstructions 0 "dum" c of
     putStr "result is: " >> print result
     case fst result of
         Left error -> putStrLn $ "error: " ++ (show error)
         Right r -> print r
---         Right r -> putStrLn "success"
     putStrLn "okay"
 
--- type ParserCounter s u a = ParsecT s u (State Int) a
 type ParserCounter a = ParsecT String Integer (State Int) a
+
+data Word = Lit Integer
+          | Op Instruction
+          | Label String
+          deriving (Show)
 
 --------------------------------- parser begins here
 
--- parseInstructions :: ParsecT String Integer Identity (Integer, [Int])
-parseInstructions :: ParsecT String Integer (Writer String) (Integer, [Int])
+-- parseInstructions :: ParsecT String Integer (Writer String) (Integer, [Int])
+parseInstructions :: ParsecT String Integer (Writer String) (Integer, [Word])
 parseInstructions = do 
---     res <- join <$> (many (try parseInstruction)) `sepBy` skipSpaces
     res <- join <$> (many (try parseInstruction)) `sepBy` skipJunk
     pos <- fmap sourceLine getPosition
---     res <- many (try parseInstruction)
---     skipMany (skipComment <|> skipSpaces)
     skipMany skipJunk
     eof
     count <- getState
---     return (res ++ [pos]) -- interesting use of monad!
     return (count, res)
---     return (length (show st)):res
 
-parseInstruction :: ParsecT String Integer (Writer String) Int
+-- parseInstruction :: ParsecT String Integer (Writer String) Int
+parseInstruction :: ParsecT String Integer (Writer String) Word
 parseInstruction = do
     skipMany skipJunk
---     code <- parseOpcode <|> parseInt <|> parseChar
---     code <- try parseOpcode <|> parseInt <|> parseChar <|> parseLabel
-    code <- try parseWord <|> parseInt <|> parseChar <|> parseLabel
+    code <- parseOpcode <|> parseInt <|> parseChar
     modifyState (+1) -- add one to the count of instructions
     -- FIXME: i don't think i should add one if i just parsed a label
     return code
 
+{-
 parseWord = do
     word <- many1 letter `notFollowedBy` char ':'
-    let num = readOpCode word
+    let num = parseOpCode word
+    -}
 
 
 
@@ -102,7 +95,9 @@ parseInstruction = do
 -}
 
 -- parseOpcode :: Parser Int
-parseOpcode = (fromEnum . readInstr . map toUpper) <$> many1 letter 
+parseOpcode :: ParsecT String Integer (Writer String) Word
+-- parseOpcode = (fromEnum . readInstr . map toUpper) <$> many1 letter 
+parseOpcode = (Op . readInstr . map toUpper) <$> many1 letter 
     where 
         readInstr :: String -> Instruction
         -- readInstr = read
@@ -112,10 +107,38 @@ parseOpcode = (fromEnum . readInstr . map toUpper) <$> many1 letter
 --             Nothing -> fail <?> "borked" --  what should i do here?
 
 -- parseInt :: Parser Int
-parseInt = read <$> (many1 digit)
+parseInt :: ParsecT String Integer (Writer String) Word
+parseInt = Lit . read <$> (many1 digit)
 
 -- parseChar :: Parser Int
-parseChar = ord <$> (char '\'' >> letter)
+parseChar :: ParsecT String Integer (Writer String) Word
+-- parseChar = (Lit . toInteger) $ (ord <$> (char '\'' >> letter))
+-- parseChar = (return . Lit . toInteger) (ord <$> (char '\'' >> letter))
+{-
+parseChar = do -- this one works!!!
+    char '\''
+    x <- letter
+    return $ Lit $ toInteger $ ord x
+    -} 
+
+{-
+parseChar = do
+    x <- char '\'' >> letter
+    return $ Lit $ toInteger $ ord x
+    -}
+
+parseChar = (Lit . toInteger . ord) <$> (char '\'' >> letter)
+--     return $ Lit $ toInteger $ ord x
+
+-- dumbparseChar2 :: ParsecT String Integer (Writer String) Word
+-- dumbparseChar2 = do
+--     char '\''
+--     x <- letter
+--     return $ Lit $ toInteger $ ord x
+
+-- dumbparseChar :: ParsecT String Integer (Writer String) Int
+-- dumbparseChar = (ord <$> (char '\'' >> letter))
+
 
 -- skipComment :: Parser ()
 skipComment = spaces >> char ';' >> skipToEOL
