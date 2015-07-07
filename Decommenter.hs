@@ -1,7 +1,6 @@
 module Decommenter (decomment) where
 
--- FIXME : prints empty lines when they start with #
--- FIXME : also a bug when '#' appears in quotes
+-- FIXME : a bug when '#' appears in quotes
 
 -- {-# LANGUAGE OverloadedStrings #-}
 
@@ -10,8 +9,8 @@ import Control.Monad
 import Control.Applicative
 -- import Data.Text (Text, null, lines, unlines, takeWhile, head)
 import qualified Data.Text as T (Text, null, lines, unlines, takeWhile, head)
--- import Data.Text.IO (interact)
--- import Prelude hiding (interact)
+import Data.Text.IO (interact)
+import Prelude hiding (interact)
 
 {- 
 this module exports decomment, which removes:
@@ -21,12 +20,11 @@ this module exports decomment, which removes:
  -}
 
 -- main = interact decomment'
-main = interact decomment
+main = interact decomment'
 
 decomment' :: T.Text -> T.Text
 decomment' = T.unlines . map (T.takeWhile (/= ('#'))) . removeLines . T.lines
-    where
-        removeLines = filter $ (||) . not . T.null <*> (/='#') . T.head
+    where removeLines = filter $ not . ((||) . T.null <*> (=='#') . T.head)
     {-
         removeLines :: [T.Text] -> [T.Text]
         removeLines = filter (not . badLine) where
@@ -35,8 +33,12 @@ decomment' = T.unlines . map (T.takeWhile (/= ('#'))) . removeLines . T.lines
 --             -}
 
 decomment :: String -> String
-decomment = unlines . map (takeWhile (/= ('#'))) . removeLines . lines where
+-- decomment = unlines . map (takeWhile (/= ('#'))) . removeLines . lines where
+decomment = unlines . removeInlineComments . removeLines . lines where
 --     removeLines = filter $ liftM2 (||) (not . null) ((/='#') . head)
 --     removeLines = filter (ap ((||) . ('#' /=) . head) (not . null))
 --     removeLines = filter (ap ((||) . not . null) (('#' /=) . head))
-    removeLines = filter $ (||) . not . null <*> (/='#') . head
+    removeLines = filter $ not . ((||) . null <*> (== '#' ) . head)
+    removeInlineComments = map $ takeWhile (/= ('#')) -- FIXME: quoted strings
+--         removeLines = filter (not . badLine) where 
+--             badLine :: String -> Bool
