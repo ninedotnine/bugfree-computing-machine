@@ -1,4 +1,5 @@
 ---------- assembler ----------
+[x] relocation dictionary
 [ ] expressions
 [ ] strings in DWs
 [ ] extern
