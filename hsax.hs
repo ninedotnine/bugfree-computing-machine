@@ -54,11 +54,22 @@ outputResult filename (textLength, entry, toks, labels) = do
         genned = runWriter (gen' toks)
 --     mapM_ (putStrLn . gen) toks
 --     mapM_ putStrLn genned
-    print (fst genned)
+--     print (fst genned)
     putStrLn (fst genned)
 
     putStrLn "STUFF >>>>>>>>>>>>>>>>>>"
     print (snd genned)
+    let metadata :: ([Integer], [String], [String])
+        metadata = snd genned
+
+    (mapM_ print . (\(loc, _, _) -> loc)) metadata
+--     (mapM_ putStrLn . (\(_, str, _) -> str)) metadata
+--     (mapM_ (putStrLn . (++"EXTERN ") . getExtern)) metadata
+    let ext = getExtern metadata
+    mapM_ (putStrLn . ("EXTERN "++ )) (getExtern metadata)
+    (mapM_ putStrLn . (\(_, _, str) -> str)) metadata
+
+    
     putStrLn "% relocation dictionary"
 --     mapM_ print (snd genned)
 
@@ -74,6 +85,8 @@ the writer: ([Integer], [String], [String])
             [String] is the externs
             [String] is the publics
 -}
+        getExtern :: ([Integer], [String], [String]) -> [String]
+        getExtern = \(_, strs, _) -> strs
         gen' :: [Token] -> Writer ([Integer], [String], [String]) String
         gen' toksies = do
             lins <- mapM gen toksies
@@ -92,8 +105,8 @@ the writer: ([Integer], [String], [String])
             return $ show (labels ! str) ++ "     # label: " ++ str
         gen (EQU name val) = return $ "# equ here: " ++ name ++ " = " ++ show val
         gen (Extern name) = do
-            addExtern name
-            return $ "# extern here: " ++ name
+            mapM_ addExtern name
+            return $ "# extern here: " ++ show name
         gen (Public name) = do
             addPublic name
             return $ "# public here: " ++ name

@@ -111,8 +111,8 @@ data Token = Lit Integer
             | DW [Integer]
             | EQU String Integer 
             | Entry EntryPoint
---             | Extern [String]
-            | Extern String
+            | Extern [String]
+--             | Extern String
             | Public String
             deriving (Show)
 
@@ -308,10 +308,23 @@ asmDS = do
 asmDW :: MyParser Token
 asmDW = do
     caseInsensitiveString "dw" *> skipSpaces
-    args <- intOrChar `sepBy1` (char ',' *> spaces)
+--     args <- intOrChar `sepBy1` (char ',' *> spaces)
+    args <- fmap join dwArgs
     -- a DW should increase the location counter by the number of arguments
     loc (\x -> x + (genericLength args))
+    traceM $ "asmDW: args: " ++ show args
     return (DW args)
+
+dwArgs :: MyParser [[Integer]]
+dwArgs = (fmap (:[]) intOrChar <|> litString) `sepBy1` (char ',' *> spaces)
+
+litString :: MyParser [Integer]
+litString = do
+    char '\"'
+    chars <- map (toInteger . ord) <$> many anyChar
+    char '\"'
+    return chars
+    
 
 asmEntry :: MyParser Token
 asmEntry = do 
@@ -331,7 +344,8 @@ asmExtern = do
     forM_ args (flip addToLabels (-9)) -- FIXME: what value should it have?
 --     traverse_ (flip addToLabels (-9)) args -- FIXME: what value should it have?
 --     mapM_ (flip addToLabels (-9)) args  -- FIXME: what value should it have?
-    return $ Extern (show args)
+    traceM $ "asmExtern: args: " ++ show args
+    return $ Extern (args)
 
 asmPublic :: MyParser Token 
 asmPublic = do
