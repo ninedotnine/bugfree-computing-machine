@@ -44,7 +44,7 @@ outputResult filename (textLength, entry, words, labels) = do
     putStrLn $ "# object module for file: " ++ filename
     putStr "# " >> getClockTime >>= print
     putStrLn $ show textLength ++ " text length \n% text"
-    mapM_ (putStrLn . prettyPrint) words
+    mapM_ (putStrLn . gen) words
 
     putStrLn "% relocation dictionary"
     putStrLn "LOL FIXME RELOCDICT"
@@ -57,15 +57,15 @@ outputResult filename (textLength, entry, words, labels) = do
     putStrLn "-------------------- LABELS --------------------"
     putStr (Map.showTree labels)
     where
-        prettyPrint :: Word -> String
-        prettyPrint (DW xs) = concat $ intersperse "\n" (map show xs)
-        prettyPrint (DS x) = ':' : show x
-        prettyPrint (Entry x) = "# entry found: " ++ show x
-        prettyPrint (Op x) = show (fromEnum x) ++ " # " ++ show x
-        prettyPrint (Lit x) = show x
-        prettyPrint (NewLabel str) = "# " ++ str
-        prettyPrint (Label str) = show (labels ! str)
-        prettyPrint (Equ name val) = "# equ here: " ++ name ++ " = " ++ show val
+        gen :: Word -> String
+        gen (DW xs) = concat $ intersperse "\n" (map show xs)
+        gen (DS x) = ':' : show x
+        gen (Entry x) = "# entry found: " ++ show x
+        gen (Op x) = show (fromEnum x) ++ " # " ++ show x
+        gen (Lit x) = show x
+        gen (NewLabel str) = "# " ++ str
+        gen (Label str) = show (labels ! str)
+        gen (Equ name val) = "# equ here: " ++ name ++ " = " ++ show val
             -- (!) is unsafe, but should be fine here 
             -- because i used these very labels to populate the map 
         writeEntry :: IO ()
