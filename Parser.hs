@@ -3,7 +3,7 @@
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
 
 module Parser (Instruction(..), 
-                Word(..), 
+                Token(..), 
                 EntryPoint(..),
                 parseEverything) where 
 
@@ -45,7 +45,7 @@ main :: IO ()
 main = do
     putStrLn $ "# object module for file: " ++ testfile
     c <- readFile testfile
-    let result :: Either ParseError (Integer, EntryPoint, [Word], Labels)
+    let result :: Either ParseError (Integer, EntryPoint, [Token], Labels)
         result = parseEverything testfile c
     putStr "result is: " >> print result
     putStrLn  "------------------------------------------"
@@ -56,16 +56,16 @@ main = do
 
 parseEverything :: SourceName 
         -> String 
-        -> Either ParseError (Integer, EntryPoint, [Word], Labels)
+        -> Either ParseError (Integer, EntryPoint, [Token], Labels)
 parseEverything name str = do
-    let eith :: Either ParseError (Integer, EntryPoint, [Word])
+    let eith :: Either ParseError (Integer, EntryPoint, [Token])
         (eith, labels) = parseEverything' name str
     case eith of
         Left err -> Left err
         Right (i, m, xs) -> return (i, m, xs, labels)
 
 parseEverything' :: SourceName -> String 
-        -> (Either ParseError (Integer, EntryPoint, [Word]), Labels)
+        -> (Either ParseError (Integer, EntryPoint, [Token]), Labels)
 parseEverything' = (runWriter .) . runParserT instructions (0, "", "")
 
 
@@ -97,20 +97,20 @@ Writer Labels is the transformed monad. when a label is parsed,
 type Labels = Map.Map String Integer
 
 {-
-Word is an algebraic data type
+Token is an algebraic data type
 a Lit can be a number like 65 or a letter like 'a
 an Op is any of the opcodes
 a Label is a label
 -}
-data Word = Lit Integer
-          | Op Instruction
-          | Label String
-          | NewLabel String
-          | DS Integer
-          | DW [Integer]
-          | Equ String Integer 
-          | Entry EntryPoint
-          deriving (Show)
+data Token = Lit Integer
+            | Op Instruction
+            | Label String
+            | NewLabel String
+            | DS Integer
+            | DW [Integer]
+            | Equ String Integer 
+            | Entry EntryPoint
+            deriving (Show)
 
 newtype EntryPoint = EntryPoint String deriving (Eq)
 
@@ -121,14 +121,14 @@ instance IsString EntryPoint where
 
 --------------------------------- parser begins here
 
-instructions :: MyParser (Integer, EntryPoint, [Word])
+instructions :: MyParser (Integer, EntryPoint, [Token])
 instructions = do 
     res <- join <$> many (try instruction) `sepBy` skipJunk
     skipMany skipJunk *> eof
     (counter, entry, _) <- getState
     return (counter, entry, res)
 
-instruction :: MyParser Word
+instruction :: MyParser Token
 instruction = skipMany skipJunk *>
     fmap Lit intOrChar <* loc (+1)
     <|> try asmEQU 
@@ -140,10 +140,10 @@ instruction = skipMany skipJunk *>
     <|> label <* loc (+1)
 
 
-newLabel :: MyParser Word
+newLabel :: MyParser Token
 newLabel = NewLabel <$> (newGlobalLabel <|> newLocalLabel) <* skipMany skipJunk
 
-label :: MyParser Word
+label :: MyParser Token
 label = Label <$> (localLabel <|> globalLabel) <* skipMany skipJunk
 
 newLocalLabel :: MyParser String
@@ -177,7 +177,7 @@ globalLabel = do
     return (header:tailer)
 
 
-opcode :: MyParser Word
+opcode :: MyParser Token
 opcode = do 
     uppers <- map toUpper <$> many1 letter -- all the opcodes are in capitals
      -- try to read it as an Instruction
@@ -277,14 +277,14 @@ addop :: MyParser (Integer -> Integer -> Integer)
 addop = char '+' *> return (+)
     <|> char '-' *> return (-)
 
-asmEQU :: MyParser Word
+asmEQU :: MyParser Token
 asmEQU = do
     name <- globalLabel <* skipSpaces
     def <- caseInsensitiveString "equ" *> skipSpaces *> expr
     addToLabels name def -- add it to the map of labels
     return $ Equ name def
 
-asmDS :: MyParser Word
+asmDS :: MyParser Token
 asmDS = do
     caseInsensitiveString "ds" *> skipSpaces
     size <- intOrChar
@@ -293,7 +293,7 @@ asmDS = do
     return (DS size)
 
 -- FIXME: still doesn't handle strings or other fancy things like expressions
-asmDW :: MyParser Word
+asmDW :: MyParser Token
 asmDW = do
     caseInsensitiveString "dw" *> skipSpaces
     args <- intOrChar `sepBy1` (char ',' *> spaces)
@@ -301,7 +301,7 @@ asmDW = do
     loc (\x -> x + (genericLength args))
     return (DW args)
 
-asmEntry :: MyParser Word
+asmEntry :: MyParser Token
 asmEntry = do 
     caseInsensitiveString "entry"
     skipSpaces
