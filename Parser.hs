@@ -108,6 +108,7 @@ data Word = Lit Integer
           | NewLabel String
           | DS Integer
           | DW [Integer]
+          | Equ String Integer 
           | Entry EntryPoint
           deriving (Show)
 
@@ -130,6 +131,7 @@ instructions = do
 instruction :: MyParser Word
 instruction = skipMany skipJunk *>
     fmap Lit intOrChar <* loc (+1)
+    <|> try asmEQU 
     <|> try asmDS 
     <|> try asmDW 
     <|> try asmEntry 
@@ -148,7 +150,8 @@ newLocalLabel :: MyParser String
 newLocalLabel = do
     name <- localLabel <* char ':'
     pos <- getLoc -- get the current position in the count
-    lift $ tell (Map.singleton name pos) -- add it to the map of labels
+--     lift $ tell (Map.singleton name pos) -- add it to the map of labels
+    addToLabels name pos -- add it to the map of labels
     return name
 
 newGlobalLabel :: MyParser String
@@ -156,9 +159,10 @@ newGlobalLabel = do
     name <- globalLabel <* char ':' 
     setLabelPrefix name -- new current scope
     pos <- getLoc -- get the current position in the count
-    lift $ tell (Map.singleton name pos) -- add it to the map of labels
+--     lift $ tell (Map.singleton name pos) -- add it to the map of labels
+    addToLabels name pos -- add it to the map of labels
     return name
-    
+
 localLabel :: MyParser String
 localLabel = do
     char '@'
@@ -242,6 +246,9 @@ setEntry = modifyState . setEntry' where
     setEntry' name (i, "", labl) = (i, name, labl) 
     setEntry' _ _ = error "multiple entries?" 
 
+addToLabels :: String -> Integer -> MyParser ()
+addToLabels name val = lift $ tell (Map.singleton name val)
+
 setLabelPrefix :: String -> MyParser ()
 setLabelPrefix = modifyState . setLabelPrefix' where
     setLabelPrefix' str (i, ent, _) = (i, ent, str)
@@ -250,11 +257,10 @@ getLabelPrefix :: MyParser String
 getLabelPrefix = getState >>= \(_, _, labl) -> return labl
 
 
-
-
 -- FIXME: expressions don't work at all
 expr   :: MyParser Integer
-expr   = term `chainl1` addop
+-- expr   = term `chainl1` addop
+expr   = intOrChar -- FIXME
 
 term   :: MyParser Integer
 term   = factor `chainl1` mulop
@@ -271,6 +277,13 @@ addop :: MyParser (Integer -> Integer -> Integer)
 addop = char '+' *> return (+)
     <|> char '-' *> return (-)
 
+asmEQU :: MyParser Word
+asmEQU = do
+    name <- globalLabel <* skipSpaces
+    def <- caseInsensitiveString "equ" *> skipSpaces *> expr
+    addToLabels name def -- add it to the map of labels
+    return $ Equ name def
+
 asmDS :: MyParser Word
 asmDS = do
     caseInsensitiveString "ds" *> skipSpaces
@@ -284,7 +297,7 @@ asmDW :: MyParser Word
 asmDW = do
     caseInsensitiveString "dw" *> skipSpaces
     args <- intOrChar `sepBy1` (char ',' *> spaces)
-        -- a DW should increase the location counter by the number of arguments
+    -- a DW should increase the location counter by the number of arguments
     loc (\x -> x + (genericLength args))
     return (DW args)
 

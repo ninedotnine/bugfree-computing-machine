@@ -1,3 +1,5 @@
+stuff equ 999
+
 main:   call prompt
         read
         call prompt
