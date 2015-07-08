@@ -65,6 +65,7 @@ outputResult filename (textLength, entry, words, labels) = do
         prettyPrint (Lit x) = show x
         prettyPrint (NewLabel str) = "# " ++ str
         prettyPrint (Label str) = show (labels ! str)
+        prettyPrint (Equ name val) = "# equ here: " ++ name ++ " = " ++ show val
             -- (!) is unsafe, but should be fine here 
             -- because i used these very labels to populate the map 
         writeEntry :: IO ()
