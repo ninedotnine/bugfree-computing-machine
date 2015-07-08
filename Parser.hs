@@ -25,6 +25,7 @@ import Control.Applicative hiding (many)
 import Data.Char (toUpper, toLower, ord)
 import Data.List (genericLength)
 import Data.String (IsString, fromString)
+-- import Data.Foldable (traverse_)
 import Text.Read (readMaybe)
 
 -- import Data.Map.Strict (Map, (!))
@@ -110,6 +111,9 @@ data Token = Lit Integer
             | DW [Integer]
             | EQU String Integer 
             | Entry EntryPoint
+--             | Extern [String]
+            | Extern String
+            | Public String
             deriving (Show)
 
 newtype EntryPoint = EntryPoint String deriving (Eq)
@@ -135,6 +139,7 @@ instruction = skipMany skipJunk *>
     <|> try asmDS 
     <|> try asmDW 
     <|> try asmEntry 
+    <|> try asmExtern 
     <|> try newLabel 
     <|> try opcode <* loc (+1)
     <|> label <* loc (+1)
@@ -153,6 +158,7 @@ label = do
 newLocalLabel :: MyParser String
 newLocalLabel = do
     name <- localLabel <* char ':'
+--     traceM $ ">>> name is: " ++ name
     pos <- getLoc -- get the current position in the count
 --     lift $ tell (Map.singleton name pos) -- add it to the map of labels
     addToLabels name pos -- add it to the map of labels
@@ -172,6 +178,7 @@ localLabel = do
     char '@'
     tailer <- many labelChar
     header <- getLabelPrefix
+--     traceM $ header is: " ++ header
     return (header ++ '-' : tailer) -- join them with '-' to prevent clashes
 
 globalLabel :: MyParser String
@@ -315,3 +322,23 @@ asmEntry = do
     let name = (header:tailer)
     setEntry (EntryPoint name)
     return (Entry (EntryPoint name))
+
+asmExtern :: MyParser Token 
+asmExtern = do
+    caseInsensitiveString "extern"
+    skipSpaces
+    args <- (localLabel <|> globalLabel) `sepBy1` (char ',' *> spaces)
+    forM_ args (flip addToLabels (-9)) -- FIXME: what value should it have?
+--     traverse_ (flip addToLabels (-9)) args -- FIXME: what value should it have?
+--     mapM_ (flip addToLabels (-9)) args  -- FIXME: what value should it have?
+    return $ Extern (show args)
+
+asmPublic :: MyParser Token 
+asmPublic = do
+    caseInsensitiveString "public"
+    skipSpaces
+    args <- (localLabel <|> globalLabel) `sepBy1` (char ',' *> spaces)
+    forM_ args (flip addToLabels (-9)) -- FIXME: what value should it have?
+--     traverse_ (flip addToLabels (-9)) args -- FIXME: what value should it have?
+--     mapM_ (flip addToLabels (-9)) args  -- FIXME: what value should it have?
+    return $ Public (show args)

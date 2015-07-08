@@ -46,30 +46,40 @@ outputResult filename (textLength, entry, toks, labels) = do
 
     putStrLn "--------------------TOKENS--------------------"
     print toks
+    putStrLn "-------------------- LABELS --------------------"
+    putStr (Map.showTree labels)
+    putStrLn "-------------------- START --------------------"
 
-    let genned :: (String, [Integer])
+    let genned :: (String, ([Integer], [String], [String]))
         genned = runWriter (gen' toks)
 --     mapM_ (putStrLn . gen) toks
 --     mapM_ putStrLn genned
     print (fst genned)
     putStrLn (fst genned)
 
+    putStrLn "STUFF >>>>>>>>>>>>>>>>>>"
+    print (snd genned)
     putStrLn "% relocation dictionary"
-    mapM_ print (snd genned)
+--     mapM_ print (snd genned)
 
     putStrLn "% ENTRY, EXTERN, and PUBLIC references"
     writeEntry
     putStrLn "LOL FIXME EXTERN AND PUBLIC"
     putStrLn "% end of object module"
 
-    putStrLn "-------------------- LABELS --------------------"
-    putStr (Map.showTree labels)
     where
-        gen' :: [Token] -> Writer [Integer] String
+{-
+the writer: ([Integer], [String], [String])
+            [Integer] is the relocatable stuff
+            [String] is the externs
+            [String] is the publics
+-}
+        gen' :: [Token] -> Writer ([Integer], [String], [String]) String
         gen' toksies = do
             lins <- mapM gen toksies
             return (unlines lins)
-        gen :: Token -> Writer [Integer] String 
+--         gen :: Token -> Writer ([Integer] String 
+        gen :: Token -> Writer ([Integer], [String], [String]) String
         gen (DW xs) = return $ concat $ intersperse "\n" (map show xs)
         gen (DS x) = return $ ':' : show x
         gen (Entry x) = return $ "# entry found: " ++ show x
@@ -77,9 +87,16 @@ outputResult filename (textLength, entry, toks, labels) = do
         gen (Lit x) = return $ show x
         gen (NewLabel str) = return $ "# " ++ str
         gen (Label str loc) = do
-            tell [loc]
+--             tell ([loc], [], [])
+            addReloc loc
             return $ show (labels ! str) ++ "     # label: " ++ str
         gen (EQU name val) = return $ "# equ here: " ++ name ++ " = " ++ show val
+        gen (Extern name) = do
+            addExtern name
+            return $ "# extern here: " ++ name
+        gen (Public name) = do
+            addPublic name
+            return $ "# public here: " ++ name
             -- (!) is unsafe, but should be fine here 
             -- because i used these very labels to populate the map 
         writeEntry :: IO ()
@@ -87,6 +104,15 @@ outputResult filename (textLength, entry, toks, labels) = do
             putStrLn $ "ENTRY " ++ show entry ++ " " ++ (show (labels ! show entry))
 
 --------------------------------------------
+
+addReloc :: Integer -> Writer ([Integer], [String], [String]) ()
+addReloc x = tell ([x], [], [])
+
+addExtern :: String -> Writer ([Integer], [String], [String]) ()
+addExtern str = tell ([], [str], [])
+
+addPublic :: String -> Writer ([Integer], [String], [String]) ()
+addPublic str = tell ([], [], [str])
 
 getFileData :: IO (FilePath, String)
 getFileData = getArgs >>= \args -> if length args < 1
