@@ -9,9 +9,8 @@ import System.Time (getClockTime)
 -- import Text.ParserCombinators.Parsec (parse)
 import Text.ParserCombinators.Parsec (ParseError)
 -- import Text.Parsec.Prim (runParserT)
--- import Control.Monad.Writer (runWriter)
 import Control.Monad
--- import Control.Monad
+import Control.Monad.Writer
 -- import Control.Applicative ((<$>))
 -- import Control.Applicative hiding ((<|>))
 -- import Text.Read 
@@ -39,15 +38,24 @@ main = do
 --         Right r -> print r
 
 outputResult :: FilePath -> (Integer, EntryPoint, [Token], Map String Integer) -> IO ()
-outputResult filename (textLength, entry, words, labels) = do
+outputResult filename (textLength, entry, toks, labels) = do
     putStrLn "%SXX+Object Module"
     putStrLn $ "# object module for file: " ++ filename
     putStr "# " >> getClockTime >>= print
     putStrLn $ show textLength ++ " text length \n% text"
-    mapM_ (putStrLn . gen) words
+
+    putStrLn "--------------------TOKENS--------------------"
+    print toks
+
+    let genned :: (String, [Integer])
+        genned = runWriter (gen' toks)
+--     mapM_ (putStrLn . gen) toks
+--     mapM_ putStrLn genned
+    print (fst genned)
+    putStrLn (fst genned)
 
     putStrLn "% relocation dictionary"
-    putStrLn "LOL FIXME RELOCDICT"
+    mapM_ print (snd genned)
 
     putStrLn "% ENTRY, EXTERN, and PUBLIC references"
     writeEntry
@@ -57,15 +65,21 @@ outputResult filename (textLength, entry, words, labels) = do
     putStrLn "-------------------- LABELS --------------------"
     putStr (Map.showTree labels)
     where
-        gen :: Token -> String
-        gen (DW xs) = concat $ intersperse "\n" (map show xs)
-        gen (DS x) = ':' : show x
-        gen (Entry x) = "# entry found: " ++ show x
-        gen (Op x) = show (fromEnum x) ++ " # " ++ show x
-        gen (Lit x) = show x
-        gen (NewLabel str) = "# " ++ str
-        gen (Label str) = show (labels ! str)
-        gen (Equ name val) = "# equ here: " ++ name ++ " = " ++ show val
+        gen' :: [Token] -> Writer [Integer] String
+        gen' toksies = do
+            lins <- mapM gen toksies
+            return (unlines lins)
+        gen :: Token -> Writer [Integer] String 
+        gen (DW xs) = return $ concat $ intersperse "\n" (map show xs)
+        gen (DS x) = return $ ':' : show x
+        gen (Entry x) = return $ "# entry found: " ++ show x
+        gen (Op x) = return $ show (fromEnum x) ++ " # " ++ show x
+        gen (Lit x) = return $ show x
+        gen (NewLabel str) = return $ "# " ++ str
+        gen (Label str loc) = do
+            tell [loc]
+            return $ show (labels ! str) ++ "     # label: " ++ str
+        gen (EQU name val) = return $ "# equ here: " ++ name ++ " = " ++ show val
             -- (!) is unsafe, but should be fine here 
             -- because i used these very labels to populate the map 
         writeEntry :: IO ()

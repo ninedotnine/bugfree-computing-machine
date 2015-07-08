@@ -104,11 +104,11 @@ a Label is a label
 -}
 data Token = Lit Integer
             | Op Instruction
-            | Label String
+            | Label String Integer -- the int is the current location counter
             | NewLabel String
             | DS Integer
             | DW [Integer]
-            | Equ String Integer 
+            | EQU String Integer 
             | Entry EntryPoint
             deriving (Show)
 
@@ -144,7 +144,11 @@ newLabel :: MyParser Token
 newLabel = NewLabel <$> (newGlobalLabel <|> newLocalLabel) <* skipMany skipJunk
 
 label :: MyParser Token
-label = Label <$> (localLabel <|> globalLabel) <* skipMany skipJunk
+-- label = Label <$> (localLabel <|> globalLabel) <* skipMany skipJunk
+label = do 
+    str <- (localLabel <|> globalLabel) <* skipMany skipJunk
+    int <- getLoc
+    return $ Label str int
 
 newLocalLabel :: MyParser String
 newLocalLabel = do
@@ -236,6 +240,7 @@ labelChar = letter <|> digit <|> oneOf "._"
 loc :: (Integer -> Integer) -> MyParser ()
 loc = modifyState . (\f (i, s, labl) -> (f i, s, labl))
 
+-- returns the current location counter
 getLoc :: MyParser Integer
 getLoc = getState >>= \(i, _, _) -> return i
 
@@ -282,7 +287,7 @@ asmEQU = do
     name <- globalLabel <* skipSpaces
     def <- caseInsensitiveString "equ" *> skipSpaces *> expr
     addToLabels name def -- add it to the map of labels
-    return $ Equ name def
+    return $ EQU name def
 
 asmDS :: MyParser Token
 asmDS = do
