@@ -1,0 +1,12 @@
+        extern foo, bar
+
+newline: 
+        pushv 10
+        printc
+
+main:   call foo
+        call newline
+        call bar
+        halt
+
+entry main
