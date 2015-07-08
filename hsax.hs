@@ -50,32 +50,21 @@ outputResult filename (textLength, entry, toks, labels) = do
     putStr (Map.showTree labels)
     putStrLn "-------------------- START --------------------"
 
-    let genned :: (String, ([Integer], [String], [String]))
-        genned = runWriter (gen' toks)
+    let (text, metadata) = runWriter (gen' toks)
+        (relocs, exts, pubs) = metadata :: ([Integer], [String], [String])
 --     mapM_ (putStrLn . gen) toks
---     mapM_ putStrLn genned
---     print (fst genned)
-    putStrLn (fst genned)
-
-    putStrLn "STUFF >>>>>>>>>>>>>>>>>>"
-    print (snd genned)
-    let metadata :: ([Integer], [String], [String])
-        metadata = snd genned
-
-    (mapM_ print . (\(loc, _, _) -> loc)) metadata
---     (mapM_ putStrLn . (\(_, str, _) -> str)) metadata
---     (mapM_ (putStrLn . (++"EXTERN ") . getExtern)) metadata
-    let ext = getExtern metadata
-    mapM_ (putStrLn . ("EXTERN "++ )) (getExtern metadata)
-    (mapM_ putStrLn . (\(_, _, str) -> str)) metadata
-
+    putStrLn text
     
+    putStr "METADATA >>>>>>>>>>>>>>>>>> "
+    print metadata
+
     putStrLn "% relocation dictionary"
---     mapM_ print (snd genned)
+    mapM_ print relocs
 
     putStrLn "% ENTRY, EXTERN, and PUBLIC references"
     writeEntry
-    putStrLn "LOL FIXME EXTERN AND PUBLIC"
+    mapM_ (putStrLn . ("EXTERN "++ )) exts
+    mapM_ (putStrLn . ("PUBLIC"++)) pubs
     putStrLn "% end of object module"
 
     where
@@ -85,8 +74,6 @@ the writer: ([Integer], [String], [String])
             [String] is the externs
             [String] is the publics
 -}
-        getExtern :: ([Integer], [String], [String]) -> [String]
-        getExtern = \(_, strs, _) -> strs
         gen' :: [Token] -> Writer ([Integer], [String], [String]) String
         gen' toksies = do
             lins <- mapM gen toksies
