@@ -113,8 +113,7 @@ data Token = Lit Integer
             | EQU String Integer 
             | Entry EntryPoint
             | Extern [String]
---             | Extern String
-            | Public String
+            | Public String -- FIXME: [String], just like Extern i think
             deriving (Show)
 
 newtype EntryPoint = EntryPoint String deriving (Eq)
@@ -141,6 +140,7 @@ instruction = skipMany skipJunk *>
     <|> try asmDW 
     <|> try asmEntry 
     <|> try asmExtern 
+    <|> try asmPublic
     <|> try newLabel 
     <|> try opcode <* loc (+1)
     <|> label <* loc (+1)
