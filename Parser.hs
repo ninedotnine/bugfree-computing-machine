@@ -29,7 +29,8 @@ import Data.String (IsString, fromString)
 import Text.Read (readMaybe)
 
 -- import Data.Map.Strict (Map, (!))
-import qualified Data.Map.Strict as Map (Map, singleton)
+-- import qualified Data.Map.Strict as Map (Map, singleton)
+import Data.Map.Strict as Map (Map, singleton)
 
 import Debug.Trace (trace)
 
@@ -312,7 +313,7 @@ asmDW = do
     args <- fmap join dwArgs
     -- a DW should increase the location counter by the number of arguments
     loc (\x -> x + (genericLength args))
-    traceM $ "asmDW: args: " ++ show args
+--     traceM $ "asmDW: args: " ++ show args
     return (DW args)
 
 dwArgs :: MyParser [[Integer]]
@@ -344,7 +345,7 @@ asmExtern = do
     forM_ args (flip addToLabels (-9)) -- FIXME: what value should it have?
 --     traverse_ (flip addToLabels (-9)) args -- FIXME: what value should it have?
 --     mapM_ (flip addToLabels (-9)) args  -- FIXME: what value should it have?
-    traceM $ "asmExtern: args: " ++ show args
+--     traceM $ "asmExtern: args: " ++ show args
     return $ Extern (args)
 
 asmPublic :: MyParser Token 

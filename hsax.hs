@@ -44,18 +44,19 @@ outputResult filename (textLength, entry, toks, labels) = do
     putStr "# " >> getClockTime >>= print
     putStrLn $ show textLength ++ " text length \n% text"
 
-    putStrLn "--------------------TOKENS--------------------"
-    print toks
-    putStrLn "-------------------- LABELS --------------------"
-    putStr (Map.showTree labels)
-    putStrLn "-------------------- START --------------------"
+    putStrLn "# --------------------TOKENS--------------------"
+    putStrLn $ "# " ++ show toks
+    putStrLn "# -------------------- LABELS --------------------"
+--     putStr (Map.showTree labels)
+    putStr (unlines (map ("# "++) (lines (Map.showTree labels))))
+    putStrLn "# -------------------- TEXT --------------------"
 
     let (text, metadata) = runWriter (gen' toks)
         (relocs, exts, pubs) = metadata :: ([Integer], [String], [String])
 --     mapM_ (putStrLn . gen) toks
     putStrLn text
     
-    putStr "METADATA >>>>>>>>>>>>>>>>>> "
+    putStr "# METADATA >>>>>>>>>>>>>>>>>> "
     print metadata
 
     putStrLn "% relocation dictionary"
@@ -90,7 +91,8 @@ the writer: ([Integer], [String], [String])
 --             tell ([loc], [], [])
             addReloc loc
             return $ show (labels ! str) ++ "     # label: " ++ str
-        gen (EQU name val) = return $ "# equ here: " ++ name ++ " = " ++ show val
+        gen (EQU name val) = return $ "# equ here: " ++ name ++ 
+                                                    " = " ++ show val
         gen (Extern name) = do
             mapM_ addExtern name
             return $ "# extern here: " ++ show name
