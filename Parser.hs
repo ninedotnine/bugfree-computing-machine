@@ -310,6 +310,7 @@ asmDS = do
 -- FIXME: still doesn't handle strings or other fancy things like expressions
 asmDW :: MyParser Token
 asmDW = do
+    traceM "in asmDW"
     caseInsensitiveString "dw" *> skipSpaces <?> "DW"
 --     args <- intOrChar `sepBy1` (char ',' *> spaces)
     args <- fmap join dwArgs
@@ -322,11 +323,12 @@ dwArgs :: MyParser [[Integer]]
 dwArgs = (fmap (:[]) intOrChar <|> litString) `sepBy1` (char ',' *> spaces)
 
 litString :: MyParser [Integer]
-litString = do
-    char '\"'
-    chars <- map (toInteger . ord) <$> many anyChar
-    char '\"'
-    return chars
+litString = map (toInteger . ord) 
+        <$> (char '\"' *> anyChar `manyTill` char '\"')
+-- litString = do
+--     char '\"'
+--     chars <- map (toInteger . ord) <$> anyChar `manyTill` char '\"'
+--     return chars
     
 
 asmEntry :: MyParser Token
