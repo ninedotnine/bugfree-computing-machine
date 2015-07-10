@@ -153,9 +153,12 @@ newLabel = NewLabel <$> (newGlobalLabel <|> newLocalLabel) <* skipMany skipJunk
 label :: MyParser Token
 -- label = Label <$> (localLabel <|> globalLabel) <* skipMany skipJunk
 label = do 
-    str <- (localLabel <|> globalLabel) <* skipMany skipJunk <?> "label"
+    str <- labelName
     int <- getLoc
     return $ Label str int
+
+labelName :: MyParser String
+labelName = (localLabel <|> globalLabel) <* skipMany skipJunk <?> "label"
 
 newLocalLabel :: MyParser String
 newLocalLabel = do
@@ -272,25 +275,25 @@ getLabelPrefix :: MyParser String
 getLabelPrefix = getState >>= \(_, _, labl) -> return labl
 
 
--- FIXME: expressions don't work at all
+-- FIXME: expressions don't support labels
 expr   :: MyParser Integer
--- expr   = term `chainl1` addop
-expr   = intOrChar <?> "expression" -- FIXME
+expr   = (term <* spaces) `chainl1` (addop) <?> "expression" -- FIXME
 
 term   :: MyParser Integer
-term   = factor `chainl1` mulop
+term   = (factor <* spaces) `chainl1` (mulop) <?> "term"
 
 factor :: MyParser Integer
-factor = between (char '(') (char ')') expr <|> intOrChar
+factor = intOrChar <|> parens expr <?> "factor"
+    where parens = between (char '(' *> spaces) (char ')')
 
 mulop :: MyParser (Integer -> Integer -> Integer)
-mulop = char '*' *> return (*)
-    <|> char '/' *> return div 
-    <|> char '%' *> return rem
+mulop = spaces *> char '*' *> spaces *> return (*)
+    <|> spaces *> char '/' *> spaces *> return div 
+    <|> spaces *> char '%' *> spaces *> return rem
 
 addop :: MyParser (Integer -> Integer -> Integer)
-addop = char '+' *> return (+)
-    <|> char '-' *> return (-)
+addop = spaces *> char '+' *> spaces *> return (+)
+    <|> spaces *> char '-' *> spaces *> return (-)
 
 asmEQU :: MyParser Token
 asmEQU = do
@@ -302,7 +305,8 @@ asmEQU = do
 asmDS :: MyParser Token
 asmDS = do
     caseInsensitiveString "ds" *> skipSpaces <?> "DS"
-    size <- intOrChar
+--     size <- intOrChar
+    size <- expr
 -- a DS should not increase the text length...
     loc (+size) -- but its operand should, by its value
     return (DS size)
@@ -310,13 +314,11 @@ asmDS = do
 -- FIXME: still doesn't handle strings or other fancy things like expressions
 asmDW :: MyParser Token
 asmDW = do
-    traceM "in asmDW"
     caseInsensitiveString "dw" *> skipSpaces <?> "DW"
 --     args <- intOrChar `sepBy1` (char ',' *> spaces)
     args <- fmap join dwArgs
     -- a DW should increase the location counter by the number of arguments
     loc (\x -> x + (genericLength args))
---     traceM $ "asmDW: args: " ++ show args
     return (DW args)
 
 dwArgs :: MyParser [[Integer]]
@@ -325,11 +327,6 @@ dwArgs = (fmap (:[]) intOrChar <|> litString) `sepBy1` (char ',' *> spaces)
 litString :: MyParser [Integer]
 litString = map (toInteger . ord) 
         <$> (char '\"' *> anyChar `manyTill` char '\"')
--- litString = do
---     char '\"'
---     chars <- map (toInteger . ord) <$> anyChar `manyTill` char '\"'
---     return chars
-    
 
 asmEntry :: MyParser Token
 asmEntry = do 
