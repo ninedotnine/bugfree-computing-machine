@@ -234,7 +234,7 @@ skipToEOL = anyChar `manyTill` newline *> skipMany space
 
 -- caseInsensitiveChar :: Char -> GenParser Char state Char
 caseInsensitiveChar :: Char -> MyParser Char
-caseInsensitiveChar = (\c -> (char (toLower c) <|> char (toUpper c)) *> pure c)
+caseInsensitiveChar c = (char (toLower c) <|> char (toUpper c)) *> pure c
 
 -- caseInsensitiveString :: String -> GenParser Char state String
 caseInsensitiveString :: String -> MyParser String
@@ -305,7 +305,6 @@ asmEQU = do
 asmDS :: MyParser Token
 asmDS = do
     caseInsensitiveString "ds" *> skipSpaces <?> "DS"
---     size <- intOrChar
     size <- expr
 -- a DS should not increase the text length...
     loc (+size) -- but its operand should, by its value
