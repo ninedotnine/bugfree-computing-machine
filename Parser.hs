@@ -148,11 +148,12 @@ instruction = skipMany skipJunk *>
 
 newLabel :: MyParser Token
 newLabel = NewLabel <$> (newGlobalLabel <|> newLocalLabel) <* skipMany skipJunk
+        <?> "label"
 
 label :: MyParser Token
 -- label = Label <$> (localLabel <|> globalLabel) <* skipMany skipJunk
 label = do 
-    str <- (localLabel <|> globalLabel) <* skipMany skipJunk
+    str <- (localLabel <|> globalLabel) <* skipMany skipJunk <?> "label"
     int <- getLoc
     return $ Label str int
 
@@ -191,7 +192,8 @@ globalLabel = do
 
 opcode :: MyParser Token
 opcode = do 
-    uppers <- map toUpper <$> many1 letter -- all the opcodes are in capitals
+    -- all the opcodes are in capitals
+    uppers <- map toUpper <$> many1 letter <?> "opcode" 
      -- try to read it as an Instruction
     case readMaybe uppers `mplus` readOpSynonym uppers of --alternatively, <|>
         Just x -> return (Op x)
@@ -273,7 +275,7 @@ getLabelPrefix = getState >>= \(_, _, labl) -> return labl
 -- FIXME: expressions don't work at all
 expr   :: MyParser Integer
 -- expr   = term `chainl1` addop
-expr   = intOrChar -- FIXME
+expr   = intOrChar <?> "expression" -- FIXME
 
 term   :: MyParser Integer
 term   = factor `chainl1` mulop
@@ -299,7 +301,7 @@ asmEQU = do
 
 asmDS :: MyParser Token
 asmDS = do
-    caseInsensitiveString "ds" *> skipSpaces
+    caseInsensitiveString "ds" *> skipSpaces <?> "DS"
     size <- intOrChar
 -- a DS should not increase the text length...
     loc (+size) -- but its operand should, by its value
@@ -308,7 +310,7 @@ asmDS = do
 -- FIXME: still doesn't handle strings or other fancy things like expressions
 asmDW :: MyParser Token
 asmDW = do
-    caseInsensitiveString "dw" *> skipSpaces
+    caseInsensitiveString "dw" *> skipSpaces <?> "DW"
 --     args <- intOrChar `sepBy1` (char ',' *> spaces)
     args <- fmap join dwArgs
     -- a DW should increase the location counter by the number of arguments
@@ -329,8 +331,7 @@ litString = do
 
 asmEntry :: MyParser Token
 asmEntry = do 
-    caseInsensitiveString "entry"
-    skipSpaces
+    caseInsensitiveString "entry" <* skipSpaces <?> "ENTRY"
     header <- letter
     tailer <- many labelChar
     let name = (header:tailer)
@@ -339,8 +340,7 @@ asmEntry = do
 
 asmExtern :: MyParser Token 
 asmExtern = do
-    caseInsensitiveString "extern"
-    skipSpaces
+    caseInsensitiveString "extern" <* skipSpaces <?> "EXTERN"
     args <- (localLabel <|> globalLabel) `sepBy1` (char ',' *> spaces)
     forM_ args (flip addToLabels (-9)) -- FIXME: what value should it have?
 --     traverse_ (flip addToLabels (-9)) args -- FIXME: what value should it have?
@@ -350,8 +350,7 @@ asmExtern = do
 
 asmPublic :: MyParser Token 
 asmPublic = do
-    caseInsensitiveString "public"
-    skipSpaces
+    caseInsensitiveString "public" <* skipSpaces <?> "PUBLIC"
     args <- (localLabel <|> globalLabel) `sepBy1` (char ',' *> spaces)
     forM_ args (flip addToLabels (-9)) -- FIXME: what value should it have?
 --     traverse_ (flip addToLabels (-9)) args -- FIXME: what value should it have?
