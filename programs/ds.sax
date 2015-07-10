@@ -1,0 +1,23 @@
+; for testing ds and simple expressions without labels
+eight:   ds     8
+nines:   ds     99
+ten:     ds     (4+6)
+eleven:  ds     11
+twelve:  ds     (2*6)
+thrteen: ds     (2*6+1)
+forteen: ds     ( 2*6+2)
+f5teen:  ds     ( 2 * 6 + 3 )
+sixteen: ds     ( 2 * (2* 2) * 2 )
+sveteen: ds     ( 2 * (2* 2) * 2 + 1  )
+again:   ds     ( (2) * (2* 2) * 2 + 1  )
+twenty:  ds     ( 2 * (2* (2) * 2 + (1 +1)  ))
+twenty1: ds     (1 + ( 2 * (2* (2) * 2 + (1 +1)  )))
+
+main:
+    pushv 'o
+    printc
+    pushv 'k
+    printc
+    halt
+
+entry main
