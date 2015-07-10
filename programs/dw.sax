@@ -1,5 +1,5 @@
-ForT:	dw	"FT"
-nines:  dw  9999
+ForT:    dw    "FT"
+nines:   dw    9999
 
 entry main
 
