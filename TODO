@@ -1,7 +1,7 @@
 ---------- assembler ----------
 [x] relocation dictionary
 [ ] expressions
-[ ] strings in DWs
+[x] strings in DWs
 [ ] extern
 [ ] public
 [x] equ
