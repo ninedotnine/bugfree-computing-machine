@@ -1,0 +1,10 @@
+ForT:	dw	"FT"
+nines:  dw  9999
+
+entry main
+
+main:
+    pushv 'o
+    printc
+    pushv 'k
+    printc
