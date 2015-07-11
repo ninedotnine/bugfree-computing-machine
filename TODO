@@ -1,6 +1,7 @@
 ---------- assembler ----------
 [x] relocation dictionary
 [ ] expressions
+[ ] hex, oct integers
 [x] strings in DWs
 [ ] extern
 [ ] public
