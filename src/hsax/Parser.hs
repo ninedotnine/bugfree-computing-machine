@@ -211,10 +211,11 @@ opcode = do
         readOpSynonym _       = Nothing
 
 intOrChar :: MyParser Integer
-intOrChar = int <|> asmChar where 
-    int :: MyParser Integer
+intOrChar = try octInt <|> try hexInt <|> int <|> asmChar where 
+    int, octInt, hexInt, asmChar :: MyParser Integer
+    octInt = char '0' *> (read . ("0o"++) <$> many1 octDigit)
+    hexInt = string "0x" *> (read . ("0x"++) <$> many1 hexDigit)
     int = read <$> (many1 digit)
-    asmChar :: MyParser Integer
     asmChar = toInteger . ord <$> (char '\'' *> anyChar)
 
 skipJunk :: MyParser ()
