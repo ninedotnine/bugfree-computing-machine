@@ -55,14 +55,17 @@ outputResult filename (textLength, entry, toks, labels) = do
         (relocs, exts, pubs) = metadata :: ([Integer], [String], [String])
     putStrLn text
     
-    putStr "# METADATA >>>>>>>>>>>>>>>>>> "
-    print metadata
+    putStrLn "# -------------------- METADATA --------------------"
+    putStrLn $ "# relocs: " ++ show relocs
+    putStrLn $ "# exts: " ++ show exts
+    putStrLn $ "# pubs: " ++ show pubs
 
     putStrLn "% relocation dictionary"
     mapM_ print relocs
 
     putStrLn "% ENTRY, EXTERN, and PUBLIC references"
-    writeEntry
+    unless (entry == EntryPoint "") $ putStrLn $ 
+        "ENTRY " ++ show entry ++ " " ++ (show (labels ! show entry))
     mapM_ (putStrLn . ("EXTERN "++ )) exts
     mapM_ (putStrLn . ("PUBLIC "++)) pubs
     putStrLn "% end of object module"
@@ -89,15 +92,11 @@ the writer: ([Integer], [String], [String])
         gen (EQU name val) = return $ "# equ here: " ++ name ++ 
                                                     " = " ++ show val
         gen (Extern names) = do
---             mapM_ addExtern names
-            addExtern names
-            return $ "# extern here: " ++ (concat $ intersperse ", " $ names)
+            addExtern names 
+            return (("# extern here: " ++) (concat $ intersperse ", " $ names))
         gen (Public names) = do
-            mapM_ addPublic names
+            addPublic names
             return $ "# public here: " ++ (concat $ intersperse ", " $ names)
-        writeEntry :: IO ()
-        writeEntry = unless (entry == EntryPoint "") $ 
-            putStrLn $ "ENTRY " ++ show entry ++ " " ++ (show (labels ! show entry))
 
 --------------------------------------------
 
@@ -105,10 +104,12 @@ addReloc :: Integer -> Writer ([Integer], [String], [String]) ()
 addReloc x = tell ([x], [], [])
 
 addExtern :: [String] -> Writer ([Integer], [String], [String]) ()
-addExtern strs = forM_  strs (\str -> tell ([], [str], []))
+addExtern = mapM_ (\str -> tell ([], [str], []))
 
-addPublic :: String -> Writer ([Integer], [String], [String]) ()
-addPublic str = tell ([], [], [str])
+-- addPublic :: String -> Writer ([Integer], [String], [String]) ()
+addPublic :: [String] -> Writer ([Integer], [String], [String]) ()
+-- addPublic strs = forM_ strs (\str -> tell ([], [], [str]))
+addPublic = mapM_ (\str -> tell ([], [], [str]))
 
 getFileData :: IO (FilePath, String)
 getFileData = getArgs >>= \args -> if length args < 1
