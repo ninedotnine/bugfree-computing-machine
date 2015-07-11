@@ -64,7 +64,7 @@ outputResult filename (textLength, entry, toks, labels) = do
     putStrLn "% ENTRY, EXTERN, and PUBLIC references"
     writeEntry
     mapM_ (putStrLn . ("EXTERN "++ )) exts
-    mapM_ (putStrLn . ("PUBLIC"++)) pubs
+    mapM_ (putStrLn . ("PUBLIC "++)) pubs
     putStrLn "% end of object module"
 
     where
@@ -88,12 +88,13 @@ the writer: ([Integer], [String], [String])
             -- because i used these very labels to populate the map 
         gen (EQU name val) = return $ "# equ here: " ++ name ++ 
                                                     " = " ++ show val
-        gen (Extern name) = do
-            mapM_ addExtern name
-            return $ "# extern here: " ++ show name
-        gen (Public name) = do
-            addPublic name
-            return $ "# public here: " ++ name
+        gen (Extern names) = do
+--             mapM_ addExtern names
+            addExtern names
+            return $ "# extern here: " ++ (concat $ intersperse ", " $ names)
+        gen (Public names) = do
+            mapM_ addPublic names
+            return $ "# public here: " ++ (concat $ intersperse ", " $ names)
         writeEntry :: IO ()
         writeEntry = unless (entry == EntryPoint "") $ 
             putStrLn $ "ENTRY " ++ show entry ++ " " ++ (show (labels ! show entry))
@@ -103,8 +104,8 @@ the writer: ([Integer], [String], [String])
 addReloc :: Integer -> Writer ([Integer], [String], [String]) ()
 addReloc x = tell ([x], [], [])
 
-addExtern :: String -> Writer ([Integer], [String], [String]) ()
-addExtern str = tell ([], [str], [])
+addExtern :: [String] -> Writer ([Integer], [String], [String]) ()
+addExtern strs = forM_  strs (\str -> tell ([], [str], []))
 
 addPublic :: String -> Writer ([Integer], [String], [String]) ()
 addPublic str = tell ([], [], [str])

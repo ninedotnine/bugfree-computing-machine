@@ -113,7 +113,8 @@ data Token = Lit Integer
             | EQU String Integer 
             | Entry EntryPoint
             | Extern [String]
-            | Public String -- FIXME: [String], just like Extern i think
+--             | Public String -- FIXME: [String], just like Extern i think
+            | Public [String] -- FIXME: [String], just like Extern i think
             deriving (Show)
 
 newtype EntryPoint = EntryPoint String deriving (Eq)
@@ -353,4 +354,5 @@ asmPublic = do
     forM_ args (flip addToLabels (-9)) -- FIXME: what value should it have?
 --     traverse_ (flip addToLabels (-9)) args -- FIXME: what value should it have?
 --     mapM_ (flip addToLabels (-9)) args  -- FIXME: what value should it have?
-    return $ Public (show args)
+--     return $ Public (show args)
+    return $ Public (args)
