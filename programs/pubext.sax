@@ -1,0 +1,21 @@
+stuff equ 999
+
+main:   call prompt
+        read
+        call prompt
+        read
+        add
+        print
+        call foo
+        pushv 10
+        printc
+        halt
+
+prompt: pushv '>
+        printc
+        return
+
+public prompt
+extern foo
+
+entry main
