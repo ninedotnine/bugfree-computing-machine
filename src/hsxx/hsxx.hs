@@ -101,7 +101,11 @@ execute mem pc = do
             push mem =<< (deref mem val)
         PUSHV -> do
             val <- getArg
-            putStrLn $ "val is: " ++ show val
+--             putStrLn $ "val is: " ++ show val
+            push mem val
+        PUSHS -> do
+            popped <- pop mem
+            val <- deref mem popped
             push mem val
         ADDX  -> do -- FIXME
             val <- getArg
