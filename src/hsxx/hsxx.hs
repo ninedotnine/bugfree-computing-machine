@@ -22,8 +22,7 @@ import System.Environment
 import System.Exit
 
 import Instructions
-
-type MyVector = MVector (PrimState IO) Int32
+import Parser
 
 main :: IO ()
 main = do
@@ -31,7 +30,8 @@ main = do
     write mem 0 (16383 :: Int32) -- initialize SP
     args <- getArgs
     input <- readFile (head args)
-    fill mem input 
+--     fill mem input 
+    populateVector mem input 
     let entry = 16 :: Int16
     pc <- newIORef entry
 --     mainLoop pc mem 
