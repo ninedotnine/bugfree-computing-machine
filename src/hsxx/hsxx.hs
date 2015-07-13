@@ -85,19 +85,31 @@ fill mem input = do
 
 execute :: MyVector -> IORef Int16 -> IO ()
 execute mem pc = do 
-    putStrLn "now beginning execute"    
+--     putStrLn "now beginning execute"    
     pointer <- fromIntegral <$> readIORef pc
-    putStrLn $ "pointer is: " ++ show pointer
+
+--     putStrLn $ "pointer is: " ++ show pointer
     instr <- toEnum . fromIntegral <$> deref mem pointer
-    putStrLn $ "HANDLING INSTRUCTION: " ++ show instr
+--     putStrLn $ "HANDLING INSTRUCTION: " ++ show instr
     case instr of
+        PUSH  -> do
+            inc pc
+            val <- deref mem (pointer+1)
+            push mem =<< (deref mem val)
         PUSHV -> do
             inc pc
             val <- deref mem (pointer+1)
-    --         putStrLn $ "val is: " ++ show val
+            putStrLn $ "val is: " ++ show val
             push mem val
         ADDX  -> do -- FIXME
             inc pc
+            val <- deref mem (pointer+1)
+            putStrLn $ "val is: " ++ show val
+            result <- pop mem 
+            push mem (result + val)
+        PRINT -> do
+            val <- pop mem
+            putStr (show val)
         PRINTC -> do
             val <- chr . fromIntegral <$> pop mem 
             putChar val
