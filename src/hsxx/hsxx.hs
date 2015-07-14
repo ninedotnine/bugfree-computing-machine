@@ -6,9 +6,10 @@ import Data.IORef
 import Data.Char
 
 import Control.Monad
-import Control.Monad.Primitive (PrimState)
+-- import Control.Monad.Primitive (PrimState)
 
-import Data.Vector.Unboxed.Mutable (new, write, MVector)
+-- import Data.Vector.Unboxed.Mutable (new, write, MVector)
+import Data.Vector.Unboxed.Mutable (new, write)
 import qualified Data.Vector.Unboxed.Mutable as V
  
 -- import qualified Data.ByteString.Lazy.Char8 as L
