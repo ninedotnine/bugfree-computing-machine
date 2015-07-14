@@ -63,8 +63,10 @@ pop mem = do
 inc :: IORef Int16 -> IO ()
 inc pc = modifyIORef' pc (+1)
 
+{-
 dec :: IORef Int16 -> IO ()
 dec pc = modifyIORef' pc (\x -> x-1)
+-}
 
 incSP :: MyVector -> IO ()
 incSP mem = do 
@@ -79,11 +81,13 @@ decSP mem = do
 getSP :: MyVector -> IO Int32
 getSP mem = V.read mem 0
     
+    {-
 fill :: MyVector -> String -> IO ()
 fill mem input = do 
     let instructions = zip [16..] $ map read $ words input
 --     print newVals -- instructions start at index 16
     forM_ instructions (uncurry (write mem))
+    -}
 
 execute :: MyVector -> IORef Int16 -> IO ()
 execute mem pc = do 
@@ -113,6 +117,10 @@ execute mem pc = do
             val <- deref mem sp
             push mem val
 --         ADDX  -> push mem =<< liftM2 (+) getArg (pop mem)
+        NEG   -> do 
+--             error "NEG"
+            val <- pop mem
+            push mem (negate val)
         ADDX  -> do 
             val <- getArg
             result <- pop mem 
