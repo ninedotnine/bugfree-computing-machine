@@ -66,19 +66,29 @@ populateVector mem input = do
 fillVector :: MyVector -> MyParser ()
 fillVector mem = do 
     header
+    textLength <- readNum <* skipToEOL
+    liftIO $ putStrLn $ "textlength: " ++ show textLength 
+    entry <- readNum <* skipToEOL
+    liftIO $ putStrLn $ "entry: " ++ show entry 
+    percentSeparator
 --     instruction mem `sepBy` skipSpaces
     instruction mem `endBy` skipSpaces
+    percentSeparator
+    relocatable `endBy` skipSpaces
+    percentSeparator
     eof
     lastInstruction <- getState 
     liftIO $ putStr "instruction space: " 
     liftIO $ printVector 16 (lastInstruction-16) mem
---     res <- join <$> many (try instruction) `sepBy` skipJunk
---     skipMany skipJunk *> eof
---     (counter, entry, _) <- getState
---     return (counter, entry, res)
+    liftIO $ unless (fromIntegral textLength == lastInstruction-16) $ 
+        putStrLn ("textLength: " ++ show textLength ++ " but actually " ++
+            show (lastInstruction-16)) >> exitFailure
 
 header :: MyParser ()
-header = string "%SXX+E" >> skipToEOL
+header = string "%SXX+E" >> skipToEOL >> spaces
+
+percentSeparator :: MyParser ()
+percentSeparator = char '%' >> skipToEOL
 
 traceM :: (Monad m) => String -> m ()
 traceM str = trace str $ return ()
@@ -132,10 +142,15 @@ readNum :: MyParser Int32
 -- readNum = read <$> many1 digit 
 readNum = do
     str <- readMaybe <$> many1 digit  
+--     liftIO $ print str
     case str of
         Just x -> return x
         Nothing -> fail "oopsie"
     
+-- FIXME : what should relocatable do with the numbers it reads?
+relocatable :: MyParser ()
+relocatable = readNum >> return ()
+
 
 {-
 parseEverything :: SourceName 
