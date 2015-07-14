@@ -63,7 +63,7 @@ populateVector mem input = do
 --     print result
 
 -- fillVector :: MyParser ()
-fillVector :: MyVector -> ParsecT String Int IO ()
+fillVector :: MyVector -> MyParser ()
 fillVector mem = do 
     header
 --     instruction mem `sepBy` skipSpaces
@@ -78,7 +78,7 @@ fillVector mem = do
 --     return (counter, entry, res)
 
 header :: MyParser ()
-header = string "%SXX-E" >> skipToEOL
+header = string "%SXX+E" >> skipToEOL
 
 traceM :: (Monad m) => String -> m ()
 traceM str = trace str $ return ()

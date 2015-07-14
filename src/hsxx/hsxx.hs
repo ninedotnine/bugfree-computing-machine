@@ -36,6 +36,7 @@ main = do
     let entry = 16 :: Int16
     pc <- newIORef entry
 --     mainLoop pc mem 
+    putStrLn "beginning execution --------------------"
     forever $ execute mem pc >> inc pc
 
 deref :: MyVector -> Int32 -> IO Int32
@@ -102,15 +103,18 @@ execute mem pc = do
             push mem =<< (deref mem val)
         PUSHV -> do
             val <- getArg
---             putStrLn $ "val is: " ++ show val
             push mem val
         PUSHS -> do
             popped <- pop mem
             val <- deref mem popped
             push mem val
-        ADDX  -> do -- FIXME
+        DUPL  -> do
+            sp <- getSP mem
+            val <- deref mem sp
+            push mem val
+--         ADDX  -> push mem =<< liftM2 (+) getArg (pop mem)
+        ADDX  -> do 
             val <- getArg
-            putStrLn $ "val is: " ++ show val
             result <- pop mem 
             push mem (result + val)
         PRINT -> do
