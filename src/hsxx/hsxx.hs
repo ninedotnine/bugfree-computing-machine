@@ -140,6 +140,10 @@ execute mem pc = do
             val2 <- pop mem
             push mem val1
             push mem val2
+        OVER  -> do
+            sp <- getSP mem
+            val <- deref mem (sp+1)
+            push mem val
         DROP  -> do
             incSP mem 
 --         ADDX  -> push mem =<< liftM2 (+) getArg (pop mem)
