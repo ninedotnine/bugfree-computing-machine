@@ -135,6 +135,8 @@ execute mem pc = do
             val2 <- pop mem
             push mem val1
             push mem val2
+        DROP  -> do
+            incSP mem 
 --         ADDX  -> push mem =<< liftM2 (+) getArg (pop mem)
         NOT   -> do 
             val <- pop mem
