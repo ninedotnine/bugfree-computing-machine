@@ -97,16 +97,16 @@ execute mem pc = do
         POP   -> do
             val <- pop
             addr <- getArg
-            write mem (toInt addr) val
+            writeV (toInt addr) val
         POPS  -> do
             val <- pop
             addr <- pop
-            write mem (toInt addr) val
+            writeV (toInt addr) val
         POPX  -> do
             val <- pop
             addr <- pop
             arg <- getArg
-            write mem (toInt (addr + arg)) val
+            writeV (toInt (addr + arg)) val
         DUPL  -> do
             sp <- getSP mem
             val <- deref sp
@@ -126,9 +126,9 @@ execute mem pc = do
         ROT   -> do
             sp <- getSP mem
             val <- deref sp
-            write mem (toInt sp) =<< deref (sp+2)
-            write mem (toInt (sp+2)) =<< deref (sp+1)
-            write mem (toInt (sp+1)) val
+            writeV (toInt sp) =<< deref (sp+2)
+            writeV (toInt (sp+2)) =<< deref (sp+1)
+            writeV (toInt (sp+1)) val
         TSTLT -> do
             val <- pop
             if val < 0
@@ -179,11 +179,12 @@ execute mem pc = do
             decSP mem
             sp <- toInt <$> getSP mem
         --     putStrLn $ "push: sp is: " ++ show sp
-            write mem sp val
+            writeV sp val
         getArg :: IO Int32
         getArg = do
             inc pc
             deref =<< toAddr <$> readIORef pc
+        writeV = write mem
 
 -- for converting to the type of the instruction pointer
 -- toPC :: Integral a => a -> Int16
