@@ -134,11 +134,11 @@ execute mem pc = do
             if val < 0
                 then push 1
                 else push 0
-        TSTLE -> pop >>= \x -> if x <= 0 then push 1 else push 0
-        TSTGT -> pop >>= \x -> if x  > 0 then push 1 else push 0
-        TSTGE -> pop >>= \x -> if x >= 0 then push 1 else push 0
-        TSTEQ -> pop >>= \x -> if x == 0 then push 1 else push 0
-        TSTNE -> pop >>= \x -> if x /= 0 then push 1 else push 0
+        TSTLE -> pop >>= \x -> push $ if x <= 0 then 1 else 0
+        TSTGT -> pop >>= \x -> push $ if x  > 0 then 1 else 0
+        TSTGE -> pop >>= \x -> push $ if x >= 0 then 1 else 0
+        TSTEQ -> pop >>= \x -> push $ if x == 0 then 1 else 0
+        TSTNE -> pop >>= \x -> push $ if x /= 0 then 1 else 0
         NOT   -> do 
             val <- pop
             if val == 0 
