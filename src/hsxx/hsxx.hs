@@ -147,6 +147,12 @@ execute mem pc = do
         DROP  -> do
             incSP mem 
 --         ADDX  -> push mem =<< liftM2 (+) getArg (pop mem)
+        ROT   -> do
+            sp <- getSP mem
+            val <- deref mem sp
+            write mem (fromIntegral sp) =<< deref mem (sp+2)
+            write mem (fromIntegral (sp+2)) =<< deref mem (sp+1)
+            write mem (fromIntegral (sp+1)) val
         NOT   -> do 
             val <- pop mem
             if val == 0 
