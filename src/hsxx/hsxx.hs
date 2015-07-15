@@ -117,6 +117,9 @@ execute mem pc = do
         TSTGE -> pop >>= \x -> push $ if x >= 0 then 1 else 0
         TSTEQ -> pop >>= \x -> push $ if x == 0 then 1 else 0
         TSTNE -> pop >>= \x -> push $ if x /= 0 then 1 else 0
+        BR    -> do
+            arg <- getArg
+            setPC (toPC (arg-1)) -- it will be incremented soon anyway
         HALT  -> do
             putStrLn "execution halted"
             exitSuccess 
