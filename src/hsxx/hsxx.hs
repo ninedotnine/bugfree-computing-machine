@@ -47,19 +47,11 @@ dec :: IORef Int16 -> IO ()
 dec pc = modifyIORef' pc (\x -> x-1)
 -}
 
-incSP :: MyVector -> IO ()
-incSP mem = do 
-    sp <- V.read mem 0
-    write mem 0 (sp+1)
-
 decSP :: MyVector -> IO ()
 decSP mem = do 
     sp <- V.read mem 0
     write mem 0 (sp-1)
 
-getSP :: MyVector -> IO Int32
-getSP mem = V.read mem 0
-    
     {-
 fill :: MyVector -> String -> IO ()
 fill mem input = do 
@@ -108,7 +100,7 @@ execute mem pc = do
             arg <- getArg
             writeV (toInt (addr + arg)) val
         DUPL  -> do
-            sp <- getSP mem
+            sp <- getSP
             val <- deref sp
             push val
         SWAP  -> do
@@ -117,14 +109,14 @@ execute mem pc = do
             push val1
             push val2
         OVER  -> do
-            sp <- getSP mem
+            sp <- getSP
             val <- deref (sp+1)
             push val
         DROP  -> do
-            incSP mem 
+            incSP
 --         ADDX  -> push =<< liftM2 (+) getArg (pop)
         ROT   -> do
-            sp <- getSP mem
+            sp <- getSP
             val <- deref sp
             writeV (toInt sp) =<< deref (sp+2)
             writeV (toInt (sp+2)) =<< deref (sp+1)
@@ -165,9 +157,9 @@ execute mem pc = do
         pop :: IO Int32
         pop = do
         --     putStrLn "pop!"
-            sp <- getSP mem
+            sp <- getSP
             result <- deref sp
-            incSP mem
+            incSP
             return result
         deref :: Int32 -> IO Int32
         deref val = do
@@ -177,7 +169,7 @@ execute mem pc = do
         push val = do
         --     putStrLn $ "push: val is: " ++ show val
             decSP mem
-            sp <- toInt <$> getSP mem
+            sp <- toInt <$> getSP
         --     putStrLn $ "push: sp is: " ++ show sp
             writeV sp val
         getArg :: IO Int32
@@ -185,6 +177,12 @@ execute mem pc = do
             inc pc
             deref =<< toAddr <$> readIORef pc
         writeV = write mem
+        getSP :: IO Int32
+        getSP = V.read mem 0
+        incSP :: IO ()
+        incSP = getSP >>= (\sp -> write mem 0 (sp+1))
+
+    
 
 -- for converting to the type of the instruction pointer
 -- toPC :: Integral a => a -> Int16
