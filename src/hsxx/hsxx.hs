@@ -115,13 +115,16 @@ execute mem pc = do
             val <- deref mem popped
             push mem val
         PUSHX -> do
---             error "ERROR PUSHX"
             val <- pop mem
             arg <- getArg
             push mem =<< deref mem (val + arg)
         POP   -> do
             val <- pop mem
             addr <- getArg
+            write mem (fromIntegral addr) val
+        POPS  -> do
+            val <- pop mem
+            addr <- pop mem
             write mem (fromIntegral addr) val
         DUPL  -> do
             sp <- getSP mem
@@ -149,4 +152,4 @@ execute mem pc = do
         HALT  -> do
             putStrLn "execution halted"
             exitSuccess 
-        _     -> undefined
+        _     -> error ("ERROR: " ++ show instr)
