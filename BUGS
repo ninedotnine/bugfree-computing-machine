@@ -10,5 +10,6 @@
 ---------- linker ----------
 
 ---------- hsxx ----------
+[ ] investigate behaviour of BR: does it set the PC and then also increment it?
 
 ---------- compiler ----------
