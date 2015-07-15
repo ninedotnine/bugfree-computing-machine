@@ -1,5 +1,6 @@
 {-# OPTIONS_GHC -Wall #-} 
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ImplicitParams #-}
 {-# LANGUAGE DataKinds #-}
 -- import Prelude hiding (read)
 import Data.IORef
@@ -63,6 +64,8 @@ fill mem input = do
 execute :: MyVector -> IORef Int16 -> IO ()
 execute mem pc = do 
 --     putStrLn "now beginning execute"    
+    let ?mem = mem
+        ?pc  = pc 
     pointer <- toAddr <$> readIORef pc
 --     putStrLn $ "pointer is: " ++ show pointer
     instr <- toEnum . toInt <$> deref pointer
@@ -153,41 +156,50 @@ execute mem pc = do
             putStrLn "execution halted"
             exitSuccess 
         _     -> error ("ERROR: " ++ show instr)
-    where
-        pop :: IO Int32
-        pop = do
-        --     putStrLn "pop!"
-            sp <- getSP
-            result <- deref sp
-            incSP
-            return result
-        deref :: Int32 -> IO Int32
-        deref val = do
-        --     putStrLn $ "deref: val is: " ++ show val
-            V.read mem (toInt val)
-        push :: Int32 -> IO ()
-        push val = do
-        --     putStrLn $ "push: val is: " ++ show val
-            decSP mem
-            sp <- toInt <$> getSP
-        --     putStrLn $ "push: sp is: " ++ show sp
-            writeV sp val
-        getArg :: IO Int32
-        getArg = do
-            inc pc
-            deref =<< toAddr <$> readIORef pc
-        writeV = write mem
-        getSP :: IO Int32
-        getSP = V.read mem 0
-        incSP :: IO ()
+
+pop :: (?mem :: MyVector) => IO Int32
+pop = do
+--     putStrLn "pop!"
+    sp <- getSP
+    result <- deref sp
+    incSP
+    return result
+
+deref :: (?mem :: MyVector) => Int32 -> IO Int32
+deref val = do
+--     putStrLn $ "deref: val is: " ++ show val
+    V.read ?mem (toInt val)
+
+push :: (?mem :: MyVector) => Int32 -> IO ()
+push val = do
+--     putStrLn $ "push: val is: " ++ show val
+    decSP ?mem
+    sp <- toInt <$> getSP
+--     putStrLn $ "push: sp is: " ++ show sp
+    writeV sp val
+
+getArg :: (?pc :: IORef Int16, ?mem :: MyVector) => IO Int32
+getArg = do
+    inc ?pc
+    val <- readIORef ?pc
+    deref (toAddr val)
+
+writeV :: (?mem :: MyVector) => Int -> Int32 -> IO ()
+writeV = write ?mem
+
+getSP :: (?mem :: MyVector) => IO Int32
+getSP = V.read ?mem 0
+
+incSP :: (?mem :: MyVector) => IO ()
 --         incSP = getSP >>= (\sp -> write mem 0 (sp+1))
-        incSP = modVal 0 (+1)
-        modVal :: Int -> (Int32 -> Int32) -> IO ()
---         modVal = ((.) . (>>=) . V.read mem) <*> ((.) . writeV)
---         modVal x f = V.read mem x >>= (\val -> writeV x (f val))
-        modVal x f = do 
-            val <- V.read mem x
-            writeV x (f val)
+incSP = modVal 0 (+1)
+
+modVal :: (?mem :: MyVector) => Int -> (Int32 -> Int32) -> IO ()
+-- modVal = ((.) . (>>=) . V.read mem) <*> ((.) . writeV)
+-- modVal x f = V.read mem x >>= (\val -> writeV x (f val))
+modVal x f = do 
+    val <- V.read ?mem x
+    writeV x (f val)
 
             
 
