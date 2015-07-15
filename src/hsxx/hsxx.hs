@@ -119,6 +119,10 @@ execute mem pc = do
             val <- pop mem
             arg <- getArg
             push mem =<< deref mem (val + arg)
+        POP   -> do
+            val <- pop mem
+            addr <- getArg
+            write mem (fromIntegral addr) val
         DUPL  -> do
             sp <- getSP mem
             val <- deref mem sp
