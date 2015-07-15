@@ -48,11 +48,6 @@ dec :: IORef Int16 -> IO ()
 dec pc = modifyIORef' pc (\x -> x-1)
 -}
 
-decSP :: MyVector -> IO ()
-decSP mem = do 
-    sp <- V.read mem 0
-    V.write mem 0 (sp-1)
-
     {-
 fill :: MyVector -> String -> IO ()
 fill mem input = do 
@@ -165,7 +160,7 @@ deref :: (?mem :: MyVector) => Int32 -> IO Int32
 deref val = V.read ?mem (toInt val)
 
 push :: (?mem :: MyVector) => Int32 -> IO ()
-push val = decSP ?mem >> getSP >>= (\sp -> writeV (toInt sp) val)
+push val = decSP >> getSP >>= (\sp -> writeV (toInt sp) val)
 
 getArg :: (?pc :: IORef Int16, ?mem :: MyVector) => IO Int32
 getArg = inc ?pc >> readIORef ?pc >>= deref . toAddr
@@ -179,6 +174,9 @@ getSP = V.read ?mem 0
 incSP :: (?mem :: MyVector) => IO ()
 --         incSP = getSP >>= (\sp -> write mem 0 (sp+1))
 incSP = modVal 0 (+1)
+
+decSP :: (?mem :: MyVector) => IO ()
+decSP = modVal 0 (-1)
 
 modVal :: (?mem :: MyVector) => Int -> (Int32 -> Int32) -> IO ()
 -- modVal = ((.) . (>>=) . V.read ?mem) <*> ((.) . writeV)
