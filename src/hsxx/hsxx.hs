@@ -72,11 +72,6 @@ execute :: MyVector -> IORef Int16 -> IO ()
 execute mem pc = do 
 --     putStrLn "now beginning execute"    
     pointer <- fromIntegral <$> readIORef pc
-    let getArg :: IO Int32
-        getArg = do
-            inc pc
-            deref (pointer+1)
-
 --     putStrLn $ "pointer is: " ++ show pointer
     instr <- toEnum . fromIntegral <$> deref pointer
 --     putStrLn $ "HANDLING INSTRUCTION: " ++ show instr
@@ -183,5 +178,8 @@ execute mem pc = do
             sp <- fromIntegral <$> getSP mem
         --     putStrLn $ "push: sp is: " ++ show sp
             write mem sp val
-
+        getArg :: IO Int32
+        getArg = do
+            inc pc
+            deref =<< fromIntegral <$> readIORef pc
 
