@@ -158,6 +158,11 @@ execute mem pc = do
             if val < 0
                 then push mem 1
                 else push mem 0
+        TSTLE -> pop mem >>= \x -> if x <= 0 then push mem 1 else push mem 0
+        TSTGT -> pop mem >>= \x -> if x  > 0 then push mem 1 else push mem 0
+        TSTGE -> pop mem >>= \x -> if x >= 0 then push mem 1 else push mem 0
+        TSTEQ -> pop mem >>= \x -> if x == 0 then push mem 1 else push mem 0
+        TSTNE -> pop mem >>= \x -> if x /= 0 then push mem 1 else push mem 0
         NOT   -> do 
             val <- pop mem
             if val == 0 
