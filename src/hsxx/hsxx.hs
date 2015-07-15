@@ -50,6 +50,7 @@ execute mem pc = do
 --     instr <- toEnum . toEnum
 --         <$> (deref =<< toAddr <$> readIORef pc)
 --     putStrLn $ "HANDLING INSTRUCTION: " ++ show instr
+
     case instr of
         BKPT  -> do
             putStrLn "what is the sxx debugger?"
@@ -80,6 +81,10 @@ execute mem pc = do
             addr <- pop
             arg <- getArg
             writeV (toInt (addr + arg)) val
+        BNE   -> do
+            val <- pop
+            addr <- getArg
+            when (val == 0) (setPC (toPC addr))
         DUPL  -> do
             sp <- getSP
             val <- deref sp
@@ -112,6 +117,13 @@ execute mem pc = do
         TSTGE -> pop >>= \x -> push $ if x >= 0 then 1 else 0
         TSTEQ -> pop >>= \x -> push $ if x == 0 then 1 else 0
         TSTNE -> pop >>= \x -> push $ if x /= 0 then 1 else 0
+        HALT  -> do
+            putStrLn "execution halted"
+            exitSuccess 
+        ADD -> do 
+            val1 <- pop
+            val2 <- pop
+            push (val1 + val2)
         NOT   -> do 
             val <- pop
             if val == 0 
@@ -130,9 +142,6 @@ execute mem pc = do
         PRINTC -> do
             val <- chr . toInt <$> pop 
             putChar val
-        HALT  -> do
-            putStrLn "execution halted"
-            exitSuccess 
         _     -> error ("ERROR: " ++ show instr)
 
 -- this code requires the ghc ImplicitParams extension
@@ -168,6 +177,9 @@ modVal x f = V.read ?mem x >>= (\val -> writeV x (f val))
 incPC :: (?pc :: IORef Int16) => IO ()
 incPC = modifyIORef' ?pc (+1)
 
+setPC :: (?pc :: IORef Int16) => Int16 -> IO ()
+setPC x = writeIORef ?pc x
+
 {-
 dec :: IORef Int16 -> IO ()
 dec pc = modifyIORef' pc (\x -> x-1)
@@ -175,8 +187,8 @@ dec pc = modifyIORef' pc (\x -> x-1)
 
 
 -- for converting to the type of the instruction pointer
--- toPC :: Integral a => a -> Int16
--- toPC = fromIntegral
+toPC :: Integral a => a -> Int16
+toPC = fromIntegral
 
 -- for converting to the type of the memory vector
 toAddr :: Integral a => a -> Int32
