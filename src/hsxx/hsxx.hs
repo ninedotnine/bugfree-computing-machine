@@ -180,7 +180,16 @@ execute mem pc = do
         getSP :: IO Int32
         getSP = V.read mem 0
         incSP :: IO ()
-        incSP = getSP >>= (\sp -> write mem 0 (sp+1))
+--         incSP = getSP >>= (\sp -> write mem 0 (sp+1))
+        incSP = modVal 0 (+1)
+        modVal :: Int -> (Int32 -> Int32) -> IO ()
+--         modVal = ((.) . (>>=) . V.read mem) <*> ((.) . writeV)
+--         modVal x f = V.read mem x >>= (\val -> writeV x (f val))
+        modVal x f = do 
+            val <- V.read mem x
+            writeV x (f val)
+
+            
 
     
 
