@@ -10,7 +10,7 @@ import Control.Monad
 -- import Control.Monad.Primitive (PrimState)
 
 -- import Data.Vector.Unboxed.Mutable (new, write, MVector)
-import Data.Vector.Unboxed.Mutable (new, write)
+-- import Data.Vector.Unboxed.Mutable (new)
 import qualified Data.Vector.Unboxed.Mutable as V
  
 -- import qualified Data.ByteString.Lazy.Char8 as L
@@ -28,8 +28,8 @@ import Parser
 
 main :: IO ()
 main = do
-    mem <- new 16384
-    write mem 0 (16383 :: Int32) -- initialize SP
+    mem <- V.new 16384
+    V.write mem 0 (16383 :: Int32) -- initialize SP
     args <- getArgs
     input <- readFile (head args)
 --     fill mem input 
@@ -51,7 +51,7 @@ dec pc = modifyIORef' pc (\x -> x-1)
 decSP :: MyVector -> IO ()
 decSP mem = do 
     sp <- V.read mem 0
-    write mem 0 (sp-1)
+    V.write mem 0 (sp-1)
 
     {-
 fill :: MyVector -> String -> IO ()
@@ -171,7 +171,7 @@ getArg :: (?pc :: IORef Int16, ?mem :: MyVector) => IO Int32
 getArg = inc ?pc >> readIORef ?pc >>= deref . toAddr
 
 writeV :: (?mem :: MyVector) => Int -> Int32 -> IO ()
-writeV = write ?mem
+writeV = V.write ?mem
 
 getSP :: (?mem :: MyVector) => IO Int32
 getSP = V.read ?mem 0
