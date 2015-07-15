@@ -102,6 +102,8 @@ execute mem pc = do
     instr <- toEnum . fromIntegral <$> deref mem pointer
 --     putStrLn $ "HANDLING INSTRUCTION: " ++ show instr
     case instr of
+        BKPT  -> do
+            putStrLn "what is the sxx debugger?"
         PUSH  -> do
             val <- getArg
             push mem =<< (deref mem val)
@@ -117,8 +119,12 @@ execute mem pc = do
             val <- deref mem sp
             push mem val
 --         ADDX  -> push mem =<< liftM2 (+) getArg (pop mem)
+        NOT   -> do 
+            val <- pop mem
+            if val == 0 
+                then push mem 1
+                else push mem 0
         NEG   -> do 
---             error "NEG"
             val <- pop mem
             push mem (negate val)
         ADDX  -> do 
