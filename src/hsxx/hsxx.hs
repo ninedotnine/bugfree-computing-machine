@@ -157,32 +157,18 @@ execute mem pc = do
             exitSuccess 
         _     -> error ("ERROR: " ++ show instr)
 
+-- this code requires the ghc ImplicitParams extension
 pop :: (?mem :: MyVector) => IO Int32
-pop = do
---     putStrLn "pop!"
-    sp <- getSP
-    result <- deref sp
-    incSP
-    return result
+pop = deref =<< getSP <* incSP
 
 deref :: (?mem :: MyVector) => Int32 -> IO Int32
-deref val = do
---     putStrLn $ "deref: val is: " ++ show val
-    V.read ?mem (toInt val)
+deref val = V.read ?mem (toInt val)
 
 push :: (?mem :: MyVector) => Int32 -> IO ()
-push val = do
---     putStrLn $ "push: val is: " ++ show val
-    decSP ?mem
-    sp <- toInt <$> getSP
---     putStrLn $ "push: sp is: " ++ show sp
-    writeV sp val
+push val = decSP ?mem >> getSP >>= (\sp -> writeV (toInt sp) val)
 
 getArg :: (?pc :: IORef Int16, ?mem :: MyVector) => IO Int32
-getArg = do
-    inc ?pc
-    val <- readIORef ?pc
-    deref (toAddr val)
+getArg = inc ?pc >> readIORef ?pc >>= deref . toAddr
 
 writeV :: (?mem :: MyVector) => Int -> Int32 -> IO ()
 writeV = write ?mem
@@ -195,15 +181,9 @@ incSP :: (?mem :: MyVector) => IO ()
 incSP = modVal 0 (+1)
 
 modVal :: (?mem :: MyVector) => Int -> (Int32 -> Int32) -> IO ()
--- modVal = ((.) . (>>=) . V.read mem) <*> ((.) . writeV)
--- modVal x f = V.read mem x >>= (\val -> writeV x (f val))
-modVal x f = do 
-    val <- V.read ?mem x
-    writeV x (f val)
+-- modVal = ((.) . (>>=) . V.read ?mem) <*> ((.) . writeV)
+modVal x f = V.read ?mem x >>= (\val -> writeV x (f val))
 
-            
-
-    
 
 -- for converting to the type of the instruction pointer
 -- toPC :: Integral a => a -> Int16
