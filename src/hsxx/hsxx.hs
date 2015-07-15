@@ -176,7 +176,7 @@ incSP :: (?mem :: MyVector) => IO ()
 incSP = modVal 0 (+1)
 
 decSP :: (?mem :: MyVector) => IO ()
-decSP = modVal 0 (-1)
+decSP = modVal 0 (subtract 1)
 
 modVal :: (?mem :: MyVector) => Int -> (Int32 -> Int32) -> IO ()
 -- modVal = ((.) . (>>=) . V.read ?mem) <*> ((.) . writeV)
