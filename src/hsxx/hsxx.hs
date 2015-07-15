@@ -153,6 +153,11 @@ execute mem pc = do
             write mem (fromIntegral sp) =<< deref mem (sp+2)
             write mem (fromIntegral (sp+2)) =<< deref mem (sp+1)
             write mem (fromIntegral (sp+1)) val
+        TSTLT -> do
+            val <- pop mem
+            if val < 0
+                then push mem 1
+                else push mem 0
         NOT   -> do 
             val <- pop mem
             if val == 0 
