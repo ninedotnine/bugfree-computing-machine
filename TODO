@@ -15,5 +15,7 @@
 ---------- linker ----------
 
 ---------- hsxx ----------
+[ ] relocation dict
+[ ] DW, DS 
 
 ---------- compiler ----------
