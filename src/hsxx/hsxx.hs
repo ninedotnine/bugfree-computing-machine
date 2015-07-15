@@ -32,35 +32,18 @@ main = do
     V.write mem 0 (16383 :: Int32) -- initialize SP
     args <- getArgs
     input <- readFile (head args)
---     fill mem input 
     populateVector mem input 
     let entry = 16 :: Int16
-    pc <- newIORef entry
---     mainLoop pc mem 
+    pc <- newIORef (entry-1)
     putStrLn "beginning execution --------------------"
-    forever $ execute mem pc >> inc pc
-
-inc :: IORef Int16 -> IO ()
-inc pc = modifyIORef' pc (+1)
-
-{-
-dec :: IORef Int16 -> IO ()
-dec pc = modifyIORef' pc (\x -> x-1)
--}
-
-    {-
-fill :: MyVector -> String -> IO ()
-fill mem input = do 
-    let instructions = zip [16..] $ map read $ words input
---     print newVals -- instructions start at index 16
-    forM_ instructions (uncurry (write mem))
-    -}
+    forever $ execute mem pc
 
 execute :: MyVector -> IORef Int16 -> IO ()
 execute mem pc = do 
 --     putStrLn "now beginning execute"    
     let ?mem = mem
         ?pc  = pc 
+    incPC
     pointer <- toAddr <$> readIORef pc
 --     putStrLn $ "pointer is: " ++ show pointer
     instr <- toEnum . toInt <$> deref pointer
@@ -163,7 +146,7 @@ push :: (?mem :: MyVector) => Int32 -> IO ()
 push val = decSP >> getSP >>= (\sp -> writeV (toInt sp) val)
 
 getArg :: (?pc :: IORef Int16, ?mem :: MyVector) => IO Int32
-getArg = inc ?pc >> readIORef ?pc >>= deref . toAddr
+getArg = incPC >> readIORef ?pc >>= deref . toAddr
 
 writeV :: (?mem :: MyVector) => Int -> Int32 -> IO ()
 writeV = V.write ?mem
@@ -181,6 +164,14 @@ decSP = modVal 0 (subtract 1)
 modVal :: (?mem :: MyVector) => Int -> (Int32 -> Int32) -> IO ()
 -- modVal = ((.) . (>>=) . V.read ?mem) <*> ((.) . writeV)
 modVal x f = V.read ?mem x >>= (\val -> writeV x (f val))
+
+incPC :: (?pc :: IORef Int16) => IO ()
+incPC = modifyIORef' ?pc (+1)
+
+{-
+dec :: IORef Int16 -> IO ()
+dec pc = modifyIORef' pc (\x -> x-1)
+-}
 
 
 -- for converting to the type of the instruction pointer
