@@ -1,0 +1,842 @@
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1252">
+<title>Stack Machine Assembler</title>
+</head>
+<body>
+<hr>
+<h1 align="center">
+CIS 463 - Compiler Construction<br>
+<br>
+Project 2 - Stack Machine Assembler
+<br>
+Due Tuesday, October 21
+</h1>
+<hr>
+<h2>
+Description
+</h2>
+You are to write an assembler for the Stack Machine.
+The behavioral characteristics of the stack machine
+are described in the document
+<a href="http://cs.potsdam.edu/Classes/463/Notes/assembler-doc.html">assembler-doc</a>.
+That document also explains the mnemonics for the stack
+machine opcodes and broadly describes the features
+the stack machine assembler provides.
+<p>
+Input to the stack machine assembler should be a text file
+containing lines of the following format:
+</p><blockquote><pre>[ label [:]] [ operation [ operand ] ] [ ;comment ]
+</pre></blockquote>
+The items
+<samp>label</samp>,
+<samp>operation</samp>,
+<samp>operand</samp>,
+and <samp>;comment</samp>
+are called <em>fields</em>.
+An item enclosed in brackets is optional.
+As a consequence,
+a blank line is a legal assembler line.
+Any combination of spaces and/or tabs
+(<em>whitespace</em>)
+may be used to separate the fields of a line;
+it is not necessary that whitespace precede a colon or semicolon.
+Each line must be terminated with a standard end-of-line mark.
+<p>
+An <em>operation</em> may be any
+of the stack machine opcode mnemonics,
+plus the following <em>assembler directives</em>:
+</p><blockquote><pre>DS	DW	EQU	ENTRY	EXTERN	PUBLIC
+</pre></blockquote>
+<p>
+Stack machine opcodes always generate executable code
+(an opcode, possibly followed by an operand value),
+while assembler directives are intended
+to direct assembler activities
+and do not in general generate executable code.
+Together, the opcode mnemonics and directives
+are reserved words.
+Reserved words may appear in uppercase, lowercase,
+or any mixture of cases.
+</p><p>
+A <em>label</em> is any sequence of letters, digits, dots, and underscores,
+beginning with a letter or at-sign '@' character,
+but excluding reserved words.
+A label is also called an <em>identifier</em>.
+Labels longer than 30 characters in length are
+silently truncated to 30 characters.
+</p><p>
+Labels that differ in case are considered to be different,
+so that <samp>XYZ</samp> and <samp>xyz</samp> are considered different labels.
+</p><p>
+A label beginning with an at-sign '@' character
+identifies it as a "local label".
+Internally, local labels are prepended with the most recently encountered
+non-local label definition (which defines the 'scope' of the local label)
+for the purpose of putting them in the symbol table
+and are otherwise treated as ordinary labels.
+This allows for defining simple labels within small code blocks
+(beginning with the definition of a non-local label)
+that do not conflict with the same local label names
+in other code blocks.
+Note that a non-local label defined
+in an <samp>EQU</samp> directive
+is <em>not</em> considered defining a new local label scope.
+</p><p>
+The start of an assembly language program is considered as beginning
+with an empty non-local label name.
+Local labels cannot be declared
+as <samp>ENTRY</samp>, <samp>PUBLIC</samp>, or <samp>EXTERN</samp>,
+although a non-local label can be <samp>EQU</samp>d to a local label
+and the non-local label then can be declared
+as <samp>PUBLIC</samp> or <samp>ENTRY</samp>.
+Moreover,
+an <samp>ENTRY</samp>,
+<samp>PUBLIC</samp>,
+or <samp>EXTERN</samp> label declaration
+does not define a new local label scope.
+</p><p>
+If a label is the first item on an input line
+and is followed by a colon ':',
+the assembler associates with it a value
+equal to the current location counter
+at the beginning of the line.
+If the label is followed by the <samp>EQU</samp> directive,
+the assembler associates with it a value equal
+to the operand expression that follows the <samp>EQU</samp> directive.
+In either case, the label is said to be <em>defined</em>
+when it appears as the first field on an input line,
+and such a label is said to be in <em>label position</em>.
+It is an error <em>(multiply defined label)</em>
+for a label to appear
+more than once in label position.
+</p><p>
+If an undefined label appears in an operand expression,
+the entire expression evaluates to an undefined value.
+Except for expressions in <samp>DS</samp> directives,
+undefined values in pass 1
+will not result in an assembly error.
+In pass 2, the value of an operand expression that is undefined
+will not result in an assembly error
+unless the value is used
+to create an entry in the object module.
+</p><p>
+A label at the beginning of a line
+<em>must</em> be followed by a colon ':'
+except in the case of an <samp>EQU</samp> directive,
+in which case it <em>must not</em>
+be followed by a colon.
+</p><p>
+Operands may be ordinary algebraic expressions
+including the arithmetic operations of
+addition (<code>+</code>),
+subtraction (<code>-</code>),
+multiplication (<code>*</code>),
+division (<code>/</code>),
+and modulus (<code>%</code>).
+Unary minus (<code>-</code>) is also allowed.
+An operand within an expression may be either
+a label,
+the '<code>$</code>' symbol,
+an (unsigned) integer constant,
+or a character constant.
+Parentheses may be used to alter
+the normal arithmetic precedence rules.
+</p><p>
+Operands to multiplication, division, and modulus
+must be absolute, and the result is absolute.
+Operands to addition, subtraction, and unary minus
+may be absolute or relocatable.
+The result will be absolute or relocatable,
+depending on the absolute or relocatable attributes of its operands.
+
+</p><p>
+The value of a label in an expression
+is the value associated with the label at the time
+the expression is evaluated.
+A label's value may be either
+<em>absolute</em>
+or <em>relocatable</em>,
+depending on how the label is defined.
+A label may also be <em>external</em>
+(if defined in a <samp>EXTERN</samp> directive),
+in which case it is implicitly absolute.
+</p><p>
+The only permissible expressions involving <samp>EXTERN</samp> labels
+are
+<tt>EXTERN</tt>,
+<tt>EXTERN+abs</tt>,
+and <tt>EXTERN-abs</tt>.
+Internally, the assembler treats an <samp>EXTERN</samp> label
+as having an absolute value of zero
+for the purposes of generating object module code.
+Locations in the object module corresponding
+to an expression generated from an <samp>EXTERN</samp> label
+will be flagged in the object module in an <samp>EXTERN</samp> label entry
+and will be fixed up upon linking the module with another object module
+that has defined the label as <samp>PUBLIC</samp>.
+An <samp>EXTERN</samp> label cannot be declared
+as <samp>PUBLIC</samp> in the same source code.
+</p><p>
+The value of the special symbol '<code>$</code>' in an
+expression is the value of the location counter
+<em>at the beginning of the line in which the expression occurs</em>.
+This value is always relocatable.
+</p><p>
+An <em>integer constant</em> is a sequence
+of decimal digits '0', '1', ... '9' representing a decimal number.
+This number should not exceed the range of possible 32-bit signed integers,
+i.e., -2147483648 to 2147483647.
+(Your assembler is not required to check for this.)
+An integer constant is always absolute.
+An integer constant beginning with the digit '0' and followed
+by one or more octal digits
+(the digits '0' through '7')
+represents an octal number.
+An integer constant beginning with the digit '0',
+followed by either the letter 'x' or 'X',
+and followed by one or more hexadecimal digits
+(the digits '0' through '9' and the letters 'A' through 'F'
+in either upper or lower case)
+represents a hexadecimal number.
+</p><p>
+A character constant is any printable ASCII character
+(with ASCII values from 32 to 126 inclusive)
+preceded by a single quote mark;
+for example, <code>'F</code> evaluates to the constant 70
+and <code>' </code> (quote followed by a space) evaluates to the constant 32.
+The single quote character itself is represented as <code>''</code>.
+A character constant is treated exactly the same
+as its corresponding integer ASCII value,
+and can occur wherever an integer constant is permitted.
+A character constant is always absolute.
+</p><p>
+As an illustration of an expression,
+if the label <code>LBL</code> is relocatable and has value 2
+and the location counter is 5,
+then the expression
+</p><blockquote><pre>($-LBL)*'F
+</pre></blockquote>
+evaluates to absolute 210.
+<p>
+If a label in an operand expression is undefined
+at the time the expression is evaluated,
+the entire expression is considered undefined.
+In pass one, undefined expressions which are syntactically correct
+should not cause an error, except in <samp>DS</samp> directives,
+where the expression must evaluate to an absolute non-negative value.
+In pass two, undefined expressions always cause an error
+if they are operand expressions that generate object module code.
+Also at the end of pass two,
+labels that appear in <samp>PUBLIC</samp> or <samp>ENTRY</samp> declarations
+must have associated values that are defined and relocatable.
+</p><p>
+The location counter is initialized
+to zero when assembly begins.
+Each assembled instruction increments
+the location counter by the number of words
+required to form the instruction;
+instruction operations that require one operand
+increment the location counter by two,
+while instruction operations that require no
+operands increment the location counter by one. 
+The value of the location counter is always considered relocatable.
+</p><p>
+The <samp>DS</samp> directive increments the location counter
+by the value of the operand expression.
+The operand expression must be defined
+in pass one of the assembler,
+must be non-negative,
+and must evaluate to an absolute--not relocatable--value.
+</p><p>
+The <samp>DW</samp> directive increments the location counter
+by one for each word required
+to store the <em>operand list</em> that follows the directive.
+The operand list has the form
+</p><blockquote><pre>expr [ , expr ]*
+</pre></blockquote>
+where <code>expr</code> is an expression as defined above,
+or a string of printable characters enclosed in double quotes (").
+<p>
+In a string,
+the double quote character itself may be represented
+in a string if it is preceded by the escape character (\).
+Other standard escape sequences are also allowed in strings,
+as described below.
+While an escape sequence occupies two characters in the source string,
+the corresponding character in the token string that is used
+to generate operand words in the object module
+will consist of a single character value.
+</p><p>
+The following escape sequences should be recognized in a string:
+backspace (\b),
+tab (\t),
+newline (\n),
+formfeed (\f),
+return (\r),
+single quote (\'),
+double quote (\"),
+and the escape character itself (\\).
+The following table gives the character values
+of escape sequences that may appear in a string
+and that produce non-printing characters
+in the corresponding token string:
+<table border="1" align="center">
+<tbody><tr><td>\b</td><td>8</td></tr>
+<tr><td>\t</td><td>9</td></tr>
+<tr><td>\n</td><td>10</td></tr>
+<tr><td>\f</td><td>12</td></tr>
+<tr><td>\r</td><td>13</td></tr>
+</tbody></table>
+Quoted strings may not cross line boundaries.
+</p><p>
+The <samp>DW</samp> directive with a quoted string
+is identical to the <em>exploded</em> string obtained
+by replacing each character in the string
+with its ASCII character equivalent.
+for example, the directive
+</p><blockquote><pre> 	DW	"this is a string\n"
+</pre></blockquote>
+is equivalent to the directive
+<blockquote><pre> 	DW	't,'h,'i,'s,' ,'i,'s,' ,'a,' ,'s,'t,'r,'i,'n,'g,10
+</pre></blockquote>
+or even to the directive
+<blockquote><pre> 	DW	116,104,105,115,32,105,115,32,97,32,115,116,114,105,110,103,10
+</pre></blockquote>
+<p>
+Characters in a token string are deposited in the object module
+one character to a word, using the standard ASCII codes,
+in the order that they appear in the string.
+Successive values are stored
+in successively higher memory locations.
+There is no distinction between
+a string consisting of one character
+and the ASCII code for the character itself,
+so that "F" and 'F in a <samp>DW</samp> directive result
+in exactly the same allocation of storage.
+Similarly, "\n" and 10 result
+in exactly the same allocation of storage.
+The assembler does not insert a null character
+in the object module
+following the last character of a string.
+</p><p>
+Expressions used in <samp>DW</samp> directives
+may be undefined in pass one of the assembler,
+but must be defined in pass two.
+Expressions may evaluate to absolute or relocatable values.
+A quoted string and character constants are always stored
+as absolute (non-relocatable) ASCII values.
+</p><p>
+The <samp>EQU</samp> directive assigns the value of the operand expression
+to the associated label.
+A label must be present on an <samp>EQU</samp> directive line
+and must not be followed by a colon;
+in all other cases a label is optional.
+The value of the operand expression in an <samp>EQU</samp> directive
+may be undefined in pass one of the assembler,
+but must be defined (absolute, relocatable, or Extern) in pass two
+unless that label does not appear
+in any operand expressions that generate object module code
+or in any <samp>PUBLIC</samp> or <samp>ENTRY</samp> directive.
+</p><p>
+The <samp>EXTERN</samp> directive is followed
+by one or more non-local labels separated by commas.
+This directive declares the indicated labels
+as being defined in another module
+but used in this module.
+It is an error for an identifier
+to be both declared Extern and to appear in label position.
+</p><p>
+The <samp>PUBLIC</samp> directive is followed
+by one or more non-local labels separated by commas.
+This directive marks the indicated labels
+as being defined in this module
+and accessible in other modules
+through an <samp>EXTERN</samp> directive in those modules.
+All <samp>PUBLIC</samp> labels must be defined and relocatable
+at the end of pass 2.
+</p><p>
+The <samp>ENTRY</samp> directive is followed
+by one non-local label.
+This directive marks the indicated label
+as the entry point of any executable program
+linked with this module.
+An <samp>ENTRY</samp> label must be defined and relocatable
+at the end of pass 2.
+</p><p>
+A comment begins with a semicolon (<code>;</code>)
+and continues to the end of the line.
+Comments are not tokens.
+They are ignored
+for the purposes of generating object code,
+and they do not affect the location counter.
+A semicolon inside of a quoted string
+or in a character expression (';) is not considered
+as the beginning of a comment.
+</p><p>
+There should be a predefined label '<code>SP</code>'
+with a predefined value of 0 (absolute),
+as if there were a line
+</p><blockquote><pre>SP	EQU	0
+</pre></blockquote>
+at the beginning of every source code program.
+The lexical analyzer should consider all upper/lower case combinations
+of ''SP'' to be equivalent to the single token <code>SP</code>.
+This label may be used in expressions,
+but should be included in the cross-reference list
+<em>if and only if</em> it appears in the body of your program.
+<p>
+Output from the assembler is a text file
+in stack machine object module format
+as illustrated below and described in the next section.
+</p><p>
+</p><center>
+<table border="1" align="center">
+<tbody><tr><td align="left">%SXX+Object Module
+</td></tr><tr><td align="left">text_length
+</td></tr><tr><td align="left">% text
+</td></tr><tr><td align="center">...
+</td></tr><tr><td align="left">% relocation dictionary
+</td></tr><tr><td align="center">...
+</td></tr><tr><td align="left">% ENTRY, EXTERN, and PUBLIC declarations
+</td></tr><tr><td align="center">...
+</td></tr><tr><td align="left">% end of object module
+</td></tr></tbody></table>
+</center>
+<h3>Object Module Format</h3>
+<p>
+The format of an object module appears as follows:
+</p><blockquote><pre>%SXX+Object
+text_length
+% text
+...
+% relocation dictionary
+...
+% ENTRY, EXTERN, and PUBLIC declarations
+...
+% end of object module
+</pre></blockquote>
+On lines beginning with a <code>%</code>,
+any characters may appear following the <code>%</code> on the line.
+<p>
+Text and relocation dictionary lines
+in the object module contain a single integer
+optionally preceded by whitespace
+and followed (preceded by whitespace) by any text
+up to end-of-line.
+The integer represents a data value
+or stack machine instruction.
+A line in the <em>text</em> portion
+of the object module may also consist of <samp>DS</samp> entry --
+a colon '<code>:</code>' followed by a single integer,
+which has the effect of adding the integer value
+to the current location counter.
+This is useful for processing <samp>DS</samp> directives.
+</p><p>
+The <em>text_length</em> is the number of stack machine words determined
+by the <em>text</em> portion of the object module,
+adjusted appropriately for <samp>DS</samp> entries. 
+The <em>relocation dictionary</em> contains the addresses of all
+object module words that are relocatable
+and is used when linking the object module
+to produce a Stack Machine executable.
+</p><p>
+An <samp>ENTRY</samp> line has the format
+</p><blockquote><pre>ENTRY label addr
+</pre></blockquote>
+where <code>label</code> is the name of the entry point
+and <code>addr</code> is the code address in the object module
+which should begin execution when the module is linked and run.
+There can be at most one <samp>ENTRY</samp> line in an object module.
+<p>
+A <samp>PUBLIC</samp> line has the format
+</p><blockquote><pre>PUBLIC label addr
+</pre></blockquote>
+where <code>label</code> is the name of the exported label
+and <code>addr</code> is its exported value
+(represented as a decimal integer).
+There can be zero or more <samp>PUBLIC</samp> lines in an object module.
+<p>
+An <samp>EXTERN</samp> line has the format
+</p><blockquote><pre>EXTERN label addr addr...
+</pre></blockquote>
+where <code>label</code> is the name of the imported label
+and <code>addr ...</code> are whitespace-separated addresses
+(represented as decimal integers)
+where the symbol is referenced.
+There may be zero or more <samp>EXTERN</samp> lines in an object module.
+<p>
+The assembler is invoked using the '<samp>sax</samp>' command,
+suggesting the 'Stack machine Assembler eXtended'.
+The format of the command line is
+</p><blockquote><pre>sax [-o ofile] [-l lfile] file
+</pre></blockquote>
+If the optional '<samp>-o ofile</samp>' arguments are given,
+the object module is deposited
+in the file '<samp>ofile</samp>';
+otherwise the object module is sent to the standard output.
+If the optional '<samp>-l lfile</samp>' arguments are given,
+a listing of the assembled
+file is deposited in the file '<samp>lfile</samp>';
+otherwise no listing file will be produced.
+The '<samp>file</samp>' argument must correspond to a text file
+in the assembly language format described above. 
+<p>
+</p><h3>
+Listing File Format
+</h3>
+<p>
+The listing file should have
+the format described in the following example:
+</p><blockquote><pre> Line        LC Op     Operand	Source Line
+ ----        -- --     -------	-----------
+    1:        0             15  A       EQU     15
+    2:        0              6R B       EQU     str + 3
+    3:        0  2           6R START:  PUSHV   B
+    4:        2 26                      HALT
+    5:        3             65  str:    DW      "ABC",$
+              4             66  
+              5             67  
+              6              3R 
+    6:        7                 ; this is a comment
+    7:        7            100  @1:     DS      100
+  EOF:      107
+
+
+Cross Reference List
+--------------------
+Symbol                                 Value   Line Numbers
+------                                 -----   ------------
+A                                         15 |     1*
+B                                          6R|     2*    3 
+START                                      0R|     3*
+str                                        3R|     2     5*
+@1                                         7R|     7*
+</pre></blockquote>
+<p>
+The cross-reference list should be in alphabetical order by label,
+with the line number where the label is defined
+followed by an asterisk (<code>*</code>).
+All local labels associated with a preceding non-local label
+should appear in the cross-reference list following the non-local label,
+in alphabetical order by label.
+</p><p>
+In the cross-reference list, 
+there should be no more than 80 characters per line;
+line numbers that do not fit on an 80 character line
+should wrap to the following line,
+aligned with the ones on the previous line.
+</p><p>
+The object code produced by this program appears as follows:
+</p><blockquote><pre>%SXX+Object Module
+107
+% text
+2
+6
+26
+65
+66
+67
+3
+:100
+% relocation dictionary
+1
+6
+% ENTRY, EXTERN, and PUBLIC declarations
+% end of object module
+</pre></blockquote>
+<p>
+A line of an object module beginning with the '#' character
+is considered a comment and is ignored by the linker.
+The first and last lines of an object module must not be comments.
+</p><h2>
+Lexical Analysis
+</h2>
+<p>
+The lexical structure for the assembler
+is similar to that of Pascal,
+except that:
+</p><ul>
+<li>
+whitespace consists only of tabs and spaces --
+except for quoted strings and single-character constants,
+tokens cannot contain whitespace;
+</li><li>
+comments are considered the same as whitespace --
+they are not returned as tokens
+</li><li>
+there are different keywords as described below;
+</li><li>
+strings are enclosed in double quotes;
+</li></ul>
+<p>
+The following tokens should be recognized:
+</p><ul>
+<p></p><li>
+Keywords, i.e., all opcode mnemonics
+given in <a href="http://cs.potsdam.edu/Classes/463/Notes/assembler-doc.html">assembler-doc</a>
+as well as the
+<samp>DS</samp>,
+<samp>DW</samp>,
+<samp>EQU</samp>,
+<samp>ENTRY</samp>,
+<samp>EXTERN</samp>,
+and <samp>PUBLIC</samp> 
+directives.
+<p></p></li><li>
+The following special symbols:
+<blockquote><pre>+  -  *  /  %  $  ,  (  )  :
+</pre></blockquote>
+<p></p></li><li>
+Label:
+any character string consisting of letters, digits
+and underscores (<code>_</code>),
+beginning with a letter or at-sign '@'.
+Only the first 32 characters of a label are significant.
+<p></p></li><li>
+Unsigned integer:
+any integer in octal, decimal, or hexadecimal format.
+<p></p></li><li>
+Single-character constant:
+any printable character preceded by a single quote (').
+<p></p></li><li>
+Quoted string:
+any sequence of printable ASCII
+characters enclosed in double quotes (")
+Quoted strings may not cross a line boundary.
+A double quote inside a quoted
+string is escaped using a backslash (<code>\</code>).
+Other escape sequences should be supported
+as described above.
+<p></p></li><li>
+End-of-line, represented by a newline character. 
+<p></p></li><li>
+End-of-file.
+<p></p></li><li>
+Error:
+any character not considered above.
+<p>
+Comments,
+beginning with a semicolon (<code>;</code>) and continuing to end-of-line
+are to be considered the same as whitespace,
+and should not be returned as tokens.
+</p></li></ul>
+<p>
+</p><h2>
+Method
+</h2>
+<ul>
+<li>
+Write your finite state machine code and
+test your <code>TokenReader</code> on 
+sample assembly-language files
+to be sure that it functions properly
+and returns the proper token values.
+<p>
+</p></li><li>
+Use the returned values from your <code>TokenReader</code>
+to check each input line for
+syntax correctness.
+Use a finite state machine that recognizes proper syntax;
+processing operand expressions will be done
+using a finite state expression recognizer discussed in class.
+Do not attempt to produce output code
+at this point.
+<p>
+Test your routines carefully to ensure that you can
+detect all possible syntax errors.
+</p><p>
+</p></li><li>
+Write code to do the above step twice,
+carrying out a two-pass scan of
+the input file.
+Your results on the second pass should be the same
+as on the first pass.
+<p>
+</p></li><li>
+Rewrite the first pass of your assembler
+to enter labels into the symbol table:
+<p>
+</p><ul>
+<li>
+When you encounter a label at the beginning of a line
+(either with a colon or as part of an <samp>EQU</samp> directive):
+<ul>
+<li>
+if it is already in the symbol table,
+report a "multiply defined label" error;
+</li><li>
+if it is not in the symbol table,
+insert it in the symbol table
+and give it an <code>UNDEF</code> value;
+</li></ul>
+</li><li>
+When you encounter a label following an <samp>EXTERN</samp> directive,
+insert it in the symbol table
+and initialize it to an <code>UNDEF</code> value;
+</li></ul>
+<p>
+</p></li><li>
+Implement operand expression evaluation;
+for labels, temporarily assume they have zero values
+with a tag value of zero.
+In expressions,
+have the '<code>$</code>' symbol temporarily evaluate to
+zero with a tag value of one.
+<p>
+</p></li><li>
+Rewrite the first and second passes of your assembler
+so that the labels are assigned values
+and the location counter is properly updated
+as the lines are scanned.
+<p>
+</p><ul>
+<li>
+Rewrite the operand expression code to
+use the 'real' values of labels and the '<code>$</code>' symbol.
+</li><li>
+The '<code>$</code>' symbol should evaluate
+to the value of the location counter at the beginning of the line,
+with a tag value of one.
+</li><li>
+For a label which is the target of an <samp>EQU</samp> directive,
+evaluate the operand expression
+and deposit the resulting value in the symbol table
+corresponding to the label
+along with its associated tag.
+Note that the expression evaluator
+automatically determines the tag of the expression.
+(If this is pass two
+and the label was already defined in pass 1,
+this step is redundant,
+but you might check that the value in pass two
+is the <em>same</em> as on pass one in this case.)
+</li><li>
+For labels defined at the beginning of a line
+followed by a colon (i.e., not as <samp>EQU</samp> targets),
+deposit the value of the location counter
+in the symbol table corresponding to the label,
+and mark the label as <code>REL</code>.
+</li><li>
+For labels that appear in an <samp>EXTERN</samp> directive,
+deposit an <code>Extern</code> value in the symbol table
+corresponding to the label.
+Use the first form of the <code>Extern</code> constructor.
+</li><li>
+Increment the location counter by one for each instruction,
+and by one for each operand, if there is one.
+For a <samp>DW</samp> directive,
+increment the location counter for each value
+in the comma-separated list or,
+in the case of <code>STRING</code>s,
+by one for each character in the string.
+For a <samp>DS</samp> directive,
+increment the location counter by the value of the operand
+(which must have a nonnegative value
+with an <code>ABS</code> tag).
+Other assembly language lines do not change the location counter.
+</li></ul>
+<p>
+</p></li><li>
+Collect the values of the relocation dictionary
+during pass two,
+according to the locations of any object module values
+that are relocatable.
+<p>
+</p></li><li>
+Produce the object module during the second pass of the assembler,
+including the relocation dictionary.
+Remember that the value of the location counter
+at the end of pass one is the same as the text length
+that gets output at the beginning of the object module
+in pass two.
+<p>
+Test the code you produce using the sxx emulator.
+You can do an assembly and execute in one Unix line as follows:
+</p><blockquote><pre>java Sax file | sxxl | sxx
+</pre></blockquote>
+which pipes the object module output
+of your <samp>Sax</samp> assembler into the
+<samp>sxxl</samp> linker and then onto the <samp>sxx</samp> emulator.
+<p>
+If you prefer,
+you can create separate object and executable files
+using the assembler and linker as follows:
+</p><blockquote><pre>java Sax file &gt; file.out
+sxxl file.out &gt; file.sxx
+sxx file.sxx
+</pre></blockquote>
+In this example,
+<samp>file</samp> is the source file,
+<samp>file.out</samp> is the object file produced
+by the assembler,
+and <samp>file.sxx</samp> is the executable file
+generated by the linker.
+<p>
+</p></li><li>
+Implement and test the
+<samp>ENTRY</samp>,
+<samp>EXTERN</samp>, and
+<samp>PUBLIC</samp>
+directives,
+producing appropriate object module entries.
+<p>
+</p></li><li>
+Implement local labels.
+These are labels that begin with an <code>@</code> character.
+Local labels are prepended with the most recently encountered
+non-local label for the purpose of putting them in the symbol table
+and are otherwise treated as ordinary labels.
+Local labels cannot be marked <samp>PUBLIC</samp>,
+<samp>EXTERN</samp>, or <samp>ENTRY</samp>
+(although a non-local label can be marked <samp>PUBLIC</samp>
+or <samp>ENTRY</samp>
+and <samp>EQU</samp>d to a local label).
+</li></ul>
+<h2>
+Cautions
+</h2>
+<p>
+Some expressions will not be defined until pass two,
+so you will need to re-evaluate expressions in pass two.
+If an expression value is required
+(e.g., to produce object module output)
+in pass two and is undefined,
+you should regard this as an error.
+On the other hand,
+it's OK for a label to remain undefined even in pass two
+if it doesn't appear in an operand expression
+that produces object module output.
+</p><p>
+Remember that <samp>DS</samp> directives
+<em>must</em> have an absolute argument that is
+defined and non-negative in pass one.
+</p><p>
+The relocation dictionary must include all addresses (zero-based) that
+contain relocatable values.
+These include targets of branches as well
+as operand expressions that evaluate to relocatable values.
+</p><p>
+You do not need to check for expression overflow
+or for overflow of unsigned integer constants.
+Caveat emptor!
+</p><p>
+You do not need to check for object module overflow —
+i.e., a text length that exceeds the size of the stack machine.
+This will be handled by the execution engine.
+</p><p>
+Uninitialized storage (using the <samp>DS</samp> directive)
+can be handled by using the colon-integer feature
+of the object module described above.
+</p><h2>
+Submission
+</h2>
+<p>
+Create an archive of the material you want to submit
+in a file named <code>Assembler.tar</code>.
+Do not include anything that is not pertinent to your assembler,
+but be sure to include test files, documentation, etc.
+I should be able to compile your source files
+using the <code>/home/student/Classes/463</code> class path.
+
+
+</p></body></html>
