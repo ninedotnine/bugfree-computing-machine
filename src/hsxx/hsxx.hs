@@ -130,6 +130,11 @@ execute mem pc = do
             sp <- getSP mem
             val <- deref mem sp
             push mem val
+        SWAP  -> do
+            val1 <- pop mem
+            val2 <- pop mem
+            push mem val1
+            push mem val2
 --         ADDX  -> push mem =<< liftM2 (+) getArg (pop mem)
         NOT   -> do 
             val <- pop mem
