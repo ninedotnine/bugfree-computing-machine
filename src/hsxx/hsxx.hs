@@ -71,9 +71,11 @@ fill mem input = do
 execute :: MyVector -> IORef Int16 -> IO ()
 execute mem pc = do 
 --     putStrLn "now beginning execute"    
-    pointer <- fromIntegral <$> readIORef pc
+    pointer <- toAddr <$> readIORef pc
 --     putStrLn $ "pointer is: " ++ show pointer
-    instr <- toEnum . fromIntegral <$> deref pointer
+    instr <- toEnum . toInt <$> deref pointer
+--     instr <- toEnum . toEnum
+--         <$> (deref =<< toAddr <$> readIORef pc)
 --     putStrLn $ "HANDLING INSTRUCTION: " ++ show instr
     case instr of
         BKPT  -> do
@@ -95,16 +97,16 @@ execute mem pc = do
         POP   -> do
             val <- pop
             addr <- getArg
-            write mem (fromIntegral addr) val
+            write mem (toInt addr) val
         POPS  -> do
             val <- pop
             addr <- pop
-            write mem (fromIntegral addr) val
+            write mem (toInt addr) val
         POPX  -> do
             val <- pop
             addr <- pop
             arg <- getArg
-            write mem (fromIntegral (addr + arg)) val
+            write mem (toInt (addr + arg)) val
         DUPL  -> do
             sp <- getSP mem
             val <- deref sp
@@ -124,9 +126,9 @@ execute mem pc = do
         ROT   -> do
             sp <- getSP mem
             val <- deref sp
-            write mem (fromIntegral sp) =<< deref (sp+2)
-            write mem (fromIntegral (sp+2)) =<< deref (sp+1)
-            write mem (fromIntegral (sp+1)) val
+            write mem (toInt sp) =<< deref (sp+2)
+            write mem (toInt (sp+2)) =<< deref (sp+1)
+            write mem (toInt (sp+1)) val
         TSTLT -> do
             val <- pop
             if val < 0
@@ -153,7 +155,7 @@ execute mem pc = do
             val <- pop
             putStr (show val)
         PRINTC -> do
-            val <- chr . fromIntegral <$> pop 
+            val <- chr . toInt <$> pop 
             putChar val
         HALT  -> do
             putStrLn "execution halted"
@@ -170,16 +172,27 @@ execute mem pc = do
         deref :: Int32 -> IO Int32
         deref val = do
         --     putStrLn $ "deref: val is: " ++ show val
-            V.read mem (fromIntegral val)
+            V.read mem (toInt val)
         push :: Int32 -> IO ()
         push val = do
         --     putStrLn $ "push: val is: " ++ show val
             decSP mem
-            sp <- fromIntegral <$> getSP mem
+            sp <- toInt <$> getSP mem
         --     putStrLn $ "push: sp is: " ++ show sp
             write mem sp val
         getArg :: IO Int32
         getArg = do
             inc pc
-            deref =<< fromIntegral <$> readIORef pc
+            deref =<< toAddr <$> readIORef pc
 
+-- for converting to the type of the instruction pointer
+-- toPC :: Integral a => a -> Int16
+-- toPC = fromIntegral
+
+-- for converting to the type of the memory vector
+toAddr :: Integral a => a -> Int32
+toAddr = fromIntegral
+
+-- for converting to the type used by many haskell library functions
+toInt :: Integral a => a -> Int
+toInt = fromIntegral
