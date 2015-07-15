@@ -39,14 +39,6 @@ main = do
     putStrLn "beginning execution --------------------"
     forever $ execute mem pc >> inc pc
 
-push :: MyVector -> Int32 -> IO ()
-push mem val = do
---     putStrLn $ "push: val is: " ++ show val
-    decSP mem
-    sp <- fromIntegral <$> getSP mem
---     putStrLn $ "push: sp is: " ++ show sp
-    write mem sp val
-
 inc :: IORef Int16 -> IO ()
 inc pc = modifyIORef' pc (+1)
 
@@ -93,18 +85,18 @@ execute mem pc = do
             putStrLn "what is the sxx debugger?"
         PUSH  -> do
             val <- getArg
-            push mem =<< (deref val)
+            push =<< (deref val)
         PUSHV -> do
             val <- getArg
-            push mem val
+            push val
         PUSHS -> do
             popped <- pop
             val <- deref popped
-            push mem val
+            push val
         PUSHX -> do
             val <- pop
             arg <- getArg
-            push mem =<< deref (val + arg)
+            push =<< deref (val + arg)
         POP   -> do
             val <- pop
             addr <- getArg
@@ -121,19 +113,19 @@ execute mem pc = do
         DUPL  -> do
             sp <- getSP mem
             val <- deref sp
-            push mem val
+            push val
         SWAP  -> do
             val1 <- pop
             val2 <- pop
-            push mem val1
-            push mem val2
+            push val1
+            push val2
         OVER  -> do
             sp <- getSP mem
             val <- deref (sp+1)
-            push mem val
+            push val
         DROP  -> do
             incSP mem 
---         ADDX  -> push mem =<< liftM2 (+) getArg (pop)
+--         ADDX  -> push =<< liftM2 (+) getArg (pop)
         ROT   -> do
             sp <- getSP mem
             val <- deref sp
@@ -143,25 +135,25 @@ execute mem pc = do
         TSTLT -> do
             val <- pop
             if val < 0
-                then push mem 1
-                else push mem 0
-        TSTLE -> pop >>= \x -> if x <= 0 then push mem 1 else push mem 0
-        TSTGT -> pop >>= \x -> if x  > 0 then push mem 1 else push mem 0
-        TSTGE -> pop >>= \x -> if x >= 0 then push mem 1 else push mem 0
-        TSTEQ -> pop >>= \x -> if x == 0 then push mem 1 else push mem 0
-        TSTNE -> pop >>= \x -> if x /= 0 then push mem 1 else push mem 0
+                then push 1
+                else push 0
+        TSTLE -> pop >>= \x -> if x <= 0 then push 1 else push 0
+        TSTGT -> pop >>= \x -> if x  > 0 then push 1 else push 0
+        TSTGE -> pop >>= \x -> if x >= 0 then push 1 else push 0
+        TSTEQ -> pop >>= \x -> if x == 0 then push 1 else push 0
+        TSTNE -> pop >>= \x -> if x /= 0 then push 1 else push 0
         NOT   -> do 
             val <- pop
             if val == 0 
-                then push mem 1
-                else push mem 0
+                then push 1
+                else push 0
         NEG   -> do 
             val <- pop
-            push mem (negate val)
+            push (negate val)
         ADDX  -> do 
             val <- getArg
             result <- pop 
-            push mem (result + val)
+            push (result + val)
         PRINT -> do
             val <- pop
             putStr (show val)
@@ -184,5 +176,12 @@ execute mem pc = do
         deref val = do
         --     putStrLn $ "deref: val is: " ++ show val
             V.read mem (fromIntegral val)
+        push :: Int32 -> IO ()
+        push val = do
+        --     putStrLn $ "push: val is: " ++ show val
+            decSP mem
+            sp <- fromIntegral <$> getSP mem
+        --     putStrLn $ "push: sp is: " ++ show sp
+            write mem sp val
 
 
