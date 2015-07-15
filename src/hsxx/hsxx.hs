@@ -114,6 +114,11 @@ execute mem pc = do
             popped <- pop mem
             val <- deref mem popped
             push mem val
+        PUSHX -> do
+--             error "ERROR PUSHX"
+            val <- pop mem
+            arg <- getArg
+            push mem =<< deref mem (val + arg)
         DUPL  -> do
             sp <- getSP mem
             val <- deref mem sp
