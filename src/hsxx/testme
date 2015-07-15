@@ -1,6 +1,6 @@
 #!/usr/bin/dash
 
-ghc "hsxx.hs"
+ghc "hsxx.hs" || exit 2
 
 echo "testing all files in dantest/ ..."
 
@@ -10,10 +10,9 @@ cd "dantest/"
 for filename in *.sxx ; do
     echo "$filename"
 #     echo "compare with: .output.$filename"
-    ../hsxx "$filename" \
-        | awk '/beginning execution --------------------/,0' \
-        | diff ".output.$filename" - \
-        || exit 1
+    ../hsxx "$filename" | \
+        awk '/beginning execution --------------------/,0' | \
+        diff ".output.$filename" - || exit 1
 done
 
 echo "OK :~)"
