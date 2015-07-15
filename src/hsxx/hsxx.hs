@@ -39,11 +39,6 @@ main = do
     putStrLn "beginning execution --------------------"
     forever $ execute mem pc >> inc pc
 
-deref :: MyVector -> Int32 -> IO Int32
-deref mem val = do
---     putStrLn $ "deref: val is: " ++ show val
-    V.read mem (fromIntegral val)
-
 push :: MyVector -> Int32 -> IO ()
 push mem val = do
 --     putStrLn $ "push: val is: " ++ show val
@@ -88,28 +83,28 @@ execute mem pc = do
     let getArg :: IO Int32
         getArg = do
             inc pc
-            deref mem (pointer+1)
+            deref (pointer+1)
 
 --     putStrLn $ "pointer is: " ++ show pointer
-    instr <- toEnum . fromIntegral <$> deref mem pointer
+    instr <- toEnum . fromIntegral <$> deref pointer
 --     putStrLn $ "HANDLING INSTRUCTION: " ++ show instr
     case instr of
         BKPT  -> do
             putStrLn "what is the sxx debugger?"
         PUSH  -> do
             val <- getArg
-            push mem =<< (deref mem val)
+            push mem =<< (deref val)
         PUSHV -> do
             val <- getArg
             push mem val
         PUSHS -> do
             popped <- pop
-            val <- deref mem popped
+            val <- deref popped
             push mem val
         PUSHX -> do
             val <- pop
             arg <- getArg
-            push mem =<< deref mem (val + arg)
+            push mem =<< deref (val + arg)
         POP   -> do
             val <- pop
             addr <- getArg
@@ -125,7 +120,7 @@ execute mem pc = do
             write mem (fromIntegral (addr + arg)) val
         DUPL  -> do
             sp <- getSP mem
-            val <- deref mem sp
+            val <- deref sp
             push mem val
         SWAP  -> do
             val1 <- pop
@@ -134,16 +129,16 @@ execute mem pc = do
             push mem val2
         OVER  -> do
             sp <- getSP mem
-            val <- deref mem (sp+1)
+            val <- deref (sp+1)
             push mem val
         DROP  -> do
             incSP mem 
 --         ADDX  -> push mem =<< liftM2 (+) getArg (pop)
         ROT   -> do
             sp <- getSP mem
-            val <- deref mem sp
-            write mem (fromIntegral sp) =<< deref mem (sp+2)
-            write mem (fromIntegral (sp+2)) =<< deref mem (sp+1)
+            val <- deref sp
+            write mem (fromIntegral sp) =<< deref (sp+2)
+            write mem (fromIntegral (sp+2)) =<< deref (sp+1)
             write mem (fromIntegral (sp+1)) val
         TSTLT -> do
             val <- pop
@@ -182,7 +177,12 @@ execute mem pc = do
         pop = do
         --     putStrLn "pop!"
             sp <- getSP mem
-            result <- deref mem sp
+            result <- deref sp
             incSP mem
             return result
+        deref :: Int32 -> IO Int32
+        deref val = do
+        --     putStrLn $ "deref: val is: " ++ show val
+            V.read mem (fromIntegral val)
+
 
