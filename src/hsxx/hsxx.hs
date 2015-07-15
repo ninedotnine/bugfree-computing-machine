@@ -52,14 +52,6 @@ push mem val = do
 --     putStrLn $ "push: sp is: " ++ show sp
     write mem sp val
 
-pop :: MyVector -> IO Int32
-pop mem = do
---     putStrLn "pop!"
-    sp <- getSP mem
-    result <- deref mem sp
-    incSP mem
-    return result
-
 inc :: IORef Int16 -> IO ()
 inc pc = modifyIORef' pc (+1)
 
@@ -111,24 +103,24 @@ execute mem pc = do
             val <- getArg
             push mem val
         PUSHS -> do
-            popped <- pop mem
+            popped <- pop
             val <- deref mem popped
             push mem val
         PUSHX -> do
-            val <- pop mem
+            val <- pop
             arg <- getArg
             push mem =<< deref mem (val + arg)
         POP   -> do
-            val <- pop mem
+            val <- pop
             addr <- getArg
             write mem (fromIntegral addr) val
         POPS  -> do
-            val <- pop mem
-            addr <- pop mem
+            val <- pop
+            addr <- pop
             write mem (fromIntegral addr) val
         POPX  -> do
-            val <- pop mem
-            addr <- pop mem
+            val <- pop
+            addr <- pop
             arg <- getArg
             write mem (fromIntegral (addr + arg)) val
         DUPL  -> do
@@ -136,8 +128,8 @@ execute mem pc = do
             val <- deref mem sp
             push mem val
         SWAP  -> do
-            val1 <- pop mem
-            val2 <- pop mem
+            val1 <- pop
+            val2 <- pop
             push mem val1
             push mem val2
         OVER  -> do
@@ -146,7 +138,7 @@ execute mem pc = do
             push mem val
         DROP  -> do
             incSP mem 
---         ADDX  -> push mem =<< liftM2 (+) getArg (pop mem)
+--         ADDX  -> push mem =<< liftM2 (+) getArg (pop)
         ROT   -> do
             sp <- getSP mem
             val <- deref mem sp
@@ -154,34 +146,43 @@ execute mem pc = do
             write mem (fromIntegral (sp+2)) =<< deref mem (sp+1)
             write mem (fromIntegral (sp+1)) val
         TSTLT -> do
-            val <- pop mem
+            val <- pop
             if val < 0
                 then push mem 1
                 else push mem 0
-        TSTLE -> pop mem >>= \x -> if x <= 0 then push mem 1 else push mem 0
-        TSTGT -> pop mem >>= \x -> if x  > 0 then push mem 1 else push mem 0
-        TSTGE -> pop mem >>= \x -> if x >= 0 then push mem 1 else push mem 0
-        TSTEQ -> pop mem >>= \x -> if x == 0 then push mem 1 else push mem 0
-        TSTNE -> pop mem >>= \x -> if x /= 0 then push mem 1 else push mem 0
+        TSTLE -> pop >>= \x -> if x <= 0 then push mem 1 else push mem 0
+        TSTGT -> pop >>= \x -> if x  > 0 then push mem 1 else push mem 0
+        TSTGE -> pop >>= \x -> if x >= 0 then push mem 1 else push mem 0
+        TSTEQ -> pop >>= \x -> if x == 0 then push mem 1 else push mem 0
+        TSTNE -> pop >>= \x -> if x /= 0 then push mem 1 else push mem 0
         NOT   -> do 
-            val <- pop mem
+            val <- pop
             if val == 0 
                 then push mem 1
                 else push mem 0
         NEG   -> do 
-            val <- pop mem
+            val <- pop
             push mem (negate val)
         ADDX  -> do 
             val <- getArg
-            result <- pop mem 
+            result <- pop 
             push mem (result + val)
         PRINT -> do
-            val <- pop mem
+            val <- pop
             putStr (show val)
         PRINTC -> do
-            val <- chr . fromIntegral <$> pop mem 
+            val <- chr . fromIntegral <$> pop 
             putChar val
         HALT  -> do
             putStrLn "execution halted"
             exitSuccess 
         _     -> error ("ERROR: " ++ show instr)
+    where
+        pop :: IO Int32
+        pop = do
+        --     putStrLn "pop!"
+            sp <- getSP mem
+            result <- deref mem sp
+            incSP mem
+            return result
+
