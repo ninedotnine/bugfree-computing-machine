@@ -131,6 +131,11 @@ execute mem pc = do
             setPC . toPC . (subtract 1) $ val
         RETURN -> do
             pop >>= setPC . toPC . (+1)
+        RETN   -> do
+            val <- pop
+            arg <- getArg
+            modVal 0 (+arg) -- increase the stack pointer
+            setPC (toPC val)
         HALT  -> do
             putStrLn "execution halted"
             exitSuccess 
