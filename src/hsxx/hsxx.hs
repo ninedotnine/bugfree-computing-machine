@@ -103,15 +103,8 @@ execute mem pc = do
         TSTGE -> pop >>= \x -> push $ if x >= 0 then 1 else 0
         TSTEQ -> pop >>= \x -> push $ if x == 0 then 1 else 0
         TSTNE -> pop >>= \x -> push $ if x /= 0 then 1 else 0
-        BNE   -> do
---             pop >>= (getArg >>=) . (. (setPC . subtract 1)) . when . toBool
-            val <- pop
-            addr <- getArg
-            when (val /= 0) (setPC (addr-1))
-        BEQ   -> do
-            val <- pop
-            addr <- getArg
-            when (val == 0) (setPC (addr-1))
+        BNE   -> pop >>= (getArg >>=) . (. (setPC . subtract 1)) . when . toBool
+        BEQ   -> pop >>= (getArg >>=) . (. (setPC . subtract 1)) . when . (==0)
         BR    -> do
             addr <- getArg
             setPC (addr-1) -- it will be incremented soon anyway
