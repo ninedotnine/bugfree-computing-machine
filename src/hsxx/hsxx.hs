@@ -65,10 +65,7 @@ execute mem pc = do
         BKPT  -> putStrLn "what is the sxx debugger?"
         PUSH  -> getArg >>= deref >>= push
         PUSHV -> getArg >>= push
-        PUSHS -> do
-            popped <- pop
-            val <- deref popped
-            push val
+        PUSHS -> pop >>= deref >>= push
         PUSHX -> do
             val <- pop
             arg <- getArg
