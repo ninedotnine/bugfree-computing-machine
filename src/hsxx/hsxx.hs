@@ -160,19 +160,12 @@ execute mem pc = do
         MOD -> push =<< liftM2 (flip rem) pop pop
         OR  -> push =<< liftM2 (?|) pop pop
         AND -> push =<< liftM2 (&) pop pop
-        XOR -> do
-            val1 <- pop
-            val2 <- pop
---             push $  (not (val1 /= 0) && (val2 /= 0)) && ((val1 /= 0) || (val2 /= 0))
-            push $ toInt32 (not' (val1 /= 0) & (val2 /= 0)) & ((val1 /= 0) ?| (val2 /= 0))
---             if (not (val1 /= 0) && (val2 /= 0)) && ((val1 /= 0) || (val2 /= 0))
---                 then push 1
---                 else push 0
-                where 
-                    not' :: (SXXBool a) => a -> Int32
-                    not' x = if toBool x then 0 else 1
---                     not' 0 = 1
---                     not' _ = 0
+        XOR -> push =<< liftM2 ((ap . (((&) . not') .) . (&)) <*> (?|)) pop pop
+--             val1 <- pop
+--             val2 <- pop
+--             push $ (not' (val1 & val2)) & (val1 ?| val2)
+--         push =<< liftM2 (\val1 val2 -> (not' (val1 & val2)) & (val1 ?|
+-- val2)) pop pop -- these work too
         NOT   -> do 
             val <- pop
             if val == 0 
@@ -211,7 +204,10 @@ class SXXBool a where
     (&) a b = toInt32 (toBool a && toBool b)
     (?|) :: (SXXBool b) => a -> b -> Int32
     (?|) a b = toInt32 (toBool a || toBool b)
-    
+    not' :: (SXXBool a) => a -> Int32
+--     not' x = if toBool x then 0 else 1
+    not' = toInt32 . not . toBool 
+
 instance SXXBool Bool where
     toBool = id
     toInt32 True = 1
