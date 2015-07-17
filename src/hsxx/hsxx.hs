@@ -147,6 +147,12 @@ execute mem pc = do
         MUL -> push =<< liftM2 (*) pop pop
         DIV -> push =<< liftM2 (flip div) pop pop
         MOD -> push =<< liftM2 (flip rem) pop pop
+        AND -> do
+            val1 <- pop
+            val2 <- pop
+            if (val1 /= 0) && (val2 /= 0)
+                then push 1
+                else push 0
         NOT   -> do 
             val <- pop
             if val == 0 
