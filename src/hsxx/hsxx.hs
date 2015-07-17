@@ -142,7 +142,8 @@ execute mem pc = do
         ADD -> do 
             val1 <- pop
             val2 <- pop
-            push (val1 + val2)
+            push (val2 + val1)
+        SUB -> push =<< liftM2 subtract pop pop -- who's magnitude? 
         NOT   -> do 
             val <- pop
             if val == 0 
