@@ -161,14 +161,8 @@ execute mem pc = do
         OR  -> push =<< liftM2 (?|) pop pop
         AND -> push =<< liftM2 (&) pop pop
         XOR -> push =<< liftM2 ((ap . (((&) . not') .) . (&)) <*> (?|)) pop pop
-        NOT   -> do 
-            val <- pop
-            if val == 0 
-                then push 1
-                else push 0
-        NEG   -> do 
-            val <- pop
-            push (negate val)
+        NOT -> push =<< liftM (not' ) pop
+        NEG -> push =<< liftM negate pop
 --         ADDX  -> push =<< liftM2 (+) getArg (pop)
         ADDX  -> do 
             val <- getArg
