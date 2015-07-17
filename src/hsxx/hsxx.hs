@@ -159,6 +159,12 @@ execute mem pc = do
             if (val1 /= 0) && (val2 /= 0)
                 then push 1
                 else push 0
+        XOR -> do
+            val1 <- pop
+            val2 <- pop
+            if (not (val1 /= 0) && (val2 /= 0)) && ((val1 /= 0) || (val2 /= 0))
+                then push 1
+                else push 0
         NOT   -> do 
             val <- pop
             if val == 0 
