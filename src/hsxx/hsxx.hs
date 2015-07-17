@@ -178,6 +178,9 @@ execute mem pc = do
             val <- getArg
             result <- pop 
             push (result + val)
+        ADDSP -> do
+            arg <- getArg
+            modVal 0 (+arg)
         PRINT -> do
             val <- pop
             putStr (show val)
@@ -188,7 +191,7 @@ execute mem pc = do
         TROFF -> putStrLn "TROFF does nothing"
         DUMP  -> putStrLn "DUMP does nothing"
         ERROR -> putStrLn "ERROR isn't even a real opcode"
---         _     -> error ("ERROR: " ++ show instr)
+        _     -> error ("ERROR: " ++ show instr ++ "NOT done yet")
 
 -- this code requires the ghc ImplicitParams extension
 pop :: (?mem :: MyVector) => IO Int32
