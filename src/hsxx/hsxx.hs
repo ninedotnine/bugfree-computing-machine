@@ -125,6 +125,10 @@ execute mem pc = do
         CALL  -> do
             push . toCell =<< readIORef pc
             setPC . toPC . (subtract 1) =<< getArg
+        CALLS -> do
+            val <- pop
+            push . toCell . (subtract 1) =<< readIORef pc
+            setPC . toPC . (subtract 1) $ val
         RETURN -> do
             pop >>= setPC . toPC . (+1)
         HALT  -> do
