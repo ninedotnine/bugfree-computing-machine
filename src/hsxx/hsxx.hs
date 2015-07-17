@@ -141,7 +141,6 @@ execute mem pc = do
 -- this is for boolean operations
 class SXXBool a where
     toInt32 :: a -> Int32
-    fromInt32 :: Int32 -> a
     toBool :: a -> Bool
     (&) :: (SXXBool b) => a -> b -> Int32
     (&) a b = toInt32 (toBool a && toBool b)
@@ -154,15 +153,11 @@ instance SXXBool Bool where
     toBool = id
     toInt32 True = 1
     toInt32 False = 0
-    fromInt32 0 = False
-    fromInt32 _ = True
 
 instance SXXBool Int32 where
     toBool = (/= 0)
     toInt32 = id
 --     toInt32 = toCell
-    fromInt32 0 = 0
-    fromInt32 _ = 1
 
 -- this code requires the ghc ImplicitParams extension
 pop :: (?mem :: MyVector) => IO Int32
