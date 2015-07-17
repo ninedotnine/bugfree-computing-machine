@@ -44,10 +44,10 @@ execute mem pc = do
     let ?mem = mem
         ?pc  = pc 
     incPC
---     pointer <- toAddr <$> readIORef pc
+--     pointer <- toCell <$> readIORef pc
 --     putStrLn $ "pointer is: " ++ show pointer
 --     instr <- toEnum . toInt <$> deref pointer
-    instr <- toEnum . toInt <$> (deref =<< toAddr <$> readIORef pc)
+    instr <- toEnum . toInt <$> (deref =<< toCell <$> readIORef pc)
 --     putStrLn $ "HANDLING INSTRUCTION: " ++ show instr
 
     case instr of
@@ -123,7 +123,7 @@ execute mem pc = do
             addr <- getArg
             setPC (toPC (addr-1)) -- it will be incremented soon anyway
         CALL  -> do
-            push . toAddr =<< readIORef pc
+            push . toCell =<< readIORef pc
             setPC . toPC . (subtract 1) =<< getArg
         RETURN -> do
             pop >>= setPC . toPC . (+1)
@@ -166,7 +166,7 @@ push :: (?mem :: MyVector) => Int32 -> IO ()
 push val = decSP >> getSP >>= (\sp -> writeV (toInt sp) val)
 
 getArg :: (?pc :: IORef Int16, ?mem :: MyVector) => IO Int32
-getArg = incPC >> readIORef ?pc >>= deref . toAddr
+getArg = incPC >> readIORef ?pc >>= deref . toCell
 
 writeV :: (?mem :: MyVector) => Int -> Int32 -> IO ()
 writeV = V.write ?mem
@@ -202,8 +202,8 @@ toPC :: Integral a => a -> Int16
 toPC = fromIntegral
 
 -- for converting to the type of the memory vector
-toAddr :: Integral a => a -> Int32
-toAddr = fromIntegral
+toCell :: Integral a => a -> Int32
+toCell = fromIntegral
 
 -- for converting to the type used by many haskell library functions
 toInt :: Integral a => a -> Int
