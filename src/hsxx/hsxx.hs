@@ -158,30 +158,8 @@ execute mem pc = do
         MUL -> push =<< liftM2 (*) pop pop
         DIV -> push =<< liftM2 (flip div) pop pop
         MOD -> push =<< liftM2 (flip rem) pop pop
-        OR  -> do
-        {-
-            val1 <- pop
-            val2 <- pop
-            if (val1 /= 0) || (val2 /= 0)
-                then push 1
-                else push 0
-                    -}
---             val1 <- pop
---             val2 <- pop
-            push =<< liftM2 (\val1 val2 -> 
-                if toBool val1 || toBool val2
-                    then 1
-                    else 0 ) pop pop
---                         where true = (/= 0) ) pop pop
-        AND -> do
-            val1 <- pop
-            val2 <- pop
---             push $ (val1 /= 0) & (val2 /= 0)
-            push $ (val1 /= 0) & (val2 /= 0)
---             print $ (val1 /= 0) & (val2 /= 0)
---             if (val1 /= 0) && (val2 /= 0)
---                 then push 1
---                 else push 0
+        OR  -> push =<< liftM2 (?|) pop pop
+        AND -> push =<< liftM2 (&) pop pop
         XOR -> do
             val1 <- pop
             val2 <- pop
