@@ -103,11 +103,10 @@ execute mem pc = do
         TSTGE -> pop >>= \x -> push $ if x >= 0 then 1 else 0
         TSTEQ -> pop >>= \x -> push $ if x == 0 then 1 else 0
         TSTNE -> pop >>= \x -> push $ if x /= 0 then 1 else 0
-        BNE   -> pop >>= (getArg >>=) . (. (setPC . subtract 1)) . when . toBool
-        BEQ   -> pop >>= (getArg >>=) . (. (setPC . subtract 1)) . when . (==0)
-        BR    -> do
-            addr <- getArg
-            setPC (addr-1) -- it will be incremented soon anyway
+        -- we subtract 1 from the addr since PC will be incremented afterward
+        BNE -> pop >>= (getArg >>=) . (. (setPC . subtract 1)) . when . toBool
+        BEQ -> pop >>= (getArg >>=) . (. (setPC . subtract 1)) . when . (==0)
+        BR  -> getArg >>= setPC . subtract 1
         CALL  -> do
             push . toCell =<< readIORef pc
             setPC . (subtract 1) =<< getArg
