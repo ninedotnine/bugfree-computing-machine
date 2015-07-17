@@ -185,8 +185,9 @@ execute mem pc = do
             val <- chr . toInt <$> pop 
             putChar val
         TRON  -> putStrLn "TRON does nothing"
-        TROFf -> putStrLn "TROFF does nothing"
+        TROFF -> putStrLn "TROFF does nothing"
         DUMP  -> putStrLn "DUMP does nothing"
+        ERROR -> putStrLn "ERROR isn't even a real opcode"
 --         _     -> error ("ERROR: " ++ show instr)
 
 -- this code requires the ghc ImplicitParams extension
