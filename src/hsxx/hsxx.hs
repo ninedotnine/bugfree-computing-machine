@@ -161,11 +161,6 @@ execute mem pc = do
         OR  -> push =<< liftM2 (?|) pop pop
         AND -> push =<< liftM2 (&) pop pop
         XOR -> push =<< liftM2 ((ap . (((&) . not') .) . (&)) <*> (?|)) pop pop
---             val1 <- pop
---             val2 <- pop
---             push $ (not' (val1 & val2)) & (val1 ?| val2)
---         push =<< liftM2 (\val1 val2 -> (not' (val1 & val2)) & (val1 ?|
--- val2)) pop pop -- these work too
         NOT   -> do 
             val <- pop
             if val == 0 
