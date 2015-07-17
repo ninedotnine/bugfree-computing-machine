@@ -44,11 +44,10 @@ execute mem pc = do
     let ?mem = mem
         ?pc  = pc 
     incPC
-    pointer <- toAddr <$> readIORef pc
+--     pointer <- toAddr <$> readIORef pc
 --     putStrLn $ "pointer is: " ++ show pointer
-    instr <- toEnum . toInt <$> deref pointer
---     instr <- toEnum . toEnum
---         <$> (deref =<< toAddr <$> readIORef pc)
+--     instr <- toEnum . toInt <$> deref pointer
+    instr <- toEnum . toInt <$> (deref =<< toAddr <$> readIORef pc)
 --     putStrLn $ "HANDLING INSTRUCTION: " ++ show instr
 
     case instr of
@@ -96,7 +95,6 @@ execute mem pc = do
             push val
         DROP  -> do
             incSP
---         ADDX  -> push =<< liftM2 (+) getArg (pop)
         ROT   -> do
             sp <- getSP
             val <- deref sp
@@ -114,7 +112,6 @@ execute mem pc = do
         TSTEQ -> pop >>= \x -> push $ if x == 0 then 1 else 0
         TSTNE -> pop >>= \x -> push $ if x /= 0 then 1 else 0
         BNE   -> do
---             undefined
             val <- pop
             addr <- getArg
             when (val /= 0) (setPC (toPC (addr-1)))
@@ -126,9 +123,10 @@ execute mem pc = do
             addr <- getArg
             setPC (toPC (addr-1)) -- it will be incremented soon anyway
         CALL  -> do
-            push pointer
-            addr <- getArg
-            setPC (toPC (addr-1))
+            push . toAddr =<< readIORef pc
+            setPC . toPC . (subtract 1) =<< getArg
+        RETURN -> do
+            pop >>= setPC . toPC . (+1)
         HALT  -> do
             putStrLn "execution halted"
             exitSuccess 
@@ -144,6 +142,7 @@ execute mem pc = do
         NEG   -> do 
             val <- pop
             push (negate val)
+--         ADDX  -> push =<< liftM2 (+) getArg (pop)
         ADDX  -> do 
             val <- getArg
             result <- pop 
