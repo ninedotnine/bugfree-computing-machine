@@ -194,12 +194,6 @@ setPC :: (?pc :: IORef Int16, Integral a) => a -> IO ()
 setPC x = writeIORef ?pc (toPC x)
 -- setPC = (writeIORef ?pc) . toPC
 
-{-
-dec :: IORef Int16 -> IO ()
-dec pc = modifyIORef' pc (\x -> x-1)
--}
-
-
 -- for converting to the type of the instruction pointer
 toPC :: Integral a => a -> Int16
 toPC = fromIntegral
