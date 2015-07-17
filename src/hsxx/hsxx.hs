@@ -81,10 +81,6 @@ execute mem pc = do
             addr <- pop
             arg <- getArg
             writeV (toInt (addr + arg)) val
-        BNE   -> do
-            val <- pop
-            addr <- getArg
-            when (val == 0) (setPC (toPC addr))
         DUPL  -> do
             sp <- getSP
             val <- deref sp
@@ -117,9 +113,18 @@ execute mem pc = do
         TSTGE -> pop >>= \x -> push $ if x >= 0 then 1 else 0
         TSTEQ -> pop >>= \x -> push $ if x == 0 then 1 else 0
         TSTNE -> pop >>= \x -> push $ if x /= 0 then 1 else 0
+        BNE   -> do
+--             undefined
+            val <- pop
+            addr <- getArg
+            when (val /= 0) (setPC (toPC (addr-1)))
+        BEQ   -> do
+            val <- pop
+            addr <- getArg
+            when (val == 0) (setPC (toPC (addr-1)))
         BR    -> do
-            arg <- getArg
-            setPC (toPC (arg-1)) -- it will be incremented soon anyway
+            addr <- getArg
+            setPC (toPC (addr-1)) -- it will be incremented soon anyway
         HALT  -> do
             putStrLn "execution halted"
             exitSuccess 
