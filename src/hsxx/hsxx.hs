@@ -70,16 +70,16 @@ execute mem pc = do
         POP   -> do
             val <- pop
             addr <- getArg
-            writeV (toInt addr) val
+            write addr val
         POPS  -> do
             val <- pop
             addr <- pop
-            writeV (toInt addr) val
+            write addr val
         POPX  -> do
             val <- pop
             addr <- pop
             arg <- getArg
-            writeV (toInt (addr + arg)) val
+            write (addr + arg) val
         DUPL  -> getSP >>= deref >>= push
         SWAP  -> do
             val1 <- pop
@@ -91,9 +91,9 @@ execute mem pc = do
         ROT   -> do
             sp <- getSP
             val <- deref sp
-            writeV (toInt sp) =<< deref (sp+2)
-            writeV (toInt (sp+2)) =<< deref (sp+1)
-            writeV (toInt (sp+1)) val
+            write sp =<< deref (sp+2)
+            write (sp+2) =<< deref (sp+1)
+            write (sp+1) val
         TSTLT -> pop >>= \x -> push $ if x  < 0 then 1 else 0
         TSTLE -> pop >>= \x -> push $ if x <= 0 then 1 else 0
         TSTGT -> pop >>= \x -> push $ if x  > 0 then 1 else 0
@@ -173,13 +173,14 @@ deref :: (?mem :: MyVector) => Int32 -> IO Int32
 deref val = V.read ?mem (toInt val)
 
 push :: (?mem :: MyVector) => Int32 -> IO ()
-push val = decSP >> getSP >>= (\sp -> writeV (toInt sp) val)
+push val = decSP >> getSP >>= (\sp -> write sp val)
 
 getArg :: (?pc :: IORef Int16, ?mem :: MyVector) => IO Int32
 getArg = incPC >> readIORef ?pc >>= deref . toCell
 
-writeV :: (?mem :: MyVector) => Int -> Int32 -> IO ()
-writeV = V.write ?mem
+-- write :: (?mem :: MyVector) => Int -> Int32 -> IO ()
+write :: (?mem :: MyVector, Integral a) => a -> Int32 -> IO ()
+write = V.write ?mem . toInt
 
 getSP :: (?mem :: MyVector) => IO Int32
 getSP = V.read ?mem 0
@@ -195,8 +196,8 @@ decSP :: (?mem :: MyVector) => IO ()
 decSP = modSP (subtract 1)
 
 modVal :: (?mem :: MyVector) => Int -> (Int32 -> Int32) -> IO ()
--- modVal = ((.) . (>>=) . V.read ?mem) <*> ((.) . writeV)
-modVal x f = V.read ?mem x >>= (\val -> writeV x (f val))
+-- modVal = ((.) . (>>=) . V.read ?mem) <*> ((.) . write)
+modVal x f = V.read ?mem x >>= (\val -> write x (f val))
 
 incPC :: (?pc :: IORef Int16) => IO ()
 incPC = modifyIORef' ?pc (+1)
