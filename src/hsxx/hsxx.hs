@@ -140,14 +140,13 @@ execute mem pc = do
             val <- pop
             push . toCell . (subtract 1) =<< readIORef pc
             setPC . toPC . (subtract 1) $ val
-        RETURN -> do
-            pop >>= setPC . toPC . (+1)
+        RETURN -> pop >>= setPC . toPC . (+1)
         RETN   -> do
             val <- pop
             arg <- getArg
-            modVal 0 (+arg) -- increase the stack pointer
+            modSP (+arg) -- increase the stack pointer
             setPC (toPC val)
-        HALT  -> putStrLn "execution halted" >> exitSuccess 
+        HALT -> putStrLn "execution halted" >> exitSuccess 
         ADD -> push =<< liftM2 (+) pop pop -- who's magnitude? 
         SUB -> push =<< liftM2 subtract pop pop
         MUL -> push =<< liftM2 (*) pop pop
@@ -158,16 +157,10 @@ execute mem pc = do
         XOR -> push =<< liftM2 ((ap . (((&) . not') .) . (&)) <*> (?|)) pop pop
         NOT -> push =<< liftM (not' ) pop
         NEG -> push =<< liftM negate pop
-        ADDX  -> push =<< liftM2 (+) getArg pop
-        ADDSP -> do
-            arg <- getArg
-            modVal 0 (+arg)
-        PRINT -> do
-            val <- pop
-            putStr (show val)
-        PRINTC -> do
-            val <- chr . toInt <$> pop 
-            putChar val
+        ADDX -> push =<< liftM2 (+) getArg pop
+        ADDSP -> modSP . (+) =<< getArg
+        PRINT -> pop >>= (putStr . show)
+        PRINTC -> pop >>= (putChar . chr . toInt)
         TRON  -> putStrLn "TRON does nothing"
         TROFF -> putStrLn "TROFF does nothing"
         DUMP  -> putStrLn "DUMP does nothing"
@@ -222,12 +215,15 @@ writeV = V.write ?mem
 getSP :: (?mem :: MyVector) => IO Int32
 getSP = V.read ?mem 0
 
+modSP :: (?mem :: MyVector) => (Int32 -> Int32) -> IO ()
+modSP = modVal 0 
+
 incSP :: (?mem :: MyVector) => IO ()
 --         incSP = getSP >>= (\sp -> write mem 0 (sp+1))
-incSP = modVal 0 (+1)
+incSP = modSP (+1)
 
 decSP :: (?mem :: MyVector) => IO ()
-decSP = modVal 0 (subtract 1)
+decSP = modSP (subtract 1)
 
 modVal :: (?mem :: MyVector) => Int -> (Int32 -> Int32) -> IO ()
 -- modVal = ((.) . (>>=) . V.read ?mem) <*> ((.) . writeV)
