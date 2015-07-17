@@ -67,12 +67,12 @@ execute mem pc = do
         PUSHV -> getArg >>= push
         PUSHS -> pop >>= deref >>= push
         PUSHX -> liftM2 (+) pop getArg >>= deref >>= push
---         POP   -> join $ write <$> getArg <*> pop
-        POP   -> join $ liftM2 write getArg pop
---         POPS  -> join $ flip write <$> pop <*> pop
-        POPS  -> join $ liftM2 (flip write) pop pop
---         POPX  -> join $ flip write <$> pop <*> ((+) <$> getArg <*> pop)
-        POPX  -> join $ liftM2 (flip write) pop ((+) <$> getArg <*> pop)
+
+        -- these allow arbitrary writes to memory
+        POP  -> join $ liftM2 write getArg pop
+        POPS -> join $ liftM2 (flip write) pop pop -- who's magnitude? 
+        POPX -> join $ liftM2 (flip write) pop ((+) <$> getArg <*> pop)
+
         DUPL  -> getSP >>= deref >>= push
         SWAP  -> do
             val1 <- pop
@@ -87,12 +87,14 @@ execute mem pc = do
             write sp =<< deref (sp+2)
             write (sp+2) =<< deref (sp+1)
             write (sp+1) val
+
         TSTLT -> pop >>= \x -> push $ if x  < 0 then 1 else 0
         TSTLE -> pop >>= \x -> push $ if x <= 0 then 1 else 0
         TSTGT -> pop >>= \x -> push $ if x  > 0 then 1 else 0
         TSTGE -> pop >>= \x -> push $ if x >= 0 then 1 else 0
         TSTEQ -> pop >>= \x -> push $ if x == 0 then 1 else 0
         TSTNE -> pop >>= \x -> push $ if x /= 0 then 1 else 0
+
         -- we subtract 1 from the addr since PC will be incremented afterward
         BNE -> pop >>= (getArg >>=) . (. (setPC . subtract 1)) . when . toBool
         BEQ -> pop >>= (getArg >>=) . (. (setPC . subtract 1)) . when . (==0)
@@ -111,7 +113,9 @@ execute mem pc = do
             modSP (+arg) -- increase the stack pointer
             setPC val
         HALT -> putStrLn "execution halted" >> exitSuccess 
-        ADD -> push =<< liftM2 (+) pop pop -- who's magnitude? 
+
+        -- binary operations on the stack
+        ADD -> push =<< liftM2 (+) pop pop
         SUB -> push =<< liftM2 subtract pop pop
         MUL -> push =<< liftM2 (*) pop pop
         DIV -> push =<< liftM2 (flip div) pop pop
@@ -119,10 +123,12 @@ execute mem pc = do
         OR  -> push =<< liftM2 (?|) pop pop
         AND -> push =<< liftM2 (&) pop pop
         XOR -> push =<< liftM2 ((ap . (((&) . not') .) . (&)) <*> (?|)) pop pop
+
         NOT -> push =<< liftM (not' ) pop
         NEG -> push =<< liftM negate pop
         ADDX -> push =<< liftM2 (+) getArg pop
         ADDSP -> modSP . (+) =<< getArg
+
         PRINT -> pop >>= (putStr . show)
         PRINTC -> pop >>= (putChar . chr . toInt)
         TRON  -> putStrLn "TRON does nothing"
