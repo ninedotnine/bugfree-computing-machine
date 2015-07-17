@@ -66,10 +66,7 @@ execute mem pc = do
         PUSH  -> getArg >>= deref >>= push
         PUSHV -> getArg >>= push
         PUSHS -> pop >>= deref >>= push
-        PUSHX -> do
-            val <- pop
-            arg <- getArg
-            push =<< deref (val + arg)
+        PUSHX -> liftM2 (+) pop getArg >>= deref >>= push
         POP   -> do
             val <- pop
             addr <- getArg
@@ -152,7 +149,6 @@ class SXXBool a where
     (?|) :: (SXXBool b) => a -> b -> Int32
     (?|) a b = toInt32 (toBool a || toBool b)
     not' :: (SXXBool a) => a -> Int32
---     not' x = if toBool x then 0 else 1
     not' = toInt32 . not . toBool 
 
 instance SXXBool Bool where
@@ -163,10 +159,9 @@ instance SXXBool Bool where
     fromInt32 _ = True
 
 instance SXXBool Int32 where
---     toBool 0 = False
---     toBool _ = True
     toBool = (/= 0)
     toInt32 = id
+--     toInt32 = toCell
     fromInt32 0 = 0
     fromInt32 _ = 1
 
