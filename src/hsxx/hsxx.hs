@@ -144,6 +144,9 @@ execute mem pc = do
             val2 <- pop
             push (val2 + val1)
         SUB -> push =<< liftM2 subtract pop pop -- who's magnitude? 
+        MUL -> push =<< liftM2 (*) pop pop
+        DIV -> push =<< liftM2 (flip div) pop pop
+        MOD -> push =<< liftM2 (flip rem) pop pop
         NOT   -> do 
             val <- pop
             if val == 0 
