@@ -125,6 +125,10 @@ execute mem pc = do
         BR    -> do
             addr <- getArg
             setPC (toPC (addr-1)) -- it will be incremented soon anyway
+        CALL  -> do
+            push pointer
+            addr <- getArg
+            setPC (toPC (addr-1))
         HALT  -> do
             putStrLn "execution halted"
             exitSuccess 
