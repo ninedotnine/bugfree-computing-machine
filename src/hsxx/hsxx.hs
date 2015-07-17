@@ -104,19 +104,14 @@ execute mem pc = do
             sp <- getSP
             val <- deref (sp+1)
             push val
-        DROP  -> do
-            incSP
+        DROP  -> incSP
         ROT   -> do
             sp <- getSP
             val <- deref sp
             writeV (toInt sp) =<< deref (sp+2)
             writeV (toInt (sp+2)) =<< deref (sp+1)
             writeV (toInt (sp+1)) val
-        TSTLT -> do
-            val <- pop
-            if val < 0
-                then push 1
-                else push 0
+        TSTLT -> pop >>= \x -> push $ if x  < 0 then 1 else 0
         TSTLE -> pop >>= \x -> push $ if x <= 0 then 1 else 0
         TSTGT -> pop >>= \x -> push $ if x  > 0 then 1 else 0
         TSTGE -> pop >>= \x -> push $ if x >= 0 then 1 else 0
