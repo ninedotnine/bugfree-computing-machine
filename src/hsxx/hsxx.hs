@@ -29,14 +29,25 @@ import Parser
 main :: IO ()
 main = do
     mem <- V.new 16384
-    V.write mem 0 (16383 :: Int32) -- initialize SP
+    V.write mem 0 (16384 :: Int32) -- initialize SP
+    printStack mem
     args <- getArgs
     input <- readFile (head args)
     populateVector mem input 
     let entry = 16 :: Int16
     pc <- newIORef (entry-1)
     putStrLn "beginning execution --------------------"
-    forever $ execute mem pc
+    forever $ do 
+        execute mem pc 
+--         printStack mem
+
+printStack :: MyVector -> IO ()
+printStack vec = do 
+    let ?mem = vec
+    sp <- toInt <$> getSP
+    putStrLn $ "sp is : " ++ show sp
+    putStr "stack: "
+    printVector sp (16384 - (sp)) vec
 
 execute :: MyVector -> IORef Int16 -> IO ()
 execute mem pc = do 
@@ -148,23 +159,42 @@ execute mem pc = do
         DIV -> push =<< liftM2 (flip div) pop pop
         MOD -> push =<< liftM2 (flip rem) pop pop
         OR  -> do
+        {-
             val1 <- pop
             val2 <- pop
             if (val1 /= 0) || (val2 /= 0)
                 then push 1
                 else push 0
+                    -}
+--             val1 <- pop
+--             val2 <- pop
+            push =<< liftM2 (\val1 val2 -> 
+                if toBool val1 || toBool val2
+                    then 1
+                    else 0 ) pop pop
+--                         where true = (/= 0) ) pop pop
         AND -> do
             val1 <- pop
             val2 <- pop
-            if (val1 /= 0) && (val2 /= 0)
-                then push 1
-                else push 0
+--             push $ (val1 /= 0) & (val2 /= 0)
+            push $ (val1 /= 0) & (val2 /= 0)
+--             print $ (val1 /= 0) & (val2 /= 0)
+--             if (val1 /= 0) && (val2 /= 0)
+--                 then push 1
+--                 else push 0
         XOR -> do
             val1 <- pop
             val2 <- pop
-            if (not (val1 /= 0) && (val2 /= 0)) && ((val1 /= 0) || (val2 /= 0))
-                then push 1
-                else push 0
+--             push $  (not (val1 /= 0) && (val2 /= 0)) && ((val1 /= 0) || (val2 /= 0))
+            push $ toInt32 (not' (val1 /= 0) & (val2 /= 0)) & ((val1 /= 0) ?| (val2 /= 0))
+--             if (not (val1 /= 0) && (val2 /= 0)) && ((val1 /= 0) || (val2 /= 0))
+--                 then push 1
+--                 else push 0
+                where 
+                    not' :: (SXXBool a) => a -> Int32
+                    not' x = if toBool x then 0 else 1
+--                     not' 0 = 1
+--                     not' _ = 0
         NOT   -> do 
             val <- pop
             if val == 0 
@@ -192,6 +222,32 @@ execute mem pc = do
         DUMP  -> putStrLn "DUMP does nothing"
         ERROR -> putStrLn "ERROR isn't even a real opcode"
         _     -> error ("ERROR: " ++ show instr ++ "NOT done yet")
+
+
+-- this is for boolean operations
+class SXXBool a where
+    toInt32 :: a -> Int32
+    fromInt32 :: Int32 -> a
+    toBool :: a -> Bool
+    (&) :: (SXXBool b) => a -> b -> Int32
+    (&) a b = toInt32 (toBool a && toBool b)
+    (?|) :: (SXXBool b) => a -> b -> Int32
+    (?|) a b = toInt32 (toBool a || toBool b)
+    
+instance SXXBool Bool where
+    toBool = id
+    toInt32 True = 1
+    toInt32 False = 0
+    fromInt32 0 = False
+    fromInt32 _ = True
+
+instance SXXBool Int32 where
+--     toBool 0 = False
+--     toBool _ = True
+    toBool = (/= 0)
+    toInt32 = id
+    fromInt32 0 = 0
+    fromInt32 _ = 1
 
 -- this code requires the ghc ImplicitParams extension
 pop :: (?mem :: MyVector) => IO Int32
