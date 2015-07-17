@@ -83,19 +83,13 @@ execute mem pc = do
             addr <- pop
             arg <- getArg
             writeV (toInt (addr + arg)) val
-        DUPL  -> do
-            sp <- getSP
-            val <- deref sp
-            push val
+        DUPL  -> getSP >>= deref >>= push
         SWAP  -> do
             val1 <- pop
             val2 <- pop
             push val1
             push val2
-        OVER  -> do
-            sp <- getSP
-            val <- deref (sp+1)
-            push val
+        OVER  -> getSP >>= deref . (+1) >>= push
         DROP  -> incSP
         ROT   -> do
             sp <- getSP
