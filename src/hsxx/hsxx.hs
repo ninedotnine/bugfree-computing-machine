@@ -62,14 +62,9 @@ execute mem pc = do
 --     putStrLn $ "HANDLING INSTRUCTION: " ++ show instr
 
     case instr of
-        BKPT  -> do
-            putStrLn "what is the sxx debugger?"
-        PUSH  -> do
-            val <- getArg
-            push =<< (deref val)
-        PUSHV -> do
-            val <- getArg
-            push val
+        BKPT  -> putStrLn "what is the sxx debugger?"
+        PUSH  -> getArg >>= deref >>= push
+        PUSHV -> getArg >>= push
         PUSHS -> do
             popped <- pop
             val <- deref popped
