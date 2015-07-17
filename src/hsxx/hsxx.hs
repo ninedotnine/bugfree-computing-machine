@@ -167,7 +167,7 @@ deref :: (?mem :: MyVector) => Int32 -> IO Int32
 deref val = V.read ?mem (toInt val)
 
 push :: (?mem :: MyVector) => Int32 -> IO ()
-push val = decSP >> getSP >>= (\sp -> write sp val)
+push val = modSP (subtract 1) >> getSP >>= (\sp -> write sp val)
 
 getArg :: (?pc :: IORef Int16, ?mem :: MyVector) => IO Int32
 getArg = incPC >> readIORef ?pc >>= deref . toCell
@@ -181,9 +181,6 @@ getSP = V.read ?mem 0
 
 modSP :: (?mem :: MyVector) => (Int32 -> Int32) -> IO ()
 modSP = modVal 0 
-
-decSP :: (?mem :: MyVector) => IO ()
-decSP = modSP (subtract 1)
 
 modVal :: (?mem :: MyVector) => Int -> (Int32 -> Int32) -> IO ()
 -- modVal = ((.) . (>>=) . V.read ?mem) <*> ((.) . write)
