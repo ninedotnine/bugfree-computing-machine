@@ -67,19 +67,12 @@ execute mem pc = do
         PUSHV -> getArg >>= push
         PUSHS -> pop >>= deref >>= push
         PUSHX -> liftM2 (+) pop getArg >>= deref >>= push
-        POP   -> do
-            val <- pop
-            addr <- getArg
-            write addr val
-        POPS  -> do
-            val <- pop
-            addr <- pop
-            write addr val
-        POPX  -> do
-            val <- pop
-            addr <- pop
-            arg <- getArg
-            write (addr + arg) val
+--         POP   -> join $ write <$> getArg <*> pop
+        POP   -> join $ liftM2 write getArg pop
+--         POPS  -> join $ flip write <$> pop <*> pop
+        POPS  -> join $ liftM2 (flip write) pop pop
+--         POPX  -> join $ flip write <$> pop <*> ((+) <$> getArg <*> pop)
+        POPX  -> join $ liftM2 (flip write) pop ((+) <$> getArg <*> pop)
         DUPL  -> getSP >>= deref >>= push
         SWAP  -> do
             val1 <- pop
