@@ -147,14 +147,9 @@ execute mem pc = do
             arg <- getArg
             modVal 0 (+arg) -- increase the stack pointer
             setPC (toPC val)
-        HALT  -> do
-            putStrLn "execution halted"
-            exitSuccess 
-        ADD -> do 
-            val1 <- pop
-            val2 <- pop
-            push (val2 + val1)
-        SUB -> push =<< liftM2 subtract pop pop -- who's magnitude? 
+        HALT  -> putStrLn "execution halted" >> exitSuccess 
+        ADD -> push =<< liftM2 (+) pop pop -- who's magnitude? 
+        SUB -> push =<< liftM2 subtract pop pop
         MUL -> push =<< liftM2 (*) pop pop
         DIV -> push =<< liftM2 (flip div) pop pop
         MOD -> push =<< liftM2 (flip rem) pop pop
@@ -163,11 +158,7 @@ execute mem pc = do
         XOR -> push =<< liftM2 ((ap . (((&) . not') .) . (&)) <*> (?|)) pop pop
         NOT -> push =<< liftM (not' ) pop
         NEG -> push =<< liftM negate pop
---         ADDX  -> push =<< liftM2 (+) getArg (pop)
-        ADDX  -> do 
-            val <- getArg
-            result <- pop 
-            push (result + val)
+        ADDX  -> push =<< liftM2 (+) getArg pop
         ADDSP -> do
             arg <- getArg
             modVal 0 (+arg)
