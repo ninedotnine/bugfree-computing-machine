@@ -80,7 +80,7 @@ execute mem pc = do
             push val1
             push val2
         OVER  -> getSP >>= deref . (+1) >>= push
-        DROP  -> incSP
+        DROP  -> modSP (+1)
         ROT   -> do
             sp <- getSP
             val <- deref sp
@@ -161,7 +161,7 @@ instance SXXBool Int32 where
 
 -- this code requires the ghc ImplicitParams extension
 pop :: (?mem :: MyVector) => IO Int32
-pop = deref =<< getSP <* incSP
+pop = deref =<< getSP <* modSP (+1)
 
 deref :: (?mem :: MyVector) => Int32 -> IO Int32
 deref val = V.read ?mem (toInt val)
@@ -181,10 +181,6 @@ getSP = V.read ?mem 0
 
 modSP :: (?mem :: MyVector) => (Int32 -> Int32) -> IO ()
 modSP = modVal 0 
-
-incSP :: (?mem :: MyVector) => IO ()
---         incSP = getSP >>= (\sp -> write mem 0 (sp+1))
-incSP = modSP (+1)
 
 decSP :: (?mem :: MyVector) => IO ()
 decSP = modSP (subtract 1)
