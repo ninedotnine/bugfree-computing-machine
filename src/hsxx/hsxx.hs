@@ -104,29 +104,30 @@ execute mem pc = do
         TSTEQ -> pop >>= \x -> push $ if x == 0 then 1 else 0
         TSTNE -> pop >>= \x -> push $ if x /= 0 then 1 else 0
         BNE   -> do
+--             pop >>= (getArg >>=) . (. (setPC . subtract 1)) . when . toBool
             val <- pop
             addr <- getArg
-            when (val /= 0) (setPC (toPC (addr-1)))
+            when (val /= 0) (setPC (addr-1))
         BEQ   -> do
             val <- pop
             addr <- getArg
-            when (val == 0) (setPC (toPC (addr-1)))
+            when (val == 0) (setPC (addr-1))
         BR    -> do
             addr <- getArg
-            setPC (toPC (addr-1)) -- it will be incremented soon anyway
+            setPC (addr-1) -- it will be incremented soon anyway
         CALL  -> do
             push . toCell =<< readIORef pc
-            setPC . toPC . (subtract 1) =<< getArg
+            setPC . (subtract 1) =<< getArg
         CALLS -> do
             val <- pop
             push . toCell . (subtract 1) =<< readIORef pc
-            setPC . toPC . (subtract 1) $ val
-        RETURN -> pop >>= setPC . toPC . (+1)
+            setPC . (subtract 1) $ val
+        RETURN -> pop >>= setPC . (+1)
         RETN   -> do
             val <- pop
             arg <- getArg
             modSP (+arg) -- increase the stack pointer
-            setPC (toPC val)
+            setPC val
         HALT -> putStrLn "execution halted" >> exitSuccess 
         ADD -> push =<< liftM2 (+) pop pop -- who's magnitude? 
         SUB -> push =<< liftM2 subtract pop pop
@@ -213,8 +214,10 @@ modVal x f = V.read ?mem x >>= (\val -> writeV x (f val))
 incPC :: (?pc :: IORef Int16) => IO ()
 incPC = modifyIORef' ?pc (+1)
 
-setPC :: (?pc :: IORef Int16) => Int16 -> IO ()
-setPC x = writeIORef ?pc x
+setPC :: (?pc :: IORef Int16, Integral a) => a -> IO ()
+-- setPC :: (?pc :: IORef Int16) => Int16 -> IO ()
+setPC x = writeIORef ?pc (toPC x)
+-- setPC = (writeIORef ?pc) . toPC
 
 {-
 dec :: IORef Int16 -> IO ()
