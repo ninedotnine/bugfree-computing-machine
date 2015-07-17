@@ -184,7 +184,10 @@ execute mem pc = do
         PRINTC -> do
             val <- chr . toInt <$> pop 
             putChar val
-        _     -> error ("ERROR: " ++ show instr)
+        TRON  -> putStrLn "TRON does nothing"
+        TROFf -> putStrLn "TROFF does nothing"
+        DUMP  -> putStrLn "DUMP does nothing"
+--         _     -> error ("ERROR: " ++ show instr)
 
 -- this code requires the ghc ImplicitParams extension
 pop :: (?mem :: MyVector) => IO Int32
