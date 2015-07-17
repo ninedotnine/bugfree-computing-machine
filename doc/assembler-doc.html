@@ -1,0 +1,444 @@
+<html>
+<head>
+<title>
+EXTEDNED STACK MACHINE
+</title>
+</head>
+<body>
+<h1>
+EXTENDED STACK MACHINE
+</h1>
+<h2>
+Stack machine emulator
+</h2>
+<dl>
+<dt><strong>NAME</strong>
+<dd>
+<samp>sxx</samp>
+<p>
+<dt><strong>SYNOPSIS</strong>
+<dd>
+	<samp>sxx [-B] [-d] [-t] [-b&lt;baseaddr&gt;] [file]</samp>
+<p>
+<dt><strong>DESCRIPTION</strong>
+<dd>
+<p>
+The Stack Machine is a hardware stack oriented machine (often called a
+zero-address machine); there are no accumulator or general-purpose
+registers.  Instead, instruction operands are retrieved from the stack
+and the results of operations are left on the stack.
+<p>
+The machine has 16K words of 32-bit memory.  Word 0 is the stack pointer
+(<code>SP</code>).
+This location is implicitly referenced by some instructions, but
+may also be explicitly referenced as a memory location.  The stack
+begins at high memory and grows downward;
+<code>SP</code> points to the last item
+pushed on the stack.  The program counter (<code>PC</code>)
+is an internal register
+(not directly addressable by a program) and always contains the address
+of the next instruction to be executed.  The program counter is
+initialized to the first location of a program when the program is
+loaded.
+<p>
+The trace feature is turned on using the <code>TRON</code> instruction,
+which will turn on the internal trace flag.
+If the trace flag is on, then before each instruction (and operand) fetch,
+the current state of the machine is displayed:
+this includes the opcode mnemonic,
+the operand (if it is required),
+and the <code>PC</code> and <code>SP</code> registers.
+If the stack is not empty, the current state of the stack
+(up to 4 words deep) is also displayed.
+Note that a trace is also displayed in case of error, in which case the
+program enters the debug mode.
+<p>
+If the <samp>-B</samp> option is given,
+a banner is printed as the program is
+loading giving the load point of the object module.
+If the <samp>-d</samp> option is given,
+the emulator enters debug mode immediately after the object
+module has been read.
+If the <samp>-t</samp> option is given,
+the emulator enters trace mode.
+If a base address is not specified in a <samp>-b</samp> option,
+then a base address is randomly chosen by the emulator.
+The base address, if specified,
+must be greater than 15 and less than 1000.
+The emulator guarantees that all programs will be loaded
+beginning at a location greater than 15;
+this implies that locations 1..15 may be used as
+"registers" by programs.
+<p>
+If the <samp>file</samp> parameter is not given,
+the object file is read from the standard input;
+in this case, attempts to read from standard input during
+debug mode or when <code>READ</code>
+or <code>READC</code>
+commands are encountered will be made from <samp>/dev/tty</samp> instead.
+If a <samp>file</samp> parameter is given,
+then <code>READ</code> and <code>READC</code>
+input is taken from the standard input.
+<p>
+<dt><strong>STACK MACHINE OP CODES</strong>
+<dd> 
+<p>
+The following notation is used in the opcode table:
+<p>
+<ul>
+<li>
+*<code>addr</code> means the contents
+of stack machine memory cell with address <code>addr</code>
+<li>
+<code>SP</code> means *0
+<li>
+internal registers - <code>int temp; int PC</code>
+<li>
+internal functions - <code>push(int)</code>,
+<code>int pop()</code> defined as follows:
+<blockquote><pre>
+	push(int x) { SP=SP-1; *SP=x; }
+	int pop() { int t; t=*SP; SP=SP+1; return(t); }
+</pre></blockquote>
+<li>
+Other notations are as in the C programming language
+</ul>
+<p>
+<table border=1>
+<caption><strong>Stack Machine Opcodes</strong></caption>
+<tr>
+	<th>OP
+	<th>MNEMONIC
+	<th>DESCRIPTION
+<tr>
+	<td> 0
+	<td><code>BKPT</code>	
+	<td>unconditionally enter the sxx debugger
+<tr>
+	<td> 1
+	<td><code>PUSH addr</code>
+	<td><code>push(*addr);</code>
+<tr>
+	<td> 2
+	<td><code>PUSHV value</code>
+	<td><code>push(value);</code>
+<tr>
+	<td> 3
+	<td><code>PUSHS</code>	
+	<td><code>push(*pop());</code>
+<tr>
+	<td> 3 
+	<td><code>INDIR</code>	
+	<td>is a synonym for <code>PUSHS</code>
+<tr>
+	<td> 4
+	<td><code>PUSHX addr</code>
+	<td><code>push(*(pop()+addr));</code>
+<tr>
+	<td> 5
+	<td><code>POP addr</code>
+	<td><code>*addr=pop();</code>
+<tr>
+	<td> 6
+	<td><code>POPS</code>	
+	<td><code>temp=pop(); *pop()=temp;</code>
+<tr>
+	<td> 7
+	<td><code>POPX addr</code>
+	<td><code>temp=pop(); *(pop()+addr)=temp;</code>
+<tr>
+	<td> 8
+	<td><code>DUPL</code>
+	<td><code>push(*SP);</code>
+<tr>
+	<td> 9
+	<td><code>SWAP</code>
+	<td><code>temp=*SP; *SP=*(SP+1); *(SP+1)=temp;</code>
+<tr>
+	<td>10
+	<td><code>OVER</code>	
+	<td><code>push(*(SP+1));</code>
+<tr>
+	<td>11
+	<td><code>DROP</code>	
+	<td><code>SP++;</code>
+<tr>
+	<td>12
+	<td><code>ROT</code>	
+	<td><code>temp=*SP; *SP=*(SP+2); *(SP+2)=*(SP+1); *(SP+1)=temp;</code>
+<tr>
+	<td>13
+	<td><code>TSTLT</code>	
+	<td><code>temp=pop(); push((temp<0)?1:0);</code>
+<tr>
+	<td>14
+	<td><code>TSTLE</code>	
+	<td><code>temp=pop(); push((temp<=0)?1:0);</code>
+<tr>
+	<td>15
+	<td><code>TSTGT</code>	
+	<td><code>temp=pop(); push((temp>0)?1:0);</code>
+<tr>
+	<td>16
+	<td><code>TSTGE</code>	
+	<td><code>temp=pop(); push((temp>=0)?1:0);</code>
+<tr>
+	<td>17
+	<td><code>TSTEQ</code>	
+	<td><code>temp=pop(); push((temp==0)?1:0);</code>
+<tr>
+	<td>18
+	<td><code>TSTNE</code>	
+	<td><code>temp=pop(); push((temp!=0)?1:0);</code>
+<tr>
+	<td>19
+	<td><code>BNE addr</code>
+	<td><code>if (pop()!=0) PC=addr;</code>
+<tr>
+	<td>19
+	<td><code>BT addr</code>
+	<td>is a synonym for <code>BNE</code>
+<tr>
+	<td>20
+	<td><code>BEQ addr</code>
+	<td><code>if (pop()==0) PC=addr;</code>
+<tr>
+	<td>20
+	<td><code>BF addr</code>
+	<td>is a synonym for <code>BEQ</code>
+<tr>
+	<td>21
+	<td><code>BR addr</code>
+	<td><code>PC=addr;</code>
+<tr>
+	<td>22
+	<td><code>CALL addr</code>
+	<td><code>push(PC); PC=addr;</code>
+<tr>
+	<td>23
+	<td><code>CALLS</code>
+	<td><code>temp=pop(); push(PC); PC=temp;</code>
+<tr>
+	<td>24
+	<td><code>RETURN</code>	
+	<td><code>PC=pop();</code>
+<tr>
+	<td>24
+	<td><code>POPPC</code>	
+	<td>is a synonym for <code>RETURN</code>
+<tr>
+	<td>25
+	<td><code>RETN value</code>
+	<td><code>temp=pop(); SP += value; PC=temp;</code>
+<tr>
+	<td>26
+	<td><code>HALT</code>	
+	<td>halt program execution
+<tr>
+	<td>27
+	<td><code>ADD</code>	
+	<td><code>temp=pop(); push( pop() + temp );</code>
+<tr>
+	<td>28
+	<td><code>SUB</code>	
+	<td><code>temp=pop(); push( pop() - temp );</code>
+<tr>
+	<td>29
+	<td><code>MUL</code>	
+	<td><code>temp=pop(); push( pop() * temp );</code>
+<tr>
+	<td>30
+	<td><code>DIV</code>	
+	<td><code>temp=pop(); push( pop() / temp );</code>
+<tr>
+	<td>31
+	<td><code>MOD</code>	
+	<td><code>temp=pop(); push( pop() % temp );</code>
+<tr>
+	<td>32
+	<td><code>OR</code>	
+	<td><code>temp=pop(); push( pop() || temp );</code>
+<tr>
+	<td>33
+	<td><code>AND</code>	
+	<td><code>temp=pop(); push( pop() && temp );</code>
+<tr>
+	<td>34
+	<td><code>XOR</code>	
+	<td><code>temp=pop(); push( pop() xor temp );</code> [see below]
+<tr>
+	<td>35
+	<td><code>NOT</code>	
+	<td><code>push( !pop() );</code>
+<tr>
+	<td>36
+	<td><code>NEG</code>	
+	<td><code>push( -pop() );</code>
+<tr>
+	<td>37
+	<td><code>ADDX addr</code>
+	<td><code>push( pop()+addr ) ;</code>
+<tr>
+	<td>38
+	<td><code>ADDSP value</code>
+	<td><code>SP += value;</code>
+<tr>
+	<td>39
+	<td><code>READ</code>	
+	<td>read <code>temp</code> in <code>%d</code> format; <code>push(temp);</code>
+<tr>
+	<td>40
+	<td><code>PRINT</code>	
+	<td>print <code>pop()</code> in <code>%d</code> format
+<tr>
+	<td>41
+	<td><code>READC</code>	
+	<td>read <code>temp</code> in <code>%c</code> format; <code>push(temp);</code>
+<tr>
+	<td>42
+	<td><code>PRINTC</code>	
+	<td>print <code>pop(</code>) in <code>%c</code> format
+<tr>
+	<td>43
+	<td><code>TRON</code>	
+	<td>turn on trace feature
+<tr>
+	<td>44
+	<td><code>TROFF</code>	
+	<td>turn off trace feature
+<tr>
+	<td>45
+	<td><code>DUMP</code>	
+	<td><code>temp=pop()</code>; dump memory from <code>pop()</code> to <code>temp;</code>
+</table>
+<p>
+Note: <code>(a xor b)</code>
+is the same as
+<code>!(a && b) && ( a || b ) </code>
+<p> 
+<code>READ</code>s are taken from the standard input,
+and <code>PRINT</code>s are to the standard
+output (except as noted above).
+<code>READC</code> returns -1 upon end-of-file.
+An attempt to <code>READ</code> a non-integer or end-of-file will abort sxx.
+<p>
+<dt><strong>ERRORS</strong>
+<p>
+<dd>
+Errors which are detected are:
+<table border=1>
+<tr>
+	<td>1
+	<td>attempt to divide by zero
+<tr>
+	<td>2
+	<td>address out of range
+<tr>
+	<td>3
+	<td>SP out of range
+<tr>
+	<td>4
+	<td>illegal dump range
+<tr>
+	<td>5
+	<td>invalid PC
+<tr>
+	<td>6
+	<td>invalid op code
+<tr>
+	<td>7
+	<td>attempt to <code>READ</code> past end of file
+<tr>
+	<td>8
+	<td>illegal integer on <code>READ</code>
+</table>
+<p>
+<dt><strong>ASSEMBLY LANGUAGE</strong>
+<p>
+<dd> 
+The assembler for the Stack Machine provides a number of features:
+<ul plain> 
+<p><li>
+Symbolic opcodes, operands and labels; e.g.,
+<blockquote><pre> 
+    LABEL:  PUSH X
+	    PUSH Y
+	    ADD
+	    POP  Z
+</pre></blockquote> 
+Local labels begin with the character '@' and have scope
+starting from the previous non-local label.
+<p><li>
+Initialized storage; e.g.,
+<blockquote><pre> 
+    ONE:    DW    1
+    ARRAY:  DW    2,4,8,ARRAY+3,033,0xFF
+    STRING: DW    "HELLO"
+    MESSAGE:DW    "This is a line",10
+</pre></blockquote> 
+<p>Strings are stored one character per machine word.
+<p><li> 
+Uninitialized storage; e.g.,
+<blockquote><pre> 
+    BUFFER: DS    256
+</pre></blockquote> 
+<p>
+This will set aside 256 words of uninitialized storage
+<p><li>
+An equate statement that defines assembly-time constants; e.g.,
+<blockquote><pre> 
+    SIZE EQU 20
+</pre></blockquote> 
+<p><li> 
+A `current address' marker, denoted  `<code>$</code>',
+which allows reference to the location counter
+at the beginning of the line; e.g.,
+<blockquote><pre> 
+    LENGTH EQU $-BUFFER
+</pre></blockquote> 
+<p><li> 
+Comments on any line.
+Comments begin with a semicolon,
+and all characters following the semicolon are ignored
+in the assembly process; e.g.,
+<blockquote><pre> 
+    ; this line is a comment
+    TOP:    PUSH LENGTH     ;save the length of the string
+</pre></blockquote> 
+<p>
+Blank lines are allowed and are ignored by the assembler.
+<p><li> 
+Expressions are allowed as operands; e.g.,
+<blockquote><pre> 
+    BUFLEN EQU ($-LEN)*20
+</pre></blockquote> 
+<p> 
+Expressions are evaluated using ordinary precedence rules.
+Legal operators are
+addition (<code>+</code>),
+subtraction (<code>-</code>),
+multiplication (<code>*</code>),
+division (<code>/</code>),
+and modulus (<code>%</code>).
+Unary minus is also allowed.
+Expressions always evaluate to signed integers,
+with absolute or relocatable attributes.
+<p><li>
+The assembler supports external linkage
+<code>EXTERN</code>,
+<code>PUBLIC</code>,
+and
+<code>ENTRY</code> directives.
+There can be at most one <code>ENTRY</code> directive
+whose operand is a symbol that evaluates
+to the (relocatable) address of the starting point of the program.
+<code>EXTERN</code> directives identify symbols
+that are used in the module but that are defined
+as <code>PUBLIC</code> symbols in other modules.
+Binding <code>EXTERN</code> and <code>PUBLIC</code> symbols
+is done at link time.
+</ul>
+</dl>
+<HR>
+</body>
+</html>
