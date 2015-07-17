@@ -2,7 +2,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE ImplicitParams #-}
 {-# LANGUAGE DataKinds #-}
--- import Prelude hiding (read)
+import Prelude hiding (or, and)
 import Data.IORef
 import Data.Char
 
@@ -120,9 +120,9 @@ execute mem pc = do
         MUL -> push =<< liftM2 (*) pop pop
         DIV -> push =<< liftM2 (flip div) pop pop
         MOD -> push =<< liftM2 (flip rem) pop pop
-        OR  -> push =<< liftM2 (?|) pop pop
-        AND -> push =<< liftM2 (&) pop pop
-        XOR -> push =<< liftM2 ((ap . (((&) . not') .) . (&)) <*> (?|)) pop pop
+        OR  -> push =<< liftM2 or pop pop
+        AND -> push =<< liftM2 and pop pop
+        XOR -> push =<< liftM2 ((ap . ((and . not') .) . and) <*> or) pop pop
 
         NOT -> push =<< liftM (not' ) pop
         NEG -> push =<< liftM negate pop
@@ -142,10 +142,11 @@ execute mem pc = do
 class SXXBool a where
     toInt32 :: a -> Int32
     toBool :: a -> Bool
-    (&) :: (SXXBool b) => a -> b -> Int32
-    (&) a b = toInt32 (toBool a && toBool b)
-    (?|) :: (SXXBool b) => a -> b -> Int32
-    (?|) a b = toInt32 (toBool a || toBool b)
+    and :: (SXXBool b) => a -> b -> Int32
+    and a b = toInt32 (toBool a && toBool b)
+    -- or cannot be named (|) because '|' is a reserved word
+    or :: (SXXBool b) => a -> b -> Int32
+    or a b = toInt32 (toBool a || toBool b)
     not' :: (SXXBool a) => a -> Int32
     not' = toInt32 . not . toBool 
 
