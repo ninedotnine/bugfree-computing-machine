@@ -5,14 +5,8 @@ module Decommenter (decomment) where
 
 -- FIXME : a bug when '#' appears in quotes
 
-
--- import Control.Monad (liftM2)
-import Control.Monad 
-import Control.Applicative
-
 import qualified Data.Text as T (Text, null, lines, takeWhile, dropWhile, head)
 import qualified Data.Text.IO as TextIO (interact)
-
 
 import Data.Monoid
 import Data.String (IsString)
