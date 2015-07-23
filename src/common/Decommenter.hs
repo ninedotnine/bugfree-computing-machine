@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleInstances, OverloadedStrings #-}
-{-# OPTIONS_GHC -Wall #-}
+-- {-# OPTIONS_GHC -Wall #-}
 
 module Decommenter (decomment) where
 
