@@ -17,7 +17,6 @@ import qualified Data.Text.IO as TextIO (interact)
 import Data.Monoid
 import Data.String (IsString)
 import Data.Char (isSpace)
--- import Prelude hiding (unlines)
 {- 
 this module exports decomment, which removes:
     empty lines
@@ -35,11 +34,7 @@ decomment = unlines' . map (dropWhile' isSpace) . removeInlineComments
 
 
 removeLines :: (Stringy a) => [a] -> [a]
-removeLines = filter $ not . ((||) . null' <*> (== '#' ) . head')
--- removeLines = filter $ liftM2 (&&) (not . null') ((/='#') . head')
--- removeLines = filter (ap ((||) . ('#' /=) . head) (not . null))
--- removeLines = filter (ap ((||) . not . null) (('#' /=) . head))
--- removeLines = filter $ not . ((||) . null <*> (== '#' ) . head)
+removeLines = filter $ (&&) <$> (not . null') <*> ((/='#') . head')
 
 removeInlineComments :: (Stringy a) => [a] -> [a]
 removeInlineComments = fmap $ takeWhile' (/= ('#')) -- FIXME: quoted strings
