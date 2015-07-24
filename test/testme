@@ -2,7 +2,7 @@
 
 cd  "../src/"
 # ghc "../src/hsxx.hs" || exit 2
-ghc "hsxx.hs" || exit 2
+ghc "Hsxx.hs" -outputdir "../test/" -o "../test/hsxx" || exit 2
 
 cd "../test/sxx/"
 echo "testing all files in sxx/ ..."
@@ -13,8 +13,7 @@ echo "testing all files in sxx/ ..."
 for filename in *.sxx ; do
     echo "$filename"
 #     echo "compare with: .output.$filename"
-#     ../src/hsxx "$filename" | \
-    ../../src/hsxx "$filename" | \
+    ../hsxx "$filename" | \
         awk '/beginning execution --------------------/,0' | \
         diff ".output.$filename" - || exit 1
 done
