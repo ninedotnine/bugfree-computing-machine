@@ -9,7 +9,7 @@
 --                 EntryPoint(..),
 --                 parseEverything) where 
 
-module Parser (MyVector, populateVector, printVector) where
+module SXXParser (MyVector, populateVector, printVector) where
 
 
 import System.Exit (exitFailure)
