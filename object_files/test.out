@@ -1,0 +1,14 @@
+%SXX+Object fil
+6 text length
+% text
+2
+97
+42
+2
+10
+42
+% relocs
+% entry, extern, pubs
+ENTRY main 0
+EXTERN 4
+% eof
