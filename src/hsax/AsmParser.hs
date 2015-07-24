@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -Wall #-} 
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
 
-module Parser (Instruction(..), 
+module AsmParser (Instruction(..), 
                 Token(..), 
                 EntryPoint(..),
                 parseEverything) where 

@@ -22,7 +22,7 @@ import qualified Data.Map.Strict as Map (showTree)
 -- import Data.Maybe (fromJust)
 import Data.List (intersperse)
 
-import Parser
+import AsmParser
 
 main :: IO ()
 main = do
