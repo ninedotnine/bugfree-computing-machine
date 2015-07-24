@@ -1,16 +1,20 @@
 #!/usr/bin/dash
 
+cd  "../src/"
+# ghc "../src/hsxx.hs" || exit 2
 ghc "hsxx.hs" || exit 2
 
-echo "testing all files in dantest/ ..."
+cd "../test/sxx/"
+echo "testing all files in sxx/ ..."
 
 # for filename in $(ls -1 "dantest/*.sxx") ; do
 # for filename in dantest/*.sxx ; do
-cd "dantest/"
+# cd "sxx/"
 for filename in *.sxx ; do
     echo "$filename"
 #     echo "compare with: .output.$filename"
-    ../hsxx "$filename" | \
+#     ../src/hsxx "$filename" | \
+    ../../src/hsxx "$filename" | \
         awk '/beginning execution --------------------/,0' | \
         diff ".output.$filename" - || exit 1
 done
