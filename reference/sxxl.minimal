@@ -1,0 +1,333 @@
+#!/usr/bin/perl -w
+
+# Stack Machine object module linker
+
+use strict;
+use integer;
+use vars qw($opt_l $opt_o);
+use Getopt::Std;
+
+if (!getopts('l:o:')) {
+    print "usage: sxxl [-l listfile] [-o objfile] file ...\n";
+    exit(1);
+}
+
+my @argv = @ARGV;
+
+my $PASS = 0;
+my $file;
+my $TEXT_LENGTH;
+my %SYMTAB; # public symbols, with addresses and external reference points
+my %symtab; # public symbols, with addresses and module names 
+my $ENTRY;
+my $ENTRY_FILE;
+my $i;
+my $tempf;
+
+my $symbol;
+my $symaddr;
+my $addrs;
+my @invlist;
+my %invlist;
+my @reldict;
+
+sub death {
+    my $msg = shift;
+    unlink $tempf if defined $tempf;
+    die($msg) if defined $msg;
+}
+
+sub pass {
+
+    my $LC = 0;
+    my @eep;
+    my $symbol;
+    my $pref;
+    my $addr;
+    my $sym;
+    my $fileno = 0;
+
+    $PASS++;
+    $pref = shift @invlist;
+    $TEXT_LENGTH = 0;
+
+    while ($file = shift) {
+        # print "file=$file\n";
+        my ($text_length, $lc);
+        my $file_id = "#MAIN" . $fileno++;
+
+        my $fn = $file;
+        if ($file eq '-') {
+            &copySTDIN unless defined $tempf;
+            $fn = $tempf;
+            $file = "STDIN";
+        }
+        open FILE, $fn or
+        &death("Cannot open file $file\n");
+        if ($PASS == 1) {
+            $SYMTAB{$file_id} = [ $TEXT_LENGTH ];
+        } else {
+            print "# File $file\n";
+            print "# Offset $TEXT_LENGTH\n";
+        }
+
+        # header
+        $_ = <FILE>;
+        &badformat unless defined $_;
+        /^%SXX\+O/ or &badformat;
+        while (<FILE>) {
+            /^#/ && next;
+            last;
+        }
+
+        # text length
+        chomp;
+        &getint;
+        ($_ >= 0) or &badformat;
+        $text_length = $_;
+
+        $_ = <FILE>;
+        /^%/ or &badformat;
+
+        # text (code)
+        $lc = 0;
+        while (<FILE>) {
+            my $dw;
+            my $addr;
+            my $ref;
+            /^%/ && last;
+            /^#/ && next;
+            chomp;
+            $dw = s/^:// ? 1 : 0;  # colon lines are DWs
+            &getint;
+            if ($dw) {
+                $_ >= 0 or &badformat;
+                if ($PASS == 2 and $_ > 0) {
+                    print ":$_\n";
+                }
+                $lc += $_;
+                $LC += $_;
+            } else {
+                if ($PASS == 2) {
+                    print "LC is $LC ; ";
+                    if (defined $pref) {
+                        print "pref is @{$pref}\n";
+                        ($addr, $ref, $sym) = @$pref;
+#                         print "ADDR: $addr\n";
+#                         print "REF: $ref\n";
+#                         print "SYM: $sym\n";
+                        if ($addr < $LC) {
+                            &death("external fixup address $addr for symbol $sym\ndoes not match object module location\n");
+                        }
+                        if ($addr == $LC) {
+                            $_ += $ref;
+                            $pref = shift @invlist;
+                        }
+                    }
+                    print "$_\n";
+                }
+#                 print "LC=$LC initialized=$_\n";
+                $lc++;
+                $LC++;
+            }
+        }
+        /^%/ or &badformat;
+        ($lc == $text_length) or &badformat;
+
+        # relocation dictionary
+        while (<FILE>) {
+            my $reloc;
+            chomp;
+            /^%/ && last;
+            /^#/ && next;
+            &getint;
+
+            ($_ >= 0 && $_ < $text_length)
+                or &death("illegal relocation entry");
+
+            $reloc = $_ + $TEXT_LENGTH;
+            if ($PASS == 1) {
+                $symaddr = \$SYMTAB{$file_id};
+                push @$$symaddr, $reloc;
+            }
+        }
+
+        # public/extern/entry definitions
+        /^%/ or &badformat;
+        while (<FILE>) {
+            /^%/ && last;
+            /^#/ && next;
+            if ($PASS == 2) {
+                next;
+            }
+            chomp;
+            /^ENTRY/ && do {
+                @eep = split;
+                shift(@eep);	# skip 'ENTRY'
+                defined $ENTRY and
+                &death("ENTRY already defined in $ENTRY_FILE\n");
+                defined ($symbol=shift(@eep)) or &badformat;
+                defined ($addr=shift(@eep)) or &badformat;
+                ($addr >= 0 && $addr < $text_length) or
+                &death("ENTRY address must be positive\n");
+                shift(@eep) and &badformat; # anything else on the line is bad
+                $addr += $TEXT_LENGTH;
+                $ENTRY = $addr;
+                $ENTRY_FILE = $file;
+                next;
+            };
+            /^EXTERN/ && do {
+                my $symaddr;
+                my $i;
+                @eep = split;
+                shift(@eep);	# skip 'EXTERN'
+                defined ($symbol=shift(@eep)) or &badformat;
+                local @, = " "; # a separator, i think? 
+                for $i (0 .. $#eep) {
+                    my $val = ($eep[$i] += $TEXT_LENGTH);
+                }
+                $symaddr = \$SYMTAB{$symbol};
+                if (!defined ($$symaddr)) {
+                    $$symaddr = [ -1 ];
+                }
+                push @$$symaddr, @eep;
+                next;
+            };
+            /^PUBLIC/ && do {
+                my $symaddr;
+                @eep = split;
+                shift(@eep);	# skip 'PUBLIC'
+                defined ($symbol = shift(@eep)) or &badformat;
+                defined ($addr = shift(@eep)) or &badformat;
+                $addr += $TEXT_LENGTH;
+                $symtab{$symbol} = [ $addr, $file ];
+                $symaddr = \$SYMTAB{$symbol};
+                if (!defined($$symaddr)) {
+                    $$symaddr = [ $addr ];
+                } elsif (@$$symaddr[0] != -1) {
+                    &death("PUBLIC $symbol already defined\n");
+                } else {
+                    @$$symaddr[0] = $addr;
+                }
+                next;
+            };
+            &badformat;
+        }
+
+        # this ends it all
+        /^%/ or &badformat;
+        # ignore any stuff remaining in file
+        $TEXT_LENGTH += $text_length;
+        close (FILE);
+    }
+
+    # check for any additional fixup addresses
+    if ($PASS == 2 && defined $pref) {
+        &death("fixup addresses exceed module size\n");
+    }
+}
+
+sub badformat {
+    &death("File $file line $. is not in proper object module format\n");
+}
+
+sub getint {
+    s/^\s*([+-]?\d+).*/$1/;
+    /^[+-]?\d+$/ or &badformat;
+}
+
+sub copySTDIN {
+    my $linecount;
+    $tempf = qx(mktemp "sxxl.tempXXXXXX") or
+    &death("cannot make temporary file");
+    chomp $tempf;
+
+    open TEMPF, "> $tempf" or &death("cannot open $tempf\n");
+
+    $linecount = 0;
+    while (<STDIN>) {
+        print TEMPF;
+        $linecount++;
+    }
+    close TEMPF;
+    $linecount > 0 or &death("empty input\n");
+}
+
+push @argv, '-' if @argv == 0; # '-' represents standard input
+
+# do pass 1
+&pass(@argv);
+
+print "%SXX+Executable\n";
+my $now = qx(/bin/date);
+chomp($now);
+print "# $now\n";
+
+print "$TEXT_LENGTH text length\n";
+if (defined $ENTRY) {
+    print "$ENTRY ENTRY file=$ENTRY_FILE\n";
+} else {
+    print "0 ENTRY (default)\n";
+}
+
+my $public_count = 0;
+foreach $i (sort keys %symtab) {
+    print "# PUBLIC symbols and addresses:\n" if $public_count == 0;
+    $public_count++;
+    my ($addr, $file) = @{$symtab{$i}};
+    print "# PUBLIC $i $addr file=$file\n";
+}
+
+print "% text\n";
+
+while (($symbol, $addrs) = each %SYMTAB) {
+    $symaddr = shift @$addrs;
+    if ($symaddr < 0 && @{$addrs} > 0) { # this apprerently checks addrs empty
+        &death("EXTERN $symbol not found in PUBLIC declarations\n");
+    }
+#     print "symbol=$symbol at $symaddr addresses=@$addrs\n";
+    for $i ( @$addrs ) {
+        $invlist{$i} = [$symaddr, $symbol];
+    }
+}
+
+print "PRINTING INVLIST\n";
+foreach ( sort keys %invlist ) {
+    print "$_: @{$invlist{$_}}\n";
+}
+
+my $lastaddr = -1;
+my $lastsymbol;
+
+foreach $i ( sort { $a <=> $b } keys %invlist) {
+    ($symaddr, $symbol) = @{$invlist{$i}};
+#     print "address=$i reference=$symaddr symbol=$symbol\n";
+    if ($lastaddr == $i) {
+        &death("external fixup address $i for symbol $symbol appears more than once\n(previous entry was for symbol $lastsymbol\n");
+
+    }
+    $lastaddr = $i;
+    $lastsymbol = $symbol;
+    push @invlist, [$i, $symaddr, $symbol];
+    push @reldict, $i;
+}
+
+foreach (@invlist) {
+    print "@{$_}\n";
+}
+
+# do pass 2
+print "BEGIN PASS 2\n";
+&pass(@argv);
+
+print "% relocation dictionary\n";
+my $rel;
+print "reldict: @reldict\n";
+foreach $rel (@reldict) {
+    print "$rel\n";
+}
+print "% end of executable module\n";
+
+&death;
+
+exit 0;
