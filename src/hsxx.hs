@@ -24,7 +24,7 @@ import System.Environment
 import System.Exit
 
 import Instructions
-import Parser
+import SXXParser
 
 main :: IO ()
 main = do
