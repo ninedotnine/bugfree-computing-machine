@@ -51,12 +51,15 @@ import Instructions
 
 type MyVector = MVector (PrimState IO) Int32
 
+baseAddr :: Int
+baseAddr = 16 -- the base address must be bigger than 15
+
 populateVector :: MyVector -> String -> IO ()
 -- populateVector  = undefined
 populateVector mem input = do
 --     print "dumb"
 --     let result :: Either ParseError (Int16)
-    result <- runParserT (fillVector mem) 16 "input" input -- start filling instructions at 16
+    result <- runParserT (fillVector mem) baseAddr "input" input
     case result of
         Left err -> putStrLn ("error: " ++ (show err)) >> exitFailure
         Right r -> putStrLn "successful parse" 
@@ -79,10 +82,10 @@ fillVector mem = do
     eof
     lastInstruction <- getState 
     liftIO $ putStr "instruction space: " 
-    liftIO $ printVector 16 (lastInstruction-16) mem
-    liftIO $ unless (fromIntegral textLength == lastInstruction-16) $ 
+    liftIO $ printVector baseAddr (lastInstruction - baseAddr) mem
+    liftIO $ unless (fromIntegral textLength == lastInstruction - baseAddr) $ 
         putStrLn ("textLength: " ++ show textLength ++ " but actually " ++
-            show (lastInstruction-16)) >> exitFailure
+            show (lastInstruction - baseAddr)) >> exitFailure
 
 header :: MyParser ()
 header = string "%SXX+E" >> skipToEOL >> spaces
