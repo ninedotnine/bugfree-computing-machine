@@ -1,7 +1,7 @@
 -- {-# LANGUAGE OverloadedStrings #-} 
 {-# LANGUAGE TypeSynonymInstances #-} 
 {-# LANGUAGE FlexibleInstances #-} 
-{-# LANGUAGE NoMonomorphismRestriction #-} 
+-- {-# LANGUAGE NoMonomorphismRestriction #-} 
 {-# OPTIONS_GHC -Wall #-} 
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
 
@@ -33,7 +33,7 @@ import Control.Applicative hiding (many)
 -- import Data.Char (toUpper, toLower, ord)
 -- import Data.List (genericLength, intersperse)
 import Data.List (intersperse)
-import Data.String (IsString, fromString)
+-- import Data.String (IsString, fromString)
 import Data.Int
 -- import Data.Foldable (traverse_)
 import Text.Read (readMaybe)
@@ -42,7 +42,7 @@ import Text.Read (readMaybe)
 -- import qualified Data.Map.Strict as Map (Map, singleton)
 -- import Data.Map.Strict as Map (Map, singleton)
 
-import Debug.Trace (trace)
+-- import Debug.Trace (traceM)
 
 {-
 MyParser is a type 
@@ -97,23 +97,17 @@ header = string "%SXX+E" >> skipToEOL >> spaces
 percentSeparator :: MyParser ()
 percentSeparator = char '%' >> skipToEOL
 
-traceM :: (Monad m) => String -> m ()
-traceM str = trace str $ return ()
-
 skipSpaces :: MyParser ()
--- skipSpaces = many1 space >> return ()
 skipSpaces = skipMany1 space <?> ""
 
 instruction :: MyVector -> MyParser ()
 instruction mem = notDS mem <|> sxxDS
 
--- sxxDS :: MyVector -> MyParser ()
 sxxDS :: MyParser ()
--- sxxDS mem = do 
 sxxDS = do 
-    val <- char ':' *> readNum
+    val <- fromIntegral <$> (char ':' *> readNum)
     liftIO $ putStrLn $ "ds: " ++ show val
-    modifyState (+ (fromIntegral val))
+    modifyState (+val)
 
 notDS :: MyVector -> MyParser ()
 notDS mem = do
@@ -122,14 +116,11 @@ notDS mem = do
     liftIO $ putStrLn $ "read: " ++ show val
     liftIO $ write mem index val
     modifyState (+1)
-    return ()
 
 readNum :: MyParser Int32
--- readNum = read <$> many1 digit 
 readNum = do
-    str <- readMaybe <$> many1 digit  
---     liftIO $ print str
-    case str of
+    str <- many1 digit  
+    case readMaybe str of
         Just x -> return x
         Nothing -> fail "oopsie"
     
@@ -140,14 +131,6 @@ relocatable mem = do
     index <- fromIntegral <$> readNum 
     val <- liftIO $ V.read mem (index + baseAddr)
     liftIO $ write mem (index + baseAddr) (val + baseAddr)
-    return ()
-
-newtype EntryPoint = EntryPoint String deriving (Eq)
-
-instance Show EntryPoint where 
-    show (EntryPoint name) = name
-instance IsString EntryPoint where
-    fromString = EntryPoint
 
 skipToEOL :: MyParser ()
 skipToEOL = anyChar `manyTill` newline *> skipMany space
