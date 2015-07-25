@@ -13,9 +13,16 @@ echo "testing all files in sxx/ ..."
 for filename in *.sxx ; do
     echo "$filename"
 #     echo "compare with: .output.$filename"
-    ../hsxx "$filename" | \
-        awk '/beginning execution --------------------/,0' | \
-        diff ".output.$filename" - || exit 1
+    if [ -f ".input.$filename" ] ; then
+        ../hsxx "$filename" < ".input.$filename" | \
+            awk '/beginning execution --------------------/,0' | \
+            diff ".output.$filename" - || exit 1
+    else
+        ../hsxx "$filename" | \
+            awk '/beginning execution --------------------/,0' | \
+            diff ".output.$filename" - || exit 1
+    fi
+
 done
 
 echo "OK :~)"
