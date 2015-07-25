@@ -75,11 +75,8 @@ execute mem pc = do
         POPX -> join $ liftM2 (flip write) pop ((+) <$> getArg <*> pop)
 
         DUPL  -> getSP >>= deref >>= push
-        SWAP  -> do
-            val1 <- pop
-            val2 <- pop
-            push val1
-            push val2
+        SWAP  -> pop >>= (pop >>=) . (. push) . (>>) . push
+
         OVER  -> getSP >>= deref . (+1) >>= push
         DROP  -> modSP (+1)
         ROT   -> do
