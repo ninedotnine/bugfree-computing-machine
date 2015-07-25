@@ -123,11 +123,14 @@ execute mem pc = do
         ADDX -> push =<< liftM2 (+) getArg pop
         ADDSP -> modSP . (+) =<< getArg
 
+        -- FIXME: READ, READC maybe wrong implementation
+        READ  -> push =<< (read <$> getLine)
         PRINT -> pop >>= (putStr . show)
+        READC  -> push =<< (fmap (toCell . ord . head) getLine)
         PRINTC -> pop >>= (putChar . chr . toInt)
         TRON  -> putStrLn "TRON does nothing"
         TROFF -> putStrLn "TROFF does nothing"
         DUMP  -> putStrLn "DUMP does nothing"
         ERROR -> putStrLn "ERROR isn't even a real opcode"
-        _     -> error ("ERROR: " ++ show instr ++ "NOT done yet")
+--         _     -> error ("ERROR: " ++ show instr ++ "NOT done yet")
 
