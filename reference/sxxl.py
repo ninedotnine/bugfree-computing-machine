@@ -97,9 +97,9 @@ def passe(args): # 'pass' is a python reserved word
             if dan_nextLine.startswith("%"):
                 break
             if dan_nextLine.startswith(":"):
-                dw = True
+                dw = True # colon lines are DWs ### ACTUALLY DSes THOUGH?? ###
 #                 print(dan_val)
-            if dw:
+            if dw: 
                 dan_val = getint(dan_nextLine[1:])
                 if not dan_val >= 0:
                     badformat
@@ -267,18 +267,27 @@ for i in sorted(symtab.keys()):
 
 print("% text")
 
+# wtf? this program seems to be nondeterministic without this sorted() call
+print("SYMTAB is: -----------------------------")
+print(SYMTAB)
 for symbol in SYMTAB.keys():
+# for symbol in sorted(SYMTAB.keys()):
     addrs = SYMTAB[symbol]
+    print("addrs = " + str(addrs))
     symaddr = addrs.pop(0)
     if symaddr < 0 and len(addrs) > 0:
         death("EXTERN " + symbol + " not found in PUBLIC declarations")
     for i in addrs:
+        print("i is : " + str(i))
         # is this the array or dict called 'invlist' ??
         # it must be the hash, since it will be used sooner
         hashinvlist[i] = [symaddr, symbol]
 
 lastaddr = -1
 lastsymbol = None
+
+print("%INVLIST:")
+print(hashinvlist)
 
 for i in sorted(hashinvlist.keys()):
     (symaddr, symbol) = hashinvlist[i]
