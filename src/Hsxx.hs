@@ -3,7 +3,7 @@
 {-# LANGUAGE ImplicitParams #-}
 {-# LANGUAGE DataKinds #-}
 import Prelude hiding (or, and)
-import Data.IORef
+import Data.IORef (IORef, newIORef) 
 import Data.Char
 
 import Control.Monad
@@ -56,10 +56,10 @@ execute mem pc = do
     let ?mem = mem
         ?pc  = pc 
     incPC
---     pointer <- toCell <$> readIORef pc
+--     pointer <- toCell <$> getPC
 --     putStrLn $ "pointer is: " ++ show pointer
 --     instr <- toEnum . toInt <$> deref pointer
-    instr <- toEnum . toInt <$> (deref =<< toCell <$> readIORef pc)
+    instr <- toEnum . toInt <$> (deref =<< toCell <$> getPC)
 --     putStrLn $ "HANDLING INSTRUCTION: " ++ show instr
 
     case instr of
@@ -98,11 +98,11 @@ execute mem pc = do
         BEQ -> pop >>= (getArg >>=) . (. (setPC . subtract 1)) . when . (==0)
         BR  -> getArg >>= setPC . subtract 1
         CALL  -> do
-            push . toCell =<< readIORef pc
+            push . toCell =<< getPC
             setPC . (subtract 1) =<< getArg
         CALLS -> do
             val <- pop
-            push . toCell . (subtract 1) =<< readIORef pc
+            push . toCell . (subtract 1) =<< getPC
             setPC . (subtract 1) $ val
         RETURN -> pop >>= setPC . (+1)
         RETN   -> pop >>= (getArg >>=) . (. (modSP . (+))) . (<*) . setPC

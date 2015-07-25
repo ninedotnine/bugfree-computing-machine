@@ -48,6 +48,9 @@ setPC :: (?pc :: IORef Int16, Integral a) => a -> IO ()
 setPC x = writeIORef ?pc (toPC x)
 -- setPC = (writeIORef ?pc) . toPC
 
+getPC :: (?pc :: IORef Int16) => IO Int16
+getPC = readIORef ?pc
+
 -- for converting to the type of the instruction pointer
 toPC :: Integral a => a -> Int16
 toPC = fromIntegral
