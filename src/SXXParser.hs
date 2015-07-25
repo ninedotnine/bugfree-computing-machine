@@ -1,13 +1,9 @@
 -- {-# LANGUAGE OverloadedStrings #-} 
 {-# LANGUAGE TypeSynonymInstances #-} 
 {-# LANGUAGE FlexibleInstances #-} 
--- {-# OPTIONS_GHC -Wall #-} 
--- {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
-
--- module Parser (Instruction(..), 
---                 Token(..), 
---                 EntryPoint(..),
---                 parseEverything) where 
+{-# LANGUAGE NoMonomorphismRestriction #-} 
+{-# OPTIONS_GHC -Wall #-} 
+{-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
 
 module SXXParser (MyVector, populateVector, printVector) where
 
@@ -20,7 +16,7 @@ import Text.Parsec.Prim hiding (runParser, label, labels, (<|>))
 -- import Text.Parsec.Prim (Parsec)
 import Data.Vector.Generic hiding ((++), Vector, mapM_)
 import qualified Data.Vector.Unboxed as IM
-import Data.Vector.Unboxed.Mutable (new, write, MVector)
+import Data.Vector.Unboxed.Mutable (write, MVector)
 import qualified Data.Vector.Unboxed.Mutable as V
 -- import Text.Parsec.Prim
 -- import Control.Monad (join)
@@ -28,14 +24,15 @@ import Control.Monad
 import Control.Monad.Trans (liftIO)
 import Control.Monad.Primitive (PrimState)
 -- import Control.Monad.Identity
-import Control.Monad.Writer (Writer, runWriter, tell, lift)
+-- import Control.Monad.Writer (Writer, runWriter, tell, lift)
 -- import Control.Monad.State (runState, evalState, execState)
 -- import Control.Applicative hiding (many, (<|>))
 import Control.Applicative hiding (many)
 -- import Control.Applicative ((<$>))
 -- import Control.Applicative hiding ((<|>))
-import Data.Char (toUpper, toLower, ord)
-import Data.List (genericLength, intersperse)
+-- import Data.Char (toUpper, toLower, ord)
+-- import Data.List (genericLength, intersperse)
+import Data.List (intersperse)
 import Data.String (IsString, fromString)
 import Data.Int
 -- import Data.Foldable (traverse_)
@@ -43,51 +40,56 @@ import Text.Read (readMaybe)
 
 -- import Data.Map.Strict (Map, (!))
 -- import qualified Data.Map.Strict as Map (Map, singleton)
-import Data.Map.Strict as Map (Map, singleton)
+-- import Data.Map.Strict as Map (Map, singleton)
 
 import Debug.Trace (trace)
 
-import Instructions
+{-
+MyParser is a type 
+ParsecT is a monad transformer
+String is the stream type
+Int is the state, it is the current index of the vector
+IO is the transformed monad.
+-}
+
+type MyParser a = ParsecT String Int IO a
 
 type MyVector = MVector (PrimState IO) Int32
 
--- baseAddr :: Int
+
+baseAddr :: Integral a => a
 baseAddr = 16 -- the base address must be bigger than 15
 
 populateVector :: MyVector -> String -> IO ()
--- populateVector  = undefined
 populateVector mem input = do
---     print "dumb"
---     let result :: Either ParseError (Int16)
+--     let result :: Either ParseError ()
     result <- runParserT (fillVector mem) baseAddr "input" input
     case result of
         Left err -> putStrLn ("error: " ++ (show err)) >> exitFailure
-        Right r -> putStrLn "successful parse" 
---     print result
+        Right () -> putStrLn "successful parse"
 
--- fillVector :: MyParser ()
 fillVector :: MyVector -> MyParser ()
 fillVector mem = do 
     header
     textLength <- readNum <* skipToEOL
     liftIO $ putStrLn $ "textlength: " ++ show textLength 
-    entry <- readNum <* skipToEOL
+    entry <- readNum <* skipToEOL 
+    percentSeparator
     liftIO $ putStrLn $ "entry: " ++ show entry 
-    percentSeparator
---     instruction mem `sepBy` skipSpaces
     instruction mem `endBy` skipSpaces
-    percentSeparator
     lastInstruction <- getState 
+    when (fromIntegral textLength /= lastInstruction - baseAddr) $ 
+        fail ("textLength is not " ++ show textLength)
+    percentSeparator
     liftIO $ putStr "instruction space before reloc: " 
     liftIO $ printVector baseAddr (lastInstruction - baseAddr) mem
-    relocatable mem `endBy` skipSpaces
-    percentSeparator
+    relocatable mem `endBy` skipSpaces *> percentSeparator
     eof
     liftIO $ putStr "instruction space after reloc: " 
     liftIO $ printVector baseAddr (lastInstruction - baseAddr) mem
-    liftIO $ unless (fromIntegral textLength == lastInstruction - baseAddr) $ 
-        putStrLn ("textLength: " ++ show textLength ++ " but actually " ++
-            show (lastInstruction - baseAddr)) >> exitFailure
+--     liftIO $ unless (fromIntegral textLength == lastInstruction - baseAddr) $ 
+--         putStrLn ("textLength: " ++ show textLength ++ " but actually " ++
+--             show (lastInstruction - baseAddr)) >> exitFailure
 
 header :: MyParser ()
 header = string "%SXX+E" >> skipToEOL >> spaces
@@ -98,31 +100,17 @@ percentSeparator = char '%' >> skipToEOL
 traceM :: (Monad m) => String -> m ()
 traceM str = trace str $ return ()
 
-testfile :: FilePath
-testfile = "programs/testfile6"
-
-main :: IO ()
-main = undefined
-{-
-    c <- readFile testfile
-    let result :: Either ParseError (Integer, EntryPoint, [Token], Labels)
-        result = parseEverything testfile c
-    putStr "result is: " >> print result
-    putStrLn  "------------------------------------------"
-    case result of
-        Left err -> putStrLn $ "error: " ++ (show err)
-        Right r -> print r
-    putStrLn "okay"
-    -}
-
 skipSpaces :: MyParser ()
-skipSpaces = many1 space >> return ()
+-- skipSpaces = many1 space >> return ()
+skipSpaces = skipMany1 space <?> ""
 
 instruction :: MyVector -> MyParser ()
-instruction mem = notDS mem <|> sxxDS mem
+instruction mem = notDS mem <|> sxxDS
 
-sxxDS :: MyVector -> MyParser ()
-sxxDS mem = do 
+-- sxxDS :: MyVector -> MyParser ()
+sxxDS :: MyParser ()
+-- sxxDS mem = do 
+sxxDS = do 
     val <- char ':' *> readNum
     liftIO $ putStrLn $ "ds: " ++ show val
     modifyState (+ (fromIntegral val))
@@ -151,36 +139,8 @@ relocatable :: MyVector -> MyParser ()
 relocatable mem = do 
     index <- fromIntegral <$> readNum 
     val <- liftIO $ V.read mem (index + baseAddr)
-    liftIO $ write mem (index + baseAddr) (val + fromIntegral baseAddr)
+    liftIO $ write mem (index + baseAddr) (val + baseAddr)
     return ()
-
-
-{-
-parseEverything :: SourceName 
-        -> String 
-        -> Either ParseError (Integer, EntryPoint, [Token], Labels)
-parseEverything name str = do
-    let eith :: Either ParseError (Integer, EntryPoint, [Token])
-        (eith, labels) = parseEverything' name str
-    case eith of
-        Left err -> Left err
-        Right (i, m, xs) -> return (i, m, xs, labels)
-
-parseEverything' :: SourceName -> String 
-        -> (Either ParseError (Integer, EntryPoint, [Token]), Labels)
-parseEverything' = (runWriter .) . runParserT instructions (0, "", "")
--}
-
-
-{-
-MyParser is a type 
-ParsecT is a monad transformer
-String is the stream type
-Int is the state, it is the current index of the vector
-IO is the transformed monad.
--}
-
-type MyParser a = ParsecT String Int IO a
 
 newtype EntryPoint = EntryPoint String deriving (Eq)
 
@@ -189,10 +149,22 @@ instance Show EntryPoint where
 instance IsString EntryPoint where
     fromString = EntryPoint
 
-    --------------------------------- parser begins here
+skipToEOL :: MyParser ()
+skipToEOL = anyChar `manyTill` newline *> skipMany space
+
+printVector :: Int -> Int -> MyVector -> IO ()
+printVector i n vec = do
+    let frozen :: IO (IM.Vector Int32)
+        frozen = freeze $ V.slice i n vec
+    lst <- toList <$> frozen
+    putChar '['
+    mapM_ putStr (intersperse ", " (show <$> lst))
+    putStrLn "]"
+
+{-
+    --------------------------------- old parser begins here
 
     -- instructions :: MyParser (Integer, EntryPoint, [Token])
-    {-
 instructions :: MyParser (Integer, EntryPoint, [Token])
     instructions = do 
     res <- join <$> many (try instruction) `sepBy` skipJunk
@@ -225,16 +197,3 @@ skipComment = spaces *> char '#' *> skipToEOL
 -- skipComment = char '#' *> skipToEOL
 -}
 
-skipToEOL :: MyParser ()
-skipToEOL = anyChar `manyTill` newline *> skipMany space
-
------------------------------------------
-
-printVector :: Int -> Int -> MyVector -> IO ()
-printVector i n vec = do
-    let frozen :: IO (IM.Vector Int32)
-        frozen = freeze $ V.slice i n vec
-    lst <- toList <$> frozen
-    putChar '['
-    mapM_ putStr (intersperse ", " (show <$> lst))
-    putStrLn "]"
