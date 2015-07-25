@@ -92,10 +92,10 @@ fillVector mem = do
     liftIO $ printVector baseAddr (lastInstruction - baseAddr) mem
 
 header :: MyParser ()
-header = string "%SXX+E" >> skipToEOL >> spaces
+header = string "%SXX+E" >> skipToEOL >> spaces >> skipComments
 
 percentSeparator :: MyParser ()
-percentSeparator = char '%' >> skipToEOL
+percentSeparator = char '%' >> skipToEOL >> skipComments
 
 instruction :: MyVector -> MyParser ()
 instruction mem = notDS mem <|> sxxDS
@@ -136,8 +136,10 @@ skipToEOL = anyChar `manyTill` newline *> skipMany space
 skipSpaces :: MyParser ()
 skipSpaces = skipMany1 space <?> ""
 
-skipComment :: MyParser ()
-skipComment = spaces *> char '#' *> skipToEOL
+skipComments :: MyParser ()
+skipComments = skipMany (spaces *> char '#' *> skipToEOL)
+-- skipComment :: MyParser ()
+-- skipComment = spaces *> char '#' *> skipToEOL
 -- skipComment = char '#' *> skipToEOL
 
 printVector :: Int -> Int -> MyVector -> IO ()
