@@ -3,15 +3,13 @@
 -- module SXXVector (MyVector, populateVector, printVector) where
 module SXXVector  where
 
-import Data.Vector.Generic hiding ((++), Vector, mapM_)
 import qualified Data.Vector.Unboxed as IM
--- import Data.Vector.Unboxed.Mutable (write, MVector)
 import qualified Data.Vector.Unboxed.Mutable as V
 
 import Control.Monad.Primitive (PrimState)
 
-import Data.Int
-import Data.IORef
+import Data.Int (Int32, Int16)
+import Data.IORef (IORef, readIORef, writeIORef, modifyIORef')
 
 type MyVector = V.MVector (PrimState IO) Int32
 
@@ -61,3 +59,25 @@ toCell = fromIntegral
 -- for converting to the type used by many haskell library functions
 toInt :: Integral a => a -> Int
 toInt = fromIntegral
+
+-- this is for boolean operations
+class SXXBool a where
+    toInt32 :: a -> Int32
+    toBool :: a -> Bool
+    and :: (SXXBool b) => a -> b -> Int32
+    and a b = toInt32 (toBool a && toBool b)
+    -- or cannot be named (|) because '|' is a reserved word
+    or :: (SXXBool b) => a -> b -> Int32
+    or a b = toInt32 (toBool a || toBool b)
+    not' :: (SXXBool a) => a -> Int32
+    not' = toInt32 . not . toBool 
+
+instance SXXBool Bool where
+    toBool = id
+    toInt32 True = 1
+    toInt32 False = 0
+
+instance SXXBool Int32 where
+    toBool = (/= 0)
+    toInt32 = id
+--     toInt32 = toCell

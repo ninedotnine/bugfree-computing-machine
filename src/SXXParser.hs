@@ -35,7 +35,7 @@ import Control.Applicative hiding (many)
 -- import Data.List (genericLength, intersperse)
 import Data.List (intersperse)
 -- import Data.String (IsString, fromString)
-import Data.Int
+import Data.Int (Int32)
 -- import Data.Foldable (traverse_)
 import Text.Read (readMaybe)
 

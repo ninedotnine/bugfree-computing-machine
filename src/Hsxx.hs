@@ -71,7 +71,7 @@ execute mem pc = do
 
         -- these allow arbitrary writes to memory
         POP  -> join $ liftM2 write getArg pop
-        POPS -> join $ liftM2 (flip write) pop pop -- who's magnitude? 
+        POPS -> join $ liftM2 (flip write) pop pop
         POPX -> join $ liftM2 (flip write) pop ((+) <$> getArg <*> pop)
 
         DUPL  -> getSP >>= deref >>= push
@@ -116,9 +116,9 @@ execute mem pc = do
         HALT -> putStrLn "execution halted" >> exitSuccess 
 
         -- binary operations on the stack
-        ADD -> push =<< liftM2 (+) pop pop
+        ADD -> push =<< liftM2 (+) pop pop 
         SUB -> push =<< liftM2 subtract pop pop
-        MUL -> push =<< liftM2 (*) pop pop
+        MUL -> push =<< liftM2 (*) pop pop -- who's magnitude?
         DIV -> push =<< liftM2 (flip div) pop pop
         MOD -> push =<< liftM2 (flip rem) pop pop
         OR  -> push =<< liftM2 or pop pop
@@ -138,25 +138,3 @@ execute mem pc = do
         ERROR -> putStrLn "ERROR isn't even a real opcode"
         _     -> error ("ERROR: " ++ show instr ++ "NOT done yet")
 
-
--- this is for boolean operations
-class SXXBool a where
-    toInt32 :: a -> Int32
-    toBool :: a -> Bool
-    and :: (SXXBool b) => a -> b -> Int32
-    and a b = toInt32 (toBool a && toBool b)
-    -- or cannot be named (|) because '|' is a reserved word
-    or :: (SXXBool b) => a -> b -> Int32
-    or a b = toInt32 (toBool a || toBool b)
-    not' :: (SXXBool a) => a -> Int32
-    not' = toInt32 . not . toBool 
-
-instance SXXBool Bool where
-    toBool = id
-    toInt32 True = 1
-    toInt32 False = 0
-
-instance SXXBool Int32 where
-    toBool = (/= 0)
-    toInt32 = id
---     toInt32 = toCell
