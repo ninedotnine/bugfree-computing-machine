@@ -105,11 +105,7 @@ execute mem pc = do
             push . toCell . (subtract 1) =<< readIORef pc
             setPC . (subtract 1) $ val
         RETURN -> pop >>= setPC . (+1)
-        RETN   -> do
-            val <- pop
-            arg <- getArg
-            modSP (+arg) -- increase the stack pointer
-            setPC val
+        RETN   -> pop >>= (getArg >>=) . (. (modSP . (+))) . (<*) . setPC
         HALT -> putStrLn "execution halted" >> exitSuccess 
 
         -- binary operations on the stack
