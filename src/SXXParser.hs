@@ -1,6 +1,7 @@
 -- {-# LANGUAGE OverloadedStrings #-} 
 {-# LANGUAGE TypeSynonymInstances #-} 
 {-# LANGUAGE FlexibleInstances #-} 
+{-# LANGUAGE ImplicitParams #-}
 -- {-# LANGUAGE NoMonomorphismRestriction #-} 
 {-# OPTIONS_GHC -Wall #-} 
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
@@ -16,13 +17,13 @@ import Text.Parsec.Prim hiding (runParser, label, labels, (<|>))
 -- import Text.Parsec.Prim (Parsec)
 import Data.Vector.Generic hiding ((++), Vector, mapM_)
 import qualified Data.Vector.Unboxed as IM
-import Data.Vector.Unboxed.Mutable (write, MVector)
+-- import Data.Vector.Unboxed.Mutable (write, MVector)
 import qualified Data.Vector.Unboxed.Mutable as V
 -- import Text.Parsec.Prim
 -- import Control.Monad (join)
 import Control.Monad
 import Control.Monad.Trans (liftIO)
-import Control.Monad.Primitive (PrimState)
+-- import Control.Monad.Primitive (PrimState)
 -- import Control.Monad.Identity
 -- import Control.Monad.Writer (Writer, runWriter, tell, lift)
 -- import Control.Monad.State (runState, evalState, execState)
@@ -44,6 +45,8 @@ import Text.Read (readMaybe)
 
 -- import Debug.Trace (traceM)
 
+import SXXVector
+
 {-
 MyParser is a type 
 ParsecT is a monad transformer
@@ -54,7 +57,7 @@ IO is the transformed monad.
 
 type MyParser a = ParsecT String Int IO a
 
-type MyVector = MVector (PrimState IO) Int32
+-- type MyVector = MVector (PrimState IO) Int32
 
 
 baseAddr :: Integral a => a
@@ -110,11 +113,12 @@ sxxDS = do
     modifyState (+val)
 
 notDS :: MyVector -> MyParser ()
-notDS mem = do
+notDS mem = let ?mem = mem in do
     val <- readNum
     index <- getState
     liftIO $ putStrLn $ "read: " ++ show val
-    liftIO $ write mem index val
+--     liftIO $ V.write mem index val
+    liftIO $ write index val
     modifyState (+1)
 
 readNum :: MyParser Int32
@@ -127,10 +131,10 @@ readNum = do
 -- FIXME : is this what relocatable should do with the numbers it reads?
 -- is DS-allocated space supposed to be in the relocation dict?
 relocatable :: MyVector -> MyParser ()
-relocatable mem = do 
+relocatable mem = let ?mem = mem in do 
     index <- fromIntegral <$> readNum 
     val <- liftIO $ V.read mem (index + baseAddr)
-    liftIO $ write mem (index + baseAddr) (val + baseAddr)
+    liftIO $ write (index + baseAddr) (val + baseAddr)
 
 skipToEOL :: MyParser ()
 skipToEOL = anyChar `manyTill` newline *> skipMany space
