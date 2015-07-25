@@ -113,30 +113,23 @@ main = undefined
 skipSpaces :: MyParser ()
 skipSpaces = many1 space >> return ()
 
--- FIXME this needs testing
-sxxDW :: MyVector -> MyParser ()
-sxxDW mem = do 
-    char ':'
-    val <- readNum
-    index <- getState
-    liftIO $ putStrLn $ "dw: " ++ show val
-    liftIO $ write mem index val
+instruction :: MyVector -> MyParser ()
+instruction mem = notDS mem <|> sxxDS mem
+
+sxxDS :: MyVector -> MyParser ()
+sxxDS mem = do 
+    val <- char ':' *> readNum
+    liftIO $ putStrLn $ "ds: " ++ show val
     modifyState (+ (fromIntegral val))
 
-instruction :: MyVector -> MyParser ()
-instruction mem = do 
+notDS :: MyVector -> MyParser ()
+notDS mem = do
     val <- readNum
     index <- getState
     liftIO $ putStrLn $ "read: " ++ show val
     liftIO $ write mem index val
     modifyState (+1)
     return ()
--- fmap Lit intOrChar <* loc (+1)
---     <|> try asmEQU 
---     <|> try asmDS 
---     <|> try asmDW 
---     <|> try opcode <* loc (+1)
---     <|> label <* loc (+1)
 
 readNum :: MyParser Int32
 -- readNum = read <$> many1 digit 
