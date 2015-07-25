@@ -22,6 +22,7 @@ import qualified Data.Vector.Unboxed.Mutable as V
 import Data.Int
 import System.Environment
 import System.Exit
+import System.IO (hFlush, stdout)
 
 import Instructions
 import SXXParser
@@ -127,7 +128,7 @@ execute mem pc = do
         READ  -> push =<< (read <$> getLine)
         PRINT -> pop >>= (putStr . show)
         READC  -> push =<< (fmap (toCell . ord . head) getLine)
-        PRINTC -> pop >>= (putChar . chr . toInt)
+        PRINTC -> pop >>= (putChar . chr . toInt) >> hFlush stdout 
         TRON  -> putStrLn "TRON does nothing"
         TROFF -> putStrLn "TROFF does nothing"
         DUMP  -> putStrLn "DUMP does nothing"
