@@ -51,7 +51,7 @@ import Instructions
 
 type MyVector = MVector (PrimState IO) Int32
 
-baseAddr :: Int
+-- baseAddr :: Int
 baseAddr = 16 -- the base address must be bigger than 15
 
 populateVector :: MyVector -> String -> IO ()
@@ -77,11 +77,13 @@ fillVector mem = do
 --     instruction mem `sepBy` skipSpaces
     instruction mem `endBy` skipSpaces
     percentSeparator
-    relocatable `endBy` skipSpaces
+    lastInstruction <- getState 
+    liftIO $ putStr "instruction space before reloc: " 
+    liftIO $ printVector baseAddr (lastInstruction - baseAddr) mem
+    relocatable mem `endBy` skipSpaces
     percentSeparator
     eof
-    lastInstruction <- getState 
-    liftIO $ putStr "instruction space: " 
+    liftIO $ putStr "instruction space after reloc: " 
     liftIO $ printVector baseAddr (lastInstruction - baseAddr) mem
     liftIO $ unless (fromIntegral textLength == lastInstruction - baseAddr) $ 
         putStrLn ("textLength: " ++ show textLength ++ " but actually " ++
@@ -143,9 +145,14 @@ readNum = do
         Just x -> return x
         Nothing -> fail "oopsie"
     
--- FIXME : what should relocatable do with the numbers it reads?
-relocatable :: MyParser ()
-relocatable = readNum >> return ()
+-- FIXME : is this what relocatable should do with the numbers it reads?
+-- is DS-allocated space supposed to be in the relocation dict?
+relocatable :: MyVector -> MyParser ()
+relocatable mem = do 
+    index <- fromIntegral <$> readNum 
+    val <- liftIO $ V.read mem (index + baseAddr)
+    liftIO $ write mem (index + baseAddr) (val + fromIntegral baseAddr)
+    return ()
 
 
 {-
