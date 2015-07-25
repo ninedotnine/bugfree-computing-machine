@@ -81,7 +81,7 @@ fillVector mem = do
     liftIO $ putStrLn $ "entry: " ++ show entry 
     instruction mem `endBy` skipSpaces
     lastInstruction <- getState 
-    when (fromIntegral textLength /= lastInstruction - baseAddr) $ 
+    when (toInt textLength /= lastInstruction - baseAddr) $ 
         fail ("textLength is not " ++ show textLength)
     percentSeparator
     liftIO $ putStr "instruction space before reloc: " 
@@ -90,9 +90,6 @@ fillVector mem = do
     eof
     liftIO $ putStr "instruction space after reloc: " 
     liftIO $ printVector baseAddr (lastInstruction - baseAddr) mem
---     liftIO $ unless (fromIntegral textLength == lastInstruction - baseAddr) $ 
---         putStrLn ("textLength: " ++ show textLength ++ " but actually " ++
---             show (lastInstruction - baseAddr)) >> exitFailure
 
 header :: MyParser ()
 header = string "%SXX+E" >> skipToEOL >> spaces
@@ -100,15 +97,12 @@ header = string "%SXX+E" >> skipToEOL >> spaces
 percentSeparator :: MyParser ()
 percentSeparator = char '%' >> skipToEOL
 
-skipSpaces :: MyParser ()
-skipSpaces = skipMany1 space <?> ""
-
 instruction :: MyVector -> MyParser ()
 instruction mem = notDS mem <|> sxxDS
 
 sxxDS :: MyParser ()
 sxxDS = do 
-    val <- fromIntegral <$> (char ':' *> readNum)
+    val <- toInt <$> (char ':' *> readNum)
     liftIO $ putStrLn $ "ds: " ++ show val
     modifyState (+val)
 
@@ -132,12 +126,19 @@ readNum = do
 -- is DS-allocated space supposed to be in the relocation dict?
 relocatable :: MyVector -> MyParser ()
 relocatable mem = let ?mem = mem in do 
-    index <- fromIntegral <$> readNum 
+    index <- toInt <$> readNum 
     val <- liftIO $ V.read mem (index + baseAddr)
     liftIO $ write (index + baseAddr) (val + baseAddr)
 
 skipToEOL :: MyParser ()
 skipToEOL = anyChar `manyTill` newline *> skipMany space
+
+skipSpaces :: MyParser ()
+skipSpaces = skipMany1 space <?> ""
+
+skipComment :: MyParser ()
+skipComment = spaces *> char '#' *> skipToEOL
+-- skipComment = char '#' *> skipToEOL
 
 printVector :: Int -> Int -> MyVector -> IO ()
 printVector i n vec = do
@@ -179,8 +180,5 @@ skipJunk = skipSpaces <|> skipComment
 skipSpaces :: MyParser ()
 skipSpaces = skipMany1 space <?> "" -- silence this; it's handled elsewhere
 
-skipComment :: MyParser ()
-skipComment = spaces *> char '#' *> skipToEOL
--- skipComment = char '#' *> skipToEOL
 -}
 
