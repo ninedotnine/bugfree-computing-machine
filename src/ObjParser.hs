@@ -27,6 +27,7 @@ import Control.Applicative hiding (many)
 -- import Control.Applicative ((<$>))
 -- import Control.Applicative hiding ((<|>))
 -- import Data.Char (toUpper, toLower, ord)
+import Data.Char (toUpper, toLower)
 -- import Data.List (genericLength, intersperse)
 import Data.String (IsString, fromString)
 -- import Data.Int
@@ -108,25 +109,51 @@ reloc = do
     putState $ addReloc val info
 
 eep :: MyParser ()
-eep = skipMany (entry <|> extern <|> public)
+eep = skipMany (try entry <|> extern <|> public)
 
 -- FIXME : this breaks if the entry label is not "main"
 entry :: MyParser ()
 entry = do 
+    ent <- string "ENTRY main " *> readNum <* skipToEOL
     info <- getState
     when (getEntry info /= Nothing) $ fail "multiple ENTRY"
-    ent <- string "ENTRY main " *> readNum <* skipToEOL
     putState $ setEntry (Just ent) info
 
 
 extern :: MyParser ()
 -- extern = undefined
 extern = do
-    string "EXTERN " *> skipToEOL
+    name <- string "EXTERN " *> label 
+    skipSpaces 
+    addrs <- readNum `endBy1` skipSpaces
+    infos <- getState
+    let pubs = getPublics infos
+        exts = getExterns infos
+    when (Map.member name pubs || Map.member name exts) $
+        fail $ "label " ++ name ++ " is already PUBLIC or EXTERN"
+    putState (addToExterns infos name addrs)
 
 public :: MyParser ()
-public = string "PUBLIC " *> skipToEOL
-    
+public = do 
+    name <- string "PUBLIC " *> label
+    addr <- skipSpaces *> readNum <* skipToEOL
+    infos <- getState
+    let pubs = getPublics infos
+        exts = getExterns infos
+    when (Map.member name pubs || Map.member name exts) $
+        fail $ "label " ++ name ++ " is already PUBLIC or EXTERN"
+    putState (addToPublics infos name addr)
+
+
+label :: MyParser String
+label = do
+    first <- letter
+    rest <- many labelChar
+    return (first:rest)
+
+labelChar :: MyParser Char
+labelChar = letter <|> digit <|> oneOf "._"
+
 -- increaseLineCount :: (Integer -> Integer) -> MyParser ()
 increaseLineCount :: Integer -> MyParser ()
 -- modifyLineCount f = modifyState f
@@ -135,8 +162,15 @@ increaseLineCount x = do
     putState $ modifyLineCount (+x) infos
 
     
--- skipSpaces :: MyParser ()
--- skipSpaces = many1 space >> return ()
+skipSpaces :: MyParser ()
+skipSpaces = many1 space >> return ()
+
+caseInsensitiveChar :: Char -> MyParser Char
+caseInsensitiveChar c = (char (toLower c) <|> char (toUpper c)) *> pure c
+
+-- caseInsensitiveString :: String -> GenParser Char state String
+caseInsensitiveString :: String -> MyParser String
+caseInsensitiveString = sequence . map caseInsensitiveChar
 
 -- sxxDW :: MyVector -> MyParser ()
 {-
@@ -222,6 +256,14 @@ addReloc x (Info s o lc r e pubs exts) = Info s o lc (r++[x]) e pubs exts
 setEntry :: Maybe Integer -> Info -> Info
 setEntry e (Info s o lc r Nothing pubs exts) = Info s o lc r e pubs exts
 setEntry _ _ = error "setEntry called when entry was not Nothing" 
+
+addToPublics :: Info -> String -> Integer -> Info
+addToPublics (Info s o lc r e pubs exts) name addr = 
+    Info s o lc r e (Map.insert name addr pubs) exts
+
+addToExterns :: Info -> String -> [Integer] -> Info
+addToExterns (Info s o lc r e pubs exts) name addr = 
+    Info s o lc r e pubs (Map.insert name addr exts)
 
 type Relocs = [Integer]
 
