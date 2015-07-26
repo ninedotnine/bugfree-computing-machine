@@ -1,19 +1,13 @@
 -- {-# LANGUAGE OverloadedStrings #-} 
 {-# LANGUAGE TypeSynonymInstances #-} 
 {-# LANGUAGE FlexibleInstances #-} 
--- {-# OPTIONS_GHC -Wall #-} 
+{-# OPTIONS_GHC -Wall #-} 
 -- {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
 
--- module Parser (Instruction(..), 
---                 Token(..), 
---                 EntryPoint(..),
---                 parseEverything) where 
-
--- module SXXParser (MyVector, populateVector, printVector) where
 module ObjParser  where
 
 
-import System.Exit (exitFailure)
+-- import System.Exit (exitFailure)
 import Text.ParserCombinators.Parsec hiding (try, label, labels, (<|>))
 -- import Text.Parsec.Prim hiding (runParser)
 import Text.Parsec.Prim hiding (runParser, label, labels, (<|>))
@@ -23,29 +17,30 @@ import Data.Functor.Identity
 -- import Text.Parsec.Prim
 -- import Control.Monad (join)
 import Control.Monad
-import Control.Monad.Trans (liftIO)
-import Control.Monad.Primitive (PrimState)
+-- import Control.Monad.Trans (liftIO)
+-- import Control.Monad.Primitive (PrimState)
 -- import Control.Monad.Identity
-import Control.Monad.Writer (Writer, runWriter, tell, lift)
+-- import Control.Monad.Writer (Writer, runWriter, tell, lift)
 -- import Control.Monad.State (runState, evalState, execState)
 -- import Control.Applicative hiding (many, (<|>))
 import Control.Applicative hiding (many)
 -- import Control.Applicative ((<$>))
 -- import Control.Applicative hiding ((<|>))
-import Data.Char (toUpper, toLower, ord)
-import Data.List (genericLength, intersperse)
+-- import Data.Char (toUpper, toLower, ord)
+-- import Data.List (genericLength, intersperse)
 import Data.String (IsString, fromString)
-import Data.Int
+-- import Data.Int
 -- import Data.Foldable (traverse_)
 import Text.Read (readMaybe)
 
 -- import Data.Map.Strict (Map, (!))
 -- import qualified Data.Map.Strict as Map (Map, singleton)
-import Data.Map.Strict as Map (Map, singleton)
+-- import Data.Map.Strict as Map (Map, singleton)
+import qualified Data.Map.Strict as Map 
 
-import Debug.Trace (trace)
+-- import Debug.Trace (trace)
 
-import Instructions
+-- import Instructions
 
 header :: MyParser ()
 header = string "%SXX+O" >> skipToEOL >> spaces
@@ -58,13 +53,11 @@ percentSeparator = char '%' >> skipToEOL
 
 testfile :: FilePath
 testfile = "../object_files/test.out"
-
 main :: IO ()
 main = do
     contents <- readFile testfile
     let result :: Either ParseError Integer
---     let
-        result = runParser pass1 0 "namey" contents
+        result = runParser pass1 (makeInfo "#MAIN0" 0) "namey" contents
     putStr "result is: " >> print result
     putStrLn  "------------------------------------------"
     case result of
@@ -79,7 +72,7 @@ pass1 = do
     text_length <- readNum <* skipToEOL
     percentSeparator
     readText
-    lenth <- getState
+    lenth <- getLineCount <$> getState
     when (lenth /= text_length) $ fail "bad length"
     percentSeparator
 --     relocDict
@@ -90,20 +83,25 @@ readText = skipMany (dw <|> instruction)
 
 dw :: MyParser ()
 dw = do
-    char ':'
-    val <- readNum <* skipToEOL
-    modifyState (+val)
+    val <- char ':' *> readNum <* skipToEOL
+    increaseLineCount val
 
 instruction :: MyParser ()
 instruction = do
     _ <- readNum <* skipToEOL
-    modifyState (+1)
+    increaseLineCount 1
 
 relocDict :: MyParser ()
 relocDict = do
     undefined
 
     
+-- increaseLineCount :: (Integer -> Integer) -> MyParser ()
+increaseLineCount :: Integer -> MyParser ()
+-- modifyLineCount f = modifyState f
+increaseLineCount x = do 
+    infos <- getState
+    putState $ modifyLineCount (+x) infos
 
     
 -- skipSpaces :: MyParser ()
@@ -148,12 +146,53 @@ readNum = do
 MyParser is a type 
 ParsecT is a monad transformer
 String is the stream type
-Int is the state, it is the line counter
+Info is the state
 Identity is the transformed monad.
 -}
 
 -- type MyParser a = ParsecT String (Map.Map uuuInteger Identity a
-type MyParser a = ParsecT String Integer Identity a
+-- type MyParser a = ParsecT String ((Map.Map String Integer, Integer) Identity a
+-- type MyParser a = ParsecT String Integer Identity a
+
+type MyParser a = ParsecT String Info Identity a
+
+{-
+Info is a type 
+String is the file name
+Integer is the offset
+Integer is the line counter
+Maybe Integer is the entry
+Integer is the is the line counter
+Identity is the transformed monad.
+-}
+
+-- FIXME : does Info really need the name and offset? 
+data Info = Info { getName      :: String,
+                   getOffset    :: Offset,
+                   getLineCount :: Integer,
+                   getRelocs    :: Relocs,
+                   getEntry     :: Maybe Integer,
+                   getPublics   :: Publics,
+                   getExterns   :: Externs }
+
+emptyInfo :: Info
+emptyInfo = Info "" 0 0 [] Nothing Map.empty Map.empty
+
+makeInfo :: String -> Offset -> Info
+makeInfo name off = Info name off 0 [] Nothing Map.empty Map.empty
+
+modifyLineCount :: (Integer -> Integer) -> Info -> Info
+modifyLineCount f (Info s o lc r e pubs exts) = Info s o (f lc) r e pubs exts
+
+addReloc :: Integer -> Info -> Info
+addReloc x (Info s o lc r e pubs exts) = Info s o lc (r++[x]) e pubs exts
+
+type Relocs = [Integer]
+
+type Publics = Map.Map String Integer
+type Externs = Map.Map String [Integer]
+
+type Offset  = Integer
 
 newtype EntryPoint = EntryPoint String deriving (Eq)
 
