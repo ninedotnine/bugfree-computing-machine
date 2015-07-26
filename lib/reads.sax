@@ -1,0 +1,40 @@
+; read_string
+;   reads a single line from standard input and deposits it into
+;     a character array.
+;   assumes the address of the character array to read into is
+;     on the stack prior to calling read_string.
+;   returns with a null-terminated string in the specified array.
+;     The array must be large enough to hold the input string --
+;     no range checking is done.  A newline at the end of the
+;     input line is retained.
+
+	PUBLIC read_string
+
+EOF	EQU	-1
+
+read_string:
+	swap
+@1:
+	readc
+	dupl
+	pushv	EOF
+	sub
+	beq	@2
+	over
+	over
+	pops
+	pushv	10
+	sub
+	beq	@3
+	pushv	1
+	add
+	br	@1
+@2:
+	drop
+	pushv	0
+	pops
+	return
+@3:
+	pushv	0
+	popx	1
+	return
