@@ -32,7 +32,7 @@ import Data.Char (toUpper, toLower)
 import Data.String (IsString, fromString)
 -- import Data.Int
 -- import Data.Foldable (traverse_)
-import Text.Read (readMaybe)
+-- import Text.Read (readMaybe)
 
 -- import Data.Map.Strict (Map, (!))
 -- import qualified Data.Map.Strict as Map (Map, singleton)
@@ -199,16 +199,13 @@ instruction mem = do
 --     <|> try asmDW 
 --     <|> try opcode <* loc (+1)
 --     <|> label <* loc (+1)
-
 -}
-readNum :: MyParser Integer
-readNum = do
-    s <- sign
-    num <- read <$> many1 digit -- read is safe here: (many1 digit) is readable
-    return (s num)
+
+readNum :: MyParser Integer -- read is safe here: (many1 digit) is readable
+readNum = sign >>= (read <$> many1 digit >>=) . (return .)
 
 sign :: MyParser (Integer -> Integer)
-sign = (char '-' *> return negate) <|> (optional (char '+') *> return id)
+sign = char '-' *> return negate <|> optional (char '+') *> return id
 
 {-
 MyParser is a type 
