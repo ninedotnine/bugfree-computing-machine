@@ -52,8 +52,9 @@ fillVector mem = do
     liftIO $ putStrLn $ "entry: " ++ show entry 
     instruction mem `endBy` skipSpaces
     lastInstruction <- getState 
-    when (toInt textLength /= lastInstruction - baseAddr) $ 
-        fail ("textLength is not " ++ show textLength)
+    let counted = lastInstruction - baseAddr
+    when (toInt textLength /= counted) $
+        fail ("textLength " ++ show textLength ++ " counted " ++ show counted)
     percentSeparator
     liftIO $ putStr "instruction space before reloc: " 
     liftIO $ printVector baseAddr (lastInstruction - baseAddr) mem
