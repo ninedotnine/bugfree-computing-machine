@@ -23,7 +23,7 @@ import Control.Monad
 -- import Control.Monad.Writer (Writer, runWriter, tell, lift)
 -- import Control.Monad.State (runState, evalState, execState)
 -- import Control.Applicative hiding (many, (<|>))
-import Control.Applicative hiding (many)
+import Control.Applicative hiding (many, optional)
 -- import Control.Applicative ((<$>))
 -- import Control.Applicative hiding ((<|>))
 -- import Data.Char (toUpper, toLower, ord)
@@ -54,7 +54,8 @@ percentSeparator = char '%' >> skipToEOL
 
 testfile :: FilePath
 -- testfile = "../object_files/test.out"
-testfile = "../lib/writes.out"
+-- testfile = "../lib/writes.out"
+testfile = "../lib/reads.out"
 main :: IO ()
 main = do
     contents <- readFile testfile
@@ -69,7 +70,6 @@ main = do
         Right r -> print r
     putStrLn "okay"
 
--- pass1 :: MyParser Integer
 pass1 :: MyParser Info
 pass1 = do 
     header >> skipComments 
@@ -80,7 +80,6 @@ pass1 = do
     when (lenth /= text_length) $ fail "bad length"
     percentSeparator
     relocDict
---     return text_length
     percentSeparator
     eep -- Entry, Externs, Publics
     percentSeparator 
@@ -203,13 +202,13 @@ instruction mem = do
 
 -}
 readNum :: MyParser Integer
--- readNum = read <$> many1 digit 
 readNum = do
-    str <- readMaybe <$> many1 digit 
---     liftIO $ print str
-    case str of
-        Just x -> return x
-        Nothing -> fail "oopsie"
+    s <- sign
+    num <- read <$> many1 digit -- read is safe here: (many1 digit) is readable
+    return (s num)
+
+sign :: MyParser (Integer -> Integer)
+sign = (char '-' *> return negate) <|> (optional (char '+') *> return id)
 
 {-
 MyParser is a type 
