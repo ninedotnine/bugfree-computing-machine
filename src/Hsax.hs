@@ -66,8 +66,8 @@ outputResult filename (textLength, entry, toks, labels) = do
     putStrLn "% ENTRY, EXTERN, and PUBLIC references"
     unless (entry == EntryPoint "") $ putStrLn $ 
         "ENTRY " ++ show entry ++ " " ++ (show (labels ! show entry))
-    mapM_ (putStrLn . ("EXTERN "++ )) exts
-    mapM_ (putStrLn . ("PUBLIC "++)) pubs
+    mapM_ (putStrLn . ("EXTERN "++ )) exts -- FIXME addrs follow label
+    forM_ pubs $ putStrLn . (\x -> "PUBLIC " ++ x ++ ' ':show (labels ! x))
     putStrLn "% end of object module"
 
     where
