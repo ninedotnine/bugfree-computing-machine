@@ -13,6 +13,7 @@
 ---------- decommenter ----------
 
 ---------- linker ----------
+[ ] add publics, externs to respective maps
 
 ---------- hsxx ----------
 [x] relocation dict
