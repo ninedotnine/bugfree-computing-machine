@@ -53,7 +53,8 @@ percentSeparator = char '%' >> skipToEOL
 -- traceM str = trace str $ return ()
 
 testfile :: FilePath
-testfile = "../object_files/test.out"
+-- testfile = "../object_files/test.out"
+testfile = "../lib/writes.out"
 main :: IO ()
 main = do
     contents <- readFile testfile
@@ -71,9 +72,9 @@ main = do
 -- pass1 :: MyParser Integer
 pass1 :: MyParser Info
 pass1 = do 
-    header 
-    text_length <- readNum <* skipToEOL
-    percentSeparator
+    header >> skipComments 
+    text_length <- readNum <* skipToEOL <* skipComments 
+    percentSeparator >> skipComments 
     readText
     lenth <- getLineCount <$> getState
     when (lenth /= text_length) $ fail "bad length"
@@ -164,6 +165,9 @@ increaseLineCount x = do
     
 skipSpaces :: MyParser ()
 skipSpaces = many1 space >> return ()
+
+skipComments :: MyParser ()
+skipComments = skipMany (spaces *> char '#' *> skipToEOL)
 
 caseInsensitiveChar :: Char -> MyParser Char
 caseInsensitiveChar c = (char (toLower c) <|> char (toUpper c)) *> pure c
