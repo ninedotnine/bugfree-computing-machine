@@ -81,7 +81,8 @@ pass1 = do
 --     return text_length
     percentSeparator
     eep -- Entry, Externs, Publics
-    percentSeparator *> skipToEOL *> eof
+    percentSeparator 
+    eof
     state <- getState
     return state
 
@@ -109,9 +110,22 @@ reloc = do
 eep :: MyParser ()
 eep = skipMany (entry <|> extern <|> public)
 
-entry = undefined
-extern = undefined
-public = undefined
+-- FIXME : this breaks if the entry label is not "main"
+entry :: MyParser ()
+entry = do 
+    info <- getState
+    when (getEntry info /= Nothing) $ fail "multiple ENTRY"
+    ent <- string "ENTRY main " *> readNum <* skipToEOL
+    putState $ setEntry (Just ent) info
+
+
+extern :: MyParser ()
+-- extern = undefined
+extern = do
+    string "EXTERN " *> skipToEOL
+
+public :: MyParser ()
+public = string "PUBLIC " *> skipToEOL
     
 -- increaseLineCount :: (Integer -> Integer) -> MyParser ()
 increaseLineCount :: Integer -> MyParser ()
@@ -204,6 +218,10 @@ modifyLineCount f (Info s o lc r e pubs exts) = Info s o (f lc) r e pubs exts
 
 addReloc :: Integer -> Info -> Info
 addReloc x (Info s o lc r e pubs exts) = Info s o lc (r++[x]) e pubs exts
+
+setEntry :: Maybe Integer -> Info -> Info
+setEntry e (Info s o lc r Nothing pubs exts) = Info s o lc r e pubs exts
+setEntry _ _ = error "setEntry called when entry was not Nothing" 
 
 type Relocs = [Integer]
 
