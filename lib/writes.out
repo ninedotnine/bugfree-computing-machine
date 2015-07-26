@@ -1,0 +1,26 @@
+%SXX+Object Module
+# Object module for file writes.sax
+# Sat Sep 22 14:09:166 EDT 2012
+15 text length
+% text
+9
+8
+3
+8
+20
+12
+42
+2
+1
+27
+21
+1
+38
+2
+24
+% relocation dictionary
+5
+11
+% ENTRY, EXTERN, and PUBLIC references
+PUBLIC write_string 0
+% end of object module

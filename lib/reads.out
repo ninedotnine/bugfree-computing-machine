@@ -1,0 +1,43 @@
+%SXX+Object Module
+# Object module for file reads.sax
+# Sat Sep 22 14:09:880 EDT 2012
+31 text length
+% text
+9
+41
+8
+2
+-1
+28
+20
+21
+10
+10
+6
+2
+10
+28
+20
+26
+2
+1
+27
+21
+1
+11
+2
+0
+6
+24
+2
+0
+7
+1
+24
+% relocation dictionary
+7
+15
+20
+% ENTRY, EXTERN, and PUBLIC references
+PUBLIC read_string 0
+% end of object module
