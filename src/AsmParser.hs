@@ -341,7 +341,7 @@ asmEntry = do
 asmExtern :: MyParser Token 
 asmExtern = do
     caseInsensitiveString "extern" <* skipSpaces <?> "EXTERN"
-    args <- (localLabel <|> globalLabel) `sepBy1` (char ',' *> spaces)
+    args <- globalLabel `sepBy1` (char ',' *> spaces)
     forM_ args (flip addToLabels (-9)) -- FIXME: what value should it have?
 --     traverse_ (flip addToLabels (-9)) args -- FIXME: what value should it have?
 --     mapM_ (flip addToLabels (-9)) args  -- FIXME: what value should it have?
@@ -351,7 +351,7 @@ asmExtern = do
 asmPublic :: MyParser Token 
 asmPublic = do
     caseInsensitiveString "public" <* skipSpaces <?> "PUBLIC"
-    args <- (localLabel <|> globalLabel) `sepBy1` (char ',' *> spaces)
+    args <- globalLabel `sepBy1` (char ',' *> spaces)
     forM_ args (flip addToLabels (-9)) -- FIXME: what value should it have?
 --     traverse_ (flip addToLabels (-9)) args -- FIXME: what value should it have?
 --     mapM_ (flip addToLabels (-9)) args  -- FIXME: what value should it have?
