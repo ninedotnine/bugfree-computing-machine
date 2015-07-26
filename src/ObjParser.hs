@@ -56,7 +56,8 @@ testfile = "../object_files/test.out"
 main :: IO ()
 main = do
     contents <- readFile testfile
-    let result :: Either ParseError Integer
+--     let result :: Either ParseError Integer
+    let result :: Either ParseError Info
         result = runParser pass1 (makeInfo "#MAIN0" 0) "namey" contents
     putStr "result is: " >> print result
     putStrLn  "------------------------------------------"
@@ -66,7 +67,8 @@ main = do
         Right r -> print r
     putStrLn "okay"
 
-pass1 :: MyParser Integer
+-- pass1 :: MyParser Integer
+pass1 :: MyParser Info
 pass1 = do 
     header 
     text_length <- readNum <* skipToEOL
@@ -75,8 +77,13 @@ pass1 = do
     lenth <- getLineCount <$> getState
     when (lenth /= text_length) $ fail "bad length"
     percentSeparator
---     relocDict
-    return text_length
+    relocDict
+--     return text_length
+    percentSeparator
+    eep -- Entry, Externs, Publics
+    percentSeparator *> skipToEOL *> eof
+    state <- getState
+    return state
 
 readText :: MyParser ()
 readText = skipMany (dw <|> instruction)
@@ -87,14 +94,24 @@ dw = do
     increaseLineCount val
 
 instruction :: MyParser ()
-instruction = do
-    _ <- readNum <* skipToEOL
-    increaseLineCount 1
+instruction = readNum *> skipToEOL >> increaseLineCount 1
 
 relocDict :: MyParser ()
-relocDict = do
-    undefined
+-- relocDict = many reloc >> return ()
+relocDict = skipMany reloc 
 
+reloc :: MyParser ()
+reloc = do
+    val <- readNum <* skipToEOL
+    info <- getState
+    putState $ addReloc val info
+
+eep :: MyParser ()
+eep = skipMany (entry <|> extern <|> public)
+
+entry = undefined
+extern = undefined
+public = undefined
     
 -- increaseLineCount :: (Integer -> Integer) -> MyParser ()
 increaseLineCount :: Integer -> MyParser ()
@@ -174,6 +191,7 @@ data Info = Info { getName      :: String,
                    getEntry     :: Maybe Integer,
                    getPublics   :: Publics,
                    getExterns   :: Externs }
+                   deriving (Show)
 
 emptyInfo :: Info
 emptyInfo = Info "" 0 0 [] Nothing Map.empty Map.empty
