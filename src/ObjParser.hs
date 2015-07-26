@@ -1,6 +1,6 @@
 -- {-# LANGUAGE OverloadedStrings #-} 
-{-# LANGUAGE TypeSynonymInstances #-} 
-{-# LANGUAGE FlexibleInstances #-} 
+-- {-# LANGUAGE TypeSynonymInstances #-} 
+-- {-# LANGUAGE FlexibleInstances #-} 
 {-# OPTIONS_GHC -Wall #-} 
 -- {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
 
@@ -20,16 +20,14 @@ import Control.Monad
 -- import Control.Monad.Trans (liftIO)
 -- import Control.Monad.Primitive (PrimState)
 -- import Control.Monad.Identity
--- import Control.Monad.Writer (Writer, runWriter, tell, lift)
 -- import Control.Monad.State (runState, evalState, execState)
 -- import Control.Applicative hiding (many, (<|>))
 import Control.Applicative hiding (many, optional)
 -- import Control.Applicative ((<$>))
 -- import Control.Applicative hiding ((<|>))
 -- import Data.Char (toUpper, toLower, ord)
-import Data.Char (toUpper, toLower)
 -- import Data.List (genericLength, intersperse)
-import Data.String (IsString, fromString)
+-- import Data.String (IsString, fromString)
 -- import Data.Int
 -- import Data.Foldable (traverse_)
 -- import Text.Read (readMaybe)
@@ -43,11 +41,42 @@ import qualified Data.Map.Strict as Map
 
 -- import Instructions
 
-header :: MyParser ()
-header = string "%SXX+O" >> skipToEOL >> spaces
+{-
+MyParser is a type 
+ParsecT is a monad transformer
+String is the stream type
+Info is the state
+Identity is the transformed monad.
+-}
 
-percentSeparator :: MyParser ()
-percentSeparator = char '%' >> skipToEOL
+type MyParser a = ParsecT String Info Identity a
+
+{-
+Info is a data type 
+String is the file name
+Integer is the offset
+Integer is the line counter
+Maybe Integer is the entry
+Integer is the is the line counter
+Identity is the transformed monad.
+-}
+
+-- FIXME : does Info really need the name and offset? 
+data Info = Info { getName      :: String,
+                   getOffset    :: Offset,
+                   getLineCount :: Integer,
+                   getRelocs    :: Relocs,
+                   getEntry     :: Maybe Integer,
+                   getPublics   :: Publics,
+                   getExterns   :: Externs }
+                   deriving (Show)
+
+type Relocs = [Integer]
+
+type Publics = Map.Map String Integer
+type Externs = Map.Map String [Integer]
+
+type Offset  = Integer
 
 -- traceM :: (Monad m) => String -> m ()
 -- traceM str = trace str $ return ()
@@ -56,6 +85,7 @@ testfile :: FilePath
 -- testfile = "../object_files/test.out"
 -- testfile = "../lib/writes.out"
 testfile = "../lib/reads.out"
+
 main :: IO ()
 main = do
     contents <- readFile testfile
@@ -87,6 +117,12 @@ pass1 = do
     state <- getState
     return state
 
+header :: MyParser ()
+header = string "%SXX+O" >> skipToEOL >> spaces
+
+percentSeparator :: MyParser ()
+percentSeparator = char '%' >> skipToEOL
+
 readText :: MyParser ()
 readText = skipMany (dw <|> instruction)
 
@@ -98,8 +134,12 @@ dw = do
 instruction :: MyParser ()
 instruction = readNum *> skipToEOL >> increaseLineCount 1
 
+increaseLineCount :: Integer -> MyParser ()
+increaseLineCount x = do 
+    infos <- getState
+    putState $ modifyLineCount (+x) infos
+
 relocDict :: MyParser ()
--- relocDict = many reloc >> return ()
 relocDict = skipMany reloc 
 
 reloc :: MyParser ()
@@ -121,7 +161,6 @@ entry = do
 
 
 extern :: MyParser ()
--- extern = undefined
 extern = do
     name <- string "EXTERN " *> label 
     skipSpaces 
@@ -144,7 +183,6 @@ public = do
         fail $ "label " ++ name ++ " is already PUBLIC or EXTERN"
     putState (addToPublics infos name addr)
 
-
 label :: MyParser String
 label = do
     first <- letter
@@ -154,52 +192,14 @@ label = do
 labelChar :: MyParser Char
 labelChar = letter <|> digit <|> oneOf "._"
 
--- increaseLineCount :: (Integer -> Integer) -> MyParser ()
-increaseLineCount :: Integer -> MyParser ()
--- modifyLineCount f = modifyState f
-increaseLineCount x = do 
-    infos <- getState
-    putState $ modifyLineCount (+x) infos
-
-    
 skipSpaces :: MyParser ()
 skipSpaces = many1 space >> return ()
 
 skipComments :: MyParser ()
 skipComments = skipMany (spaces *> char '#' *> skipToEOL)
 
-caseInsensitiveChar :: Char -> MyParser Char
-caseInsensitiveChar c = (char (toLower c) <|> char (toUpper c)) *> pure c
-
--- caseInsensitiveString :: String -> GenParser Char state String
-caseInsensitiveString :: String -> MyParser String
-caseInsensitiveString = sequence . map caseInsensitiveChar
-
--- sxxDW :: MyVector -> MyParser ()
-{-
-sxxDW mem = do 
-    char ':'
-    val <- readNum
-    index <- getState
-    liftIO $ putStrLn $ "dw: " ++ show val
-    liftIO $ write mem index val
-    modifyState (+ (fromIntegral val))
-
-instruction :: MyVector -> MyParser ()
-instruction mem = do 
-    val <- readNum
-    index <- getState
-    liftIO $ putStrLn $ "read: " ++ show val
-    liftIO $ write mem index val
-    modifyState (+1)
-    return ()
--- fmap Lit intOrChar <* loc (+1)
---     <|> try asmEQU 
---     <|> try asmDS 
---     <|> try asmDW 
---     <|> try opcode <* loc (+1)
---     <|> label <* loc (+1)
--}
+skipToEOL :: MyParser ()
+skipToEOL = anyChar `manyTill` newline *> skipMany space
 
 readNum :: MyParser Integer -- read is safe here: (many1 digit) is readable
 readNum = sign >>= (read <$> many1 digit >>=) . (return .)
@@ -207,40 +207,9 @@ readNum = sign >>= (read <$> many1 digit >>=) . (return .)
 sign :: MyParser (Integer -> Integer)
 sign = char '-' *> return negate <|> optional (char '+') *> return id
 
-{-
-MyParser is a type 
-ParsecT is a monad transformer
-String is the stream type
-Info is the state
-Identity is the transformed monad.
--}
+----------------------------------------
 
--- type MyParser a = ParsecT String (Map.Map uuuInteger Identity a
--- type MyParser a = ParsecT String ((Map.Map String Integer, Integer) Identity a
--- type MyParser a = ParsecT String Integer Identity a
-
-type MyParser a = ParsecT String Info Identity a
-
-{-
-Info is a type 
-String is the file name
-Integer is the offset
-Integer is the line counter
-Maybe Integer is the entry
-Integer is the is the line counter
-Identity is the transformed monad.
--}
-
--- FIXME : does Info really need the name and offset? 
-data Info = Info { getName      :: String,
-                   getOffset    :: Offset,
-                   getLineCount :: Integer,
-                   getRelocs    :: Relocs,
-                   getEntry     :: Maybe Integer,
-                   getPublics   :: Publics,
-                   getExterns   :: Externs }
-                   deriving (Show)
-
+-- operations on the Info type
 emptyInfo :: Info
 emptyInfo = Info "" 0 0 [] Nothing Map.empty Map.empty
 
@@ -264,20 +233,3 @@ addToPublics (Info s o lc r e pubs exts) name addr =
 addToExterns :: Info -> String -> [Integer] -> Info
 addToExterns (Info s o lc r e pubs exts) name addr = 
     Info s o lc r e pubs (Map.insert name addr exts)
-
-type Relocs = [Integer]
-
-type Publics = Map.Map String Integer
-type Externs = Map.Map String [Integer]
-
-type Offset  = Integer
-
-newtype EntryPoint = EntryPoint String deriving (Eq)
-
-instance Show EntryPoint where 
-    show (EntryPoint name) = name
-instance IsString EntryPoint where
-    fromString = EntryPoint
-
-skipToEOL :: MyParser ()
-skipToEOL = anyChar `manyTill` newline *> skipMany space
