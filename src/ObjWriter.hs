@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-} 
 {-# LANGUAGE FlexibleContexts #-} 
--- {-# OPTIONS_GHC -Wall #-} 
+{-# OPTIONS_GHC -Wall #-} 
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
 
 module ObjWriter where 
@@ -13,27 +13,28 @@ import Text.Parsec.Prim hiding (runParser, label, labels, (<|>))
 -- import Text.Parsec.Prim
 -- import Control.Monad (join)
 import Control.Monad
-import Control.Monad.Identity
+-- import Control.Monad.Identity
 -- import Control.Monad.Writer (Writer, runWriter, tell, lift)
 import Control.Monad.Writer 
 -- import Control.Monad.State (runState, evalState, execState)
 -- import Control.Applicative hiding (many, (<|>))
-import Control.Applicative hiding (many)
+import Control.Applicative hiding (many, optional)
 -- import Control.Applicative ((<$>))
 -- import Control.Applicative hiding ((<|>))
-import Data.Char (toUpper, toLower, ord)
-import Data.List (genericLength)
-import Data.String (IsString, fromString)
+-- import Data.Char (toUpper, toLower, ord)
+-- import Data.List (genericLength)
+-- import Data.String (IsString, fromString)
 -- import Data.Foldable (traverse_)
-import Text.Read (readMaybe)
+-- import Text.Read (readMaybe)
 
 -- import Data.Map.Strict (Map, (!))
 -- import qualified Data.Map.Strict as Map (Map, singleton)
-import Data.Map.Strict as Map (Map, singleton)
+import Data.Map.Strict as Map (Map, singleton, fromList)
 
 import Debug.Trace (trace)
+-- import Control.Exception
 
-import Instructions
+-- import Instructions
 import ObjParser
 
 -- should really import these from ObjParser
@@ -49,24 +50,28 @@ testfile :: FilePath
 -- testfile = "programs/testfile6"
 testfile = "../lib/writes.out"
 
+-- this is how i think the Info that is passed in will look
+expected :: Info
+expected = Info "writes.out" 0 15 [5, 11] Nothing 
+    (Map.fromList [("write_string",0)]) (Map.fromList [])
+
 main :: IO ()
 main = do
     putStrLn $ "# file: " ++ testfile
     c <- readFile testfile
     let result :: Either ParseError String
         result = parseEverything testfile c
-    putStr "result is: " >> print result
     putStrLn  "------------------------------------------"
     case result of
-        Left err -> putStrLn $ "error: " ++ (show err)
-        Right r -> putStrLn r
+        Left err -> putStrLn $ "error: " ++ (show err) ++ "\n########\n" ++ c
+        Right r -> putStrLn r 
     putStrLn "FIN"
 
 parseEverything :: SourceName -> String -> Either ParseError String
 parseEverything name str = do
     let eith :: Either ParseError Bool
         output :: String
-        (eith, output) = runWriter $ runParserT instructions emptyInfo name str
+        (eith, output) = runWriter $ runParserT instructions expected name str
     case eith of
         Left err -> Left err
         Right False -> error "when would this happen?"
@@ -86,13 +91,79 @@ type MyParser a = ParsecT String Info (Writer String) a
 -- returns true if it succeeds
 instructions :: MyParser Bool
 instructions = do
-    gen "%SSX+Executable\n"
     info <- getState
+    header >> skipComments
+    gen "%SSX+Executable\n"
+
+    text_length <- readNum <* skipToEOL <* skipComments 
+    when (text_length /= getLineCount info) $ fail $ "length wrong"
     gen $ show (getLineCount info) ++ " text length\n"
+
     case getEntry info of
         Just x -> gen $ (show x) ++ " ENTRY\n"
         Nothing -> gen "0 ENTRY (default)\n"
+    percentSeparator >> skipComments
+
+    let relocs = getRelocs info
+        off = getOffset info
+
+    putState $ modifyLineCount (*0) info -- set linecount to zero
+    readText off relocs
+    final_linecount <- getLineCount <$> getState
+    when (text_length /= final_linecount) $ fail $ "problem with length"
+
+    percentSeparator
     return True 
+
+header :: MyParser ()
+header = string "%SXX+O" >> skipToEOL >> spaces
+
+readText :: Offset -> Relocs -> MyParser ()
+readText _ [] = skipMany (dw <|> instruction)
+readText off (r:relocs) = do 
+    lineCount <- getLineCount <$> getState
+    when (lineCount > r) $ fail $ "external fixup address " ++ show r ++ 
+        "does not match object module location"
+    if (lineCount == r) 
+        then (dw <|> instruction) >> readText off relocs
+        else (dw <|> instruction) >> readText off (r:relocs)
+
+dw :: MyParser ()
+dw = dwOffset 0
+
+dwOffset :: Offset -> MyParser ()
+dwOffset off = do
+    val <- char ':' *> readNum <* skipToEOL
+    gen (show (val+off) ++ "\n")
+    increaseLineCount val
+
+instruction :: MyParser ()
+instruction = readNum >>= (gen . ((++"\n") . show)) 
+    >> skipToEOL >> increaseLineCount 1
+
+increaseLineCount :: Integer -> MyParser ()
+increaseLineCount x = do 
+    infos <- getState
+    putState $ modifyLineCount (+x) infos
+
+
+readNum :: MyParser Integer -- read is safe here: (many1 digit) is readable
+readNum = sign >>= (read <$> many1 digit >>=) . (return .)
+
+sign :: MyParser (Integer -> Integer)
+sign = char '-' *> return negate <|> optional (char '+') *> return id
+
+percentSeparator :: MyParser ()
+percentSeparator = char '%' >> skipToEOL >> gen "%\n"
+
+skipSpaces :: MyParser ()
+skipSpaces = many1 space >> return ()
+
+skipComments :: MyParser ()
+skipComments = skipMany (spaces *> char '#' *> skipToEOL)
+
+skipToEOL :: MyParser ()
+skipToEOL = anyChar `manyTill` newline *> skipMany space
 
 gen :: String -> ParsecT String Info (Writer String) () 
 gen = lift . tell
