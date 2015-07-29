@@ -1,0 +1,32 @@
+%SXX+Executable
+# Fri Jul 24 02:49:37 EDT 2015
+17 text length
+0 ENTRY (default)
+# PUBLIC symbols and addresses:
+# PUBLIC prompt 13 file=prompt2.out
+% text
+# File prompt1.out
+# Offset 0
+22
+0
+2
+10
+42
+26
+# File prompt2.out
+# Offset 6
+2
+97
+42
+2
+10
+42
+26
+2
+62
+42
+24
+% relocation dictionary
+1
+% end of executable module
+
