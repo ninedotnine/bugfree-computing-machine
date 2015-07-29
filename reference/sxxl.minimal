@@ -281,6 +281,10 @@ foreach $i (sort keys %symtab) {
 print "% text\n";
 
 while (($symbol, $addrs) = each %SYMTAB) {
+    print "symbol $symbol: @$addrs\n";
+}
+
+while (($symbol, $addrs) = each %SYMTAB) {
     $symaddr = shift @$addrs;
     if ($symaddr < 0 && @{$addrs} > 0) { # this apprerently checks addrs empty
         &death("EXTERN $symbol not found in PUBLIC declarations\n");
