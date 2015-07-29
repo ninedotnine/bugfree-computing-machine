@@ -70,10 +70,6 @@ parseEverything name str = do
         Right False -> error "when would this happen?"
         Right True -> return output
 
--- parseEverything' :: SourceName -> String -> (Either ParseError Info, String)
--- parseEverything' = (runWriter .) . runParserT instructions []
-
-
 {-
 MyParser is a type 
 ParsecT is a monad transformer
@@ -82,33 +78,6 @@ Relocs is the state.
 Writer String is the transformed monad.
 -}
 type MyParser a = ParsecT String Relocs (Writer String) a
-
-
-{-
-Token is an algebraic data type
-a Lit can be a number like 65 or a letter like 'a
-an Op is any of the opcodes
-a Label is a label
--}
-data Token = Lit Integer
-            | Op Instruction
-            | Label String Integer -- the int is the current location counter
-            | NewLabel String
-            | DS Integer
-            | DW [Integer]
-            | EQU String Integer 
-            | Entry EntryPoint
-            | Extern [String]
---             | Public String -- FIXME: [String], just like Extern i think
-            | Public [String] -- FIXME: [String], just like Extern i think
-            deriving (Show)
-
-newtype EntryPoint = EntryPoint String deriving (Eq)
-
-instance Show EntryPoint where 
-    show (EntryPoint name) = name
-instance IsString EntryPoint where
-    fromString = EntryPoint
 
 --------------------------------- parser begins here
 
