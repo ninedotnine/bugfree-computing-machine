@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-} 
+{-# LANGUAGE FlexibleContexts #-} 
 -- {-# OPTIONS_GHC -Wall #-} 
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
 
@@ -12,8 +13,9 @@ import Text.Parsec.Prim hiding (runParser, label, labels, (<|>))
 -- import Text.Parsec.Prim
 -- import Control.Monad (join)
 import Control.Monad
--- import Control.Monad.Identity
-import Control.Monad.Writer (Writer, runWriter, tell, lift)
+import Control.Monad.Identity
+-- import Control.Monad.Writer (Writer, runWriter, tell, lift)
+import Control.Monad.Writer 
 -- import Control.Monad.State (runState, evalState, execState)
 -- import Control.Applicative hiding (many, (<|>))
 import Control.Applicative hiding (many)
@@ -57,14 +59,14 @@ main = do
     putStrLn  "------------------------------------------"
     case result of
         Left err -> putStrLn $ "error: " ++ (show err)
-        Right r -> print r
+        Right r -> putStrLn r
     putStrLn "FIN"
 
 parseEverything :: SourceName -> String -> Either ParseError String
 parseEverything name str = do
     let eith :: Either ParseError Bool
         output :: String
-        (eith, output) = runWriter $ runParserT instructions [] name str 
+        (eith, output) = runWriter $ runParserT instructions emptyInfo name str
     case eith of
         Left err -> Left err
         Right False -> error "when would this happen?"
@@ -74,19 +76,23 @@ parseEverything name str = do
 MyParser is a type 
 ParsecT is a monad transformer
 String is the stream type
-Relocs is the state. 
+Info is the state. 
 Writer String is the transformed monad.
 -}
-type MyParser a = ParsecT String Relocs (Writer String) a
+type MyParser a = ParsecT String Info (Writer String) a
 
 --------------------------------- parser begins here
 
 -- returns true if it succeeds
 instructions :: MyParser Bool
-instructions = return True 
--- instructions = do
-    
---     res <- join <$> many (try instruction) `sepBy` skipJunk
---     skipMany skipJunk *> eof
---     (counter, entry, _) <- getState
---     return (counter, entry, res)
+instructions = do
+    gen "%SSX+Executable\n"
+    info <- getState
+    gen $ show (getLineCount info) ++ " text length\n"
+    case getEntry info of
+        Just x -> gen $ (show x) ++ " ENTRY\n"
+        Nothing -> gen "0 ENTRY (default)\n"
+    return True 
+
+gen :: String -> ParsecT String Info (Writer String) () 
+gen = lift . tell
