@@ -147,13 +147,11 @@ increaseLineCount x = do
     putState $ modifyLineCount (+x) infos
 
 relocDict :: MyParser ()
-relocDict = skipMany reloc 
-
-reloc :: MyParser ()
-reloc = do
+relocDict = skipMany $ do 
     val <- readNum <* skipToEOL
     info <- getState
     putState $ addReloc val info
+--     readNum <* skipToEOL >>= (getState >>= ) . (putState .) . addReloc
 
 eep :: MyParser ()
 eep = skipMany (try entry <|> extern <|> public)
