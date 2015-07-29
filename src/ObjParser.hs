@@ -1,10 +1,10 @@
 -- {-# LANGUAGE OverloadedStrings #-} 
 -- {-# LANGUAGE TypeSynonymInstances #-} 
 -- {-# LANGUAGE FlexibleInstances #-} 
-{-# OPTIONS_GHC -Wall #-} 
+-- {-# OPTIONS_GHC -Wall #-} 
 -- {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
 
-module ObjParser (pass1, Info(..), makeInfo) where
+module ObjParser (pass1, Info(..), makeInfo, emptyInfo) where
 
 
 -- import System.Exit (exitFailure)
