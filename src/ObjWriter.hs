@@ -113,6 +113,9 @@ instructions = do
     when (text_length /= final_linecount) $ fail $ "problem with length"
 
     percentSeparator
+    relocDict relocs
+    percentSeparator
+
     return True 
 
 header :: MyParser ()
@@ -146,6 +149,12 @@ increaseLineCount x = do
     infos <- getState
     putState $ modifyLineCount (+x) infos
 
+-- here, i could assert that the numbers i'm reading are the same as in my list
+-- but they're the same ones i read in earlier, so what's the point?
+relocDict :: Relocs -> MyParser ()
+relocDict relocs = do 
+    forM relocs $ gen . ((++"\n") . show)
+    skipMany (readNum >> skipToEOL) 
 
 readNum :: MyParser Integer -- read is safe here: (many1 digit) is readable
 readNum = sign >>= (read <$> many1 digit >>=) . (return .)
