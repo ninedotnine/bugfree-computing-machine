@@ -4,7 +4,14 @@
 -- {-# OPTIONS_GHC -Wall #-} 
 -- {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
 
-module ObjParser (pass1, Info(..), makeInfo, emptyInfo) where
+-- module ObjParser (pass1, Info(..), makeInfo, emptyInfo) where
+module ObjParser (
+                pass1, 
+                Info(..), 
+                makeInfo, 
+                emptyInfo,
+                modifyLineCount
+                ) where
 
 
 -- import System.Exit (exitFailure)
