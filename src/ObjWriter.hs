@@ -102,7 +102,7 @@ instructions = do
     case getEntry info of
         Just x -> gen $ (show x) ++ " ENTRY\n"
         Nothing -> gen "0 ENTRY (default)\n"
-    percentSeparator >> skipComments
+    percentSeparator "text" >> skipComments
 
     let relocs = getRelocs info
         off = getOffset info
@@ -112,9 +112,9 @@ instructions = do
     final_linecount <- getLineCount <$> getState
     when (text_length /= final_linecount) $ fail $ "problem with length"
 
-    gen "\n" >> percentSeparator
+    gen "\n" >> percentSeparator "relocation dictionary" 
     relocDict relocs
-    gen "\n" >> percentSeparator
+    gen "\n" >> percentSeparator "eof!"
 
     return True 
 
@@ -162,8 +162,8 @@ readNum = sign >>= (read <$> many1 digit >>=) . (return .)
 sign :: MyParser (Integer -> Integer)
 sign = char '-' *> return negate <|> optional (char '+') *> return id
 
-percentSeparator :: MyParser ()
-percentSeparator = char '%' >> skipToEOL >> gen "%"
+percentSeparator :: String -> MyParser ()
+percentSeparator str = char '%' >> skipToEOL >> gen ("% " ++ str)
 
 skipSpaces :: MyParser ()
 skipSpaces = many1 space >> return ()
