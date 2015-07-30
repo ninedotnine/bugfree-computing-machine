@@ -7,6 +7,7 @@ import Text.ParserCombinators.Parsec (ParseError)
 
 -- import Decommenter
 import ObjParser
+import ObjWriter
 
 main :: IO ()
 main = do
@@ -17,8 +18,14 @@ main = do
     case result of
         Left err -> putStrLn $ "error: " ++ (show err) 
                     ++ "\ninput:\n" ++ input
-        Right info -> print info
-    putStrLn "DONE"
+        Right info -> do 
+        let result2 :: Either ParseError String
+            result2 = pass2 filename info input
+        case result2 of
+            Left err -> putStrLn $ "error: " ++ (show err) 
+                        ++ "\ninput:\n" ++ input
+            Right output -> putStrLn output
+        putStrLn "DONE"
 
 -- first Integer is the addr
 -- second Integer is the ref

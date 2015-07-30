@@ -3,7 +3,7 @@
 {-# OPTIONS_GHC -Wall #-} 
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
 
-module ObjWriter where 
+module ObjWriter (pass2) where 
 
 import Text.ParserCombinators.Parsec hiding (try, label, labels, (<|>))
 -- import Text.Parsec.Prim hiding (runParser)
