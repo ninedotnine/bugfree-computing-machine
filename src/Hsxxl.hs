@@ -2,7 +2,7 @@
 
 import System.Environment (getArgs)
 import System.Exit 
-import Text.ParserCombinators.Parsec (ParseError, runParser)
+import Text.ParserCombinators.Parsec (ParseError)
 -- import qualified Data.Map as Map
 
 -- import Decommenter
@@ -12,7 +12,7 @@ main :: IO ()
 main = do
     (filename, input) <- getFileData
     let result :: Either ParseError Info
-        result = runParser pass1 (makeInfo "#MAIN0" 0) filename input
+        result = pass1 filename 0 input
     putStrLn  "------------------------------------------"
     case result of
         Left err -> putStrLn $ "error: " ++ (show err) 

@@ -96,9 +96,8 @@ testfile = "../lib/reads.out"
 main :: IO ()
 main = do
     contents <- readFile testfile
---     let result :: Either ParseError Integer
     let result :: Either ParseError Info
-        result = runParser pass1 (makeInfo "#MAIN0" 0) "namey" contents
+        result = pass1 "dumfile.out" 0 contents
     putStr "result is: " >> print result
     putStrLn  "------------------------------------------"
     case result of
@@ -107,8 +106,12 @@ main = do
         Right r -> print r
     putStrLn "okay"
 
-pass1 :: MyParser Info
-pass1 = do 
+pass1 :: String -> Offset -> String -> Either ParseError Info
+pass1 name off input = 
+    runParser readObjectFile (makeInfo "#MAIN0" off) name input
+
+readObjectFile :: MyParser Info
+readObjectFile = do 
     header >> skipComments 
     text_length <- readNum <* skipToEOL <* skipComments 
     percentSeparator >> skipComments 
