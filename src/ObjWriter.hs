@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-} 
 {-# LANGUAGE FlexibleContexts #-} 
-{-# OPTIONS_GHC -Wall #-} 
+-- {-# OPTIONS_GHC -Wall #-} 
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
 
 module ObjWriter (pass2) where 
