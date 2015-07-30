@@ -60,18 +60,18 @@ main = do
     putStrLn $ "# file: " ++ testfile
     c <- readFile testfile
     let result :: Either ParseError String
-        result = parseEverything testfile c
+        result = pass2 testfile expected c
     putStrLn  "------------------------------------------"
     case result of
         Left err -> putStrLn $ "error: " ++ (show err) ++ "\n########\n" ++ c
         Right r -> putStrLn r 
     putStrLn "FIN"
 
-parseEverything :: SourceName -> String -> Either ParseError String
-parseEverything name str = do
+pass2 :: SourceName -> Info -> String -> Either ParseError String
+pass2 name info str = do
     let eith :: Either ParseError Bool
         output :: String
-        (eith, output) = runWriter $ runParserT instructions expected name str
+        (eith, output) = runWriter $ runParserT instructions info name str
     case eith of
         Left err -> Left err
         Right False -> error "when would this happen?"
