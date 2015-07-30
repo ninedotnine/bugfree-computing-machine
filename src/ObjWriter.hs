@@ -112,9 +112,9 @@ instructions = do
     final_linecount <- getLineCount <$> getState
     when (text_length /= final_linecount) $ fail $ "problem with length"
 
-    percentSeparator
+    gen "\n" >> percentSeparator
     relocDict relocs
-    percentSeparator
+    gen "\n" >> percentSeparator
 
     return True 
 
@@ -137,11 +137,11 @@ dw = dwOffset 0
 dwOffset :: Offset -> MyParser ()
 dwOffset off = do
     val <- char ':' *> readNum <* skipToEOL
-    gen (show (val+off) ++ "\n")
+    gen ('\n' : show (val+off))
     increaseLineCount val
 
 instruction :: MyParser ()
-instruction = readNum >>= (gen . ((++"\n") . show)) 
+instruction = readNum >>= (gen . (('\n':) . show)) 
     >> skipToEOL >> increaseLineCount 1
 
 increaseLineCount :: Integer -> MyParser ()
@@ -153,7 +153,7 @@ increaseLineCount x = do
 -- but they're the same ones i read in earlier, so what's the point?
 relocDict :: Relocs -> MyParser ()
 relocDict relocs = do 
-    forM relocs $ gen . ((++"\n") . show)
+    forM relocs $ gen . (('\n':) . show)
     skipMany (readNum >> skipToEOL) 
 
 readNum :: MyParser Integer -- read is safe here: (many1 digit) is readable
@@ -163,7 +163,7 @@ sign :: MyParser (Integer -> Integer)
 sign = char '-' *> return negate <|> optional (char '+') *> return id
 
 percentSeparator :: MyParser ()
-percentSeparator = char '%' >> skipToEOL >> gen "%\n"
+percentSeparator = char '%' >> skipToEOL >> gen "%"
 
 skipSpaces :: MyParser ()
 skipSpaces = many1 space >> return ()
