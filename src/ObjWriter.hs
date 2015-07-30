@@ -71,7 +71,7 @@ pass2 :: SourceName -> Info -> String -> Either ParseError String
 pass2 name info str = do
     let eith :: Either ParseError Bool
         output :: String
-        (eith, output) = runWriter $ runParserT instructions info name str
+        (eith, output) = runWriter $ runParserT writeExecFile info name str
     case eith of
         Left err -> Left err
         Right False -> error "when would this happen?"
@@ -89,8 +89,8 @@ type MyParser a = ParsecT String Info (Writer String) a
 --------------------------------- parser begins here
 
 -- returns true if it succeeds
-instructions :: MyParser Bool
-instructions = do
+writeExecFile :: MyParser Bool
+writeExecFile = do
     info <- getState
     header >> skipComments
     gen "%SSX+Executable\n"
@@ -112,7 +112,7 @@ instructions = do
     final_linecount <- getLineCount <$> getState
     when (text_length /= final_linecount) $ fail $ "problem with length"
 
-    gen "\n" >> percentSeparator "relocation dictionary" 
+    gen "\n" >> percentSeparator "relocation dictionary"
     relocDict relocs
     gen "\n" >> percentSeparator "eof!"
 
