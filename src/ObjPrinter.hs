@@ -54,7 +54,7 @@ printInfos infos textlength = do
 --     putStr "## ENTRIES: ## " >> print entries
     when (length entries > 1) $ putStrLn "multiple entries" >> exitFailure
 
-    putStrLn "%SSX+Executable"
+    putStrLn "%SXX+Executable"
     putStrLn $ show textlength ++ " text length"
     if null entries 
         then putStrLn "0 ENTRY (default)"
