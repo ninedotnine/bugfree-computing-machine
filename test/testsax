@@ -1,0 +1,21 @@
+#!/usr/bin/dash
+
+cd  "../src/"
+ghc "Hsax.hs" -outputdir "../test/build" -o "../test/build/hsax" || exit 2
+ghc "Hsxxl.hs" -outputdir "../test/build" -o "../test/build/hsxxl" || exit 3
+ghc "Hsxx.hs" -outputdir "../test/build" -o "../test/build/hsxx" || exit 4
+
+cd "../test/sax/"
+echo "testing all files in sax/ ..."
+
+for filename in *.sax ; do
+    echo "$filename"
+# #     echo "compare with: .output.$filename"
+    ../build/hsax "$filename" > "/tmp/testsax.out"
+    ../build/hsxxl "/tmp/testsax.out" > "/tmp/textsax.sxx"
+    ../build/hsxx "/tmp/textsax.sxx" | \
+        awk '/beginning execution --------------------/,0' | \
+        diff ".output.$filename" - || exit 1
+done
+
+echo "OK :~)"
