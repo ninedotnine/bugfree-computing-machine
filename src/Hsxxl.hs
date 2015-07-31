@@ -8,7 +8,7 @@ import Data.Traversable (mapAccumL)
 import Data.Either (partitionEithers)
 -- import qualified Data.Map as Map
 
--- import Decommenter
+import Decommenter
 import ObjParser
 -- import ObjWriter
 import ObjPrinter
@@ -16,7 +16,7 @@ import ObjPrinter
 main :: IO ()
 main = do
     args <- getArgs
-    inputs <- mapM readFile args
+    inputs <- map decomment <$> mapM readFile args
 --     (filename, input) <- getFileData
 --     mapM_ (print . pass1 
     let zippy = zip args inputs
