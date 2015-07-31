@@ -35,9 +35,8 @@ main = do
     printStack mem
     args <- getArgs
     input <- readFile (head args)
-    populateVector mem input 
-    let entry = 16 :: Int16
-    pc <- newIORef (entry-1)
+    entryPoint <- populateVector mem input 
+    pc <- newIORef (15 + entryPoint)
     putStrLn "beginning execution --------------------"
     forever $ do 
         execute mem pc 
