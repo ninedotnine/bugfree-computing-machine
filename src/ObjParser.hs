@@ -143,10 +143,10 @@ percentSeparator :: MyParser ()
 percentSeparator = char '%' >> skipToEOL
 
 readText :: MyParser ()
-readText = skipMany (dw <|> instruction)
+readText = skipMany (ds <|> instruction)
 
-dw :: MyParser ()
-dw = do
+ds :: MyParser ()
+ds = do
     val <- char ':' *> readNum <* skipToEOL
     info <- getState
     putState $ addInstruction (DS val) info
