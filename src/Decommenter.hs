@@ -1,11 +1,12 @@
 {-# LANGUAGE FlexibleInstances, OverloadedStrings #-}
 -- {-# OPTIONS_GHC -Wall #-}
 
-module Decommenter (decomment) where
+module Decommenter (decomment, Stringy) where
 
 -- FIXME : a bug when '#' appears in quotes
 
-import qualified Data.Text as T (Text, null, lines, takeWhile, dropWhile, head)
+import qualified Data.Text as T (Text, null, lines, unlines, 
+                                 takeWhile, dropWhile, head)
 import qualified Data.Text.IO as TextIO (interact)
 
 import Data.Monoid
@@ -23,7 +24,7 @@ main :: IO ()
 main = TextIO.interact decomment
 
 decomment :: (Stringy a) => a -> a
-decomment = unlines' . map (dropWhile' isSpace) . removeInlineComments
+decomment = unlines'' . map (dropWhile' isSpace) . removeInlineComments
             . removeLines . lines' 
 
 
@@ -45,12 +46,16 @@ class (IsString a, Monoid a) => Stringy a where
     unlines' [] = ""
     unlines' (x:xs) = mconcat $ x : fmap ("\n" <>) xs
 
+-- this unlines has a newline at the end
+    unlines'' :: [a] -> a
+
 instance Stringy T.Text where
     head' = T.head
     dropWhile' = T.dropWhile
     takeWhile' = T.takeWhile
     null' = T.null
     lines' = T.lines
+    unlines'' = T.unlines
 
 instance Stringy [Char] where
     head' = head
@@ -58,3 +63,4 @@ instance Stringy [Char] where
     takeWhile' = takeWhile
     null' = null
     lines' = lines
+    unlines'' = unlines
