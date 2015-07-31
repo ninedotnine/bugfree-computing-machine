@@ -1,0 +1,28 @@
+%SXX+Executable
+17 text length
+0 ENTRY
+% text
+#../object_files/prompt1.out
+# offset: 0
+22
+13
+2
+10
+42
+26
+#../object_files/prompt2.out
+# offset: 6
+2
+97
+42
+2
+10
+42
+26
+2
+62
+42
+24
+% relocation dictionary
+1
+% eof!!
