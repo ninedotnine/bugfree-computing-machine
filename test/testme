@@ -1,15 +1,11 @@
 #!/usr/bin/dash
 
-cd  "../src/"
-# ghc "../src/hsxx.hs" || exit 2
-ghc "Hsxx.hs" -outputdir "../test/build" -o "../test/build/hsxx" || exit 2
+cd  "build/"
+ghc "Hsxx.hs" -o "hsxx" || exit 4
 
-cd "../test/sxx/"
+cd "../sxx/"
 echo "testing all files in sxx/ ..."
 
-# for filename in $(ls -1 "dantest/*.sxx") ; do
-# for filename in dantest/*.sxx ; do
-# cd "sxx/"
 for filename in *.sxx ; do
     echo "$filename"
 #     echo "compare with: .output.$filename"
