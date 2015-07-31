@@ -41,7 +41,6 @@ import ObjParser
 type Relocs = [Integer]
 type Publics = Map.Map String Integer
 type Externs = Map.Map String [Integer]
-type Offset  = Integer
 
 traceM :: (Monad m) => String -> m ()
 traceM str = trace str $ return ()
@@ -51,27 +50,29 @@ testfile :: FilePath
 testfile = "../lib/writes.out"
 
 -- this is how i think the Info that is passed in will look
+{-
 expected :: Info
 expected = Info "writes.out" 0 15 [5, 11] Nothing 
-    (Map.fromList [("write_string",0)]) (Map.fromList [])
+        (Map.fromList [("write_string",0)]) (Map.fromList [])
 
 main :: IO ()
 main = do
     putStrLn $ "# file: " ++ testfile
     c <- readFile testfile
     let result :: Either ParseError String
-        result = pass2 testfile expected c
+        result = pass2 expected c
     putStrLn  "------------------------------------------"
     case result of
         Left err -> putStrLn $ "error: " ++ (show err) ++ "\n########\n" ++ c
         Right r -> putStrLn r 
     putStrLn "FIN"
+-}
 
-pass2 :: SourceName -> Info -> String -> Either ParseError String
-pass2 name info str = do
+pass2 :: Info -> String -> Either ParseError String
+pass2 info str = do
     let eith :: Either ParseError Bool
         output :: String
-        (eith, output) = runWriter $ runParserT writeExecFile info name str
+        (eith, output) = runWriter $ runParserT writeExecFile info (getName info) str
     case eith of
         Left err -> Left err
         Right False -> error "when would this happen?"
