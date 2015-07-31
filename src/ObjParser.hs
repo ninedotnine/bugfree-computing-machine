@@ -8,6 +8,7 @@
 module ObjParser (
                 pass1, 
                 Info(..), 
+                Offset,
                 makeInfo, 
                 emptyInfo,
                 modifyLineCount
@@ -72,11 +73,19 @@ Identity is the transformed monad.
 data Info = Info { getName      :: String,
                    getOffset    :: Offset,
                    getLineCount :: Integer,
+                   getText      :: [Val],
                    getRelocs    :: Relocs,
                    getEntry     :: Maybe Integer,
                    getPublics   :: Publics,
                    getExterns   :: Externs }
                    deriving (Show)
+
+data Val = Val Integer
+         | DS Integer
+--          deriving Show
+instance Show Val where
+    show (Val x) = show x
+    show (DS x) = ':' : show x
 
 type Relocs = [Integer]
 
@@ -108,7 +117,7 @@ main = do
 
 pass1 :: String -> Offset -> String -> Either ParseError Info
 pass1 name off input = 
-    runParser readObjectFile (makeInfo "#MAIN0" off) name input
+    runParser readObjectFile (makeInfo ('#': name) off) name input
 
 readObjectFile :: MyParser Info
 readObjectFile = do 
@@ -139,10 +148,16 @@ readText = skipMany (dw <|> instruction)
 dw :: MyParser ()
 dw = do
     val <- char ':' *> readNum <* skipToEOL
+    info <- getState
+    putState $ addInstruction (DS val) info
     increaseLineCount val
 
 instruction :: MyParser ()
-instruction = readNum *> skipToEOL >> increaseLineCount 1
+instruction = do 
+    num <- readNum 
+    info <- getState
+    putState $ addInstruction (Val num) info
+    skipToEOL >> increaseLineCount 1
 
 increaseLineCount :: Integer -> MyParser ()
 increaseLineCount x = do 
@@ -219,25 +234,29 @@ sign = char '-' *> return negate <|> optional (char '+') *> return id
 
 -- operations on the Info type
 emptyInfo :: Info
-emptyInfo = Info "" 0 0 [] Nothing Map.empty Map.empty
+emptyInfo = Info "" 0 0 [] [] Nothing Map.empty Map.empty
 
 makeInfo :: String -> Offset -> Info
-makeInfo name off = Info name off 0 [] Nothing Map.empty Map.empty
+makeInfo name off = Info name off 0 [] [] Nothing Map.empty Map.empty
 
 modifyLineCount :: (Integer -> Integer) -> Info -> Info
-modifyLineCount f (Info s o lc r e pubs exts) = Info s o (f lc) r e pubs exts
+modifyLineCount f (Info s o lc txt r e pubs exts) = Info s o (f lc) txt r e pubs exts
+
+addInstruction :: Val -> Info -> Info
+addInstruction x (Info s o lc txt r e pubs exts) = 
+    Info s o lc (txt ++ [x]) r e pubs exts
 
 addReloc :: Integer -> Info -> Info
-addReloc x (Info s o lc r e pubs exts) = Info s o lc (r++[x]) e pubs exts
+addReloc x (Info s o lc txt r e pubs exts) = Info s o lc txt (r++[x]) e pubs exts
 
 setEntry :: Maybe Integer -> Info -> Info
-setEntry e (Info s o lc r Nothing pubs exts) = Info s o lc r e pubs exts
+setEntry e (Info s o lc txt r Nothing pubs exts) = Info s o lc txt r e pubs exts
 setEntry _ _ = error "setEntry called when entry was not Nothing" 
 
 addToPublics :: Info -> String -> Integer -> Info
-addToPublics (Info s o lc r e pubs exts) name addr = 
-    Info s o lc r e (Map.insert name addr pubs) exts
+addToPublics (Info s o lc txt r e pubs exts) name addr = 
+    Info s o lc txt r e (Map.insert name addr pubs) exts
 
 addToExterns :: Info -> String -> [Integer] -> Info
-addToExterns (Info s o lc r e pubs exts) name addr = 
-    Info s o lc r e pubs (Map.insert name addr exts)
+addToExterns (Info s o lc txt r e pubs exts) name addr = 
+    Info s o lc txt r e pubs (Map.insert name addr exts)
