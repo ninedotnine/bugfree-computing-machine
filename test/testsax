@@ -12,10 +12,16 @@ for filename in *.sax ; do
     echo "$filename"
 # #     echo "compare with: .output.$filename"
     ../build/hsax "$filename" > "/tmp/testsax.out"
-    ../build/hsxxl "/tmp/testsax.out" > "/tmp/textsax.sxx"
-    ../build/hsxx "/tmp/textsax.sxx" | \
-        awk '/beginning execution --------------------/,0' | \
+    ../build/hsxxl "/tmp/testsax.out" > "/tmp/testsax.sxx"
+    ../build/hsxx "/tmp/testsax.sxx" | \
+    if [ -f ".input.$filename" ] ; then
+        ../build/hsxx "/tmp/testsax.sxx" < ".input.$filename" > "/tmp/output"
+    else 
+        ../build/hsxx "/tmp/testsax.sxx" > "/tmp/output"
+    fi
+    awk '/beginning execution --------------------/,0' "/tmp/output" | \
         diff ".output.$filename" - || exit 1
+
 done
 
 echo "OK :~)"
