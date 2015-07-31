@@ -1,5 +1,0 @@
-main: pushv 'h
-      printc
-      pushv 10
-      printc
-      halt
