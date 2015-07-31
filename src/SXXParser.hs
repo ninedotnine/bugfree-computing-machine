@@ -51,7 +51,7 @@ fillVector mem = do
     entry <- readNum <* skipToEOL 
     percentSeparator
     liftIO $ putStrLn $ "entry: " ++ show entry 
-    instruction mem `endBy` skipSpaces
+    instruction mem `endBy` (try skipComments <|> skipSpaces)
     lastInstruction <- getState 
     let counted = lastInstruction - baseAddr
     when (toInt textLength /= counted) $
