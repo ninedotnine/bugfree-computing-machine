@@ -66,8 +66,6 @@ printInfos infos textlength = do
         -- do they need to be sorted? 
         relocs = concatMap getRelocs infos
 
-    putStrLn $ "relocs : " ++ show relocs
-
     putStrLn "% text"
 --     mapM_ printText infos
     forM_ infos $ \info -> do

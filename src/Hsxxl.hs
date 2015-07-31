@@ -35,13 +35,13 @@ main = do
 --         offsets' = mapAccumL (\x y -> (x+y, x+y)) 0 offsets
 --         offsets' = mapAccumL adder 0 offsets
     let entries = filter hasEntry infos
-    putStr "## ENTRIES: ## " >> print entries
+--     putStr "## ENTRIES: ## " >> print entries
     when (length entries > 1) $ putStrLn "multiple entries" >> exitFailure
 
-    putStrLn  "++++++++++++++++++++++++++++++++++++++++++"
-    mapM_ print infos
+--     putStrLn  "++++++++++++++++++++++++++++++++++++++++++"
+--     mapM_ print infos
 
-    putStrLn  "**********************************************"
+--     putStrLn  "**********************************************"
     printInfos infos totalTextLength
 
 
