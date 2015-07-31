@@ -14,7 +14,7 @@ import Control.Monad (when)
 import Control.Monad.Trans (liftIO)
 import Control.Applicative hiding (many)
 import Data.List (intersperse)
-import Data.Int (Int32)
+import Data.Int (Int32, Int16)
 import Text.Read (readMaybe)
 
 -- import Debug.Trace (traceM)
@@ -34,15 +34,16 @@ type MyParser a = ParsecT String Int IO a
 baseAddr :: Integral a => a
 baseAddr = 16 -- the base address must be bigger than 15
 
-populateVector :: MyVector -> String -> IO ()
+populateVector :: MyVector -> String -> IO Int16
 populateVector mem input = do
 --     let result :: Either ParseError ()
     result <- runParserT (fillVector mem) baseAddr "input" input
     case result of
         Left err -> putStrLn ("error: " ++ (show err)) >> exitFailure
-        Right () -> putStrLn "successful parse"
+        Right entry -> putStrLn "successful parse" >> return entry
 
-fillVector :: MyVector -> MyParser ()
+-- if successful, returns the entry point
+fillVector :: MyVector -> MyParser Int16
 fillVector mem = do 
     header
     textLength <- readNum <* skipToEOL
@@ -62,6 +63,7 @@ fillVector mem = do
     eof
     liftIO $ putStr "instruction space after reloc: " 
     liftIO $ printVector baseAddr (lastInstruction - baseAddr) mem
+    return (fromIntegral entry)
 
 header :: MyParser ()
 header = string "%SXX+E" >> skipToEOL >> spaces >> skipComments
