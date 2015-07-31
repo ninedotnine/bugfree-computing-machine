@@ -1,0 +1,26 @@
+%SXX+Object Module
+21 text length 
+% text
+:5
+22 
+17     
+39 
+22 
+17     
+39 
+27 
+40 
+2 
+10
+42 
+26 
+2 
+62
+42 
+24 
+% relocation dictionary
+6
+9
+% ENTRY, EXTERN, and PUBLIC references
+ENTRY main 5
+% end of object module
