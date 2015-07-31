@@ -9,6 +9,8 @@ module ObjParser (
                 pass1, 
                 Info(..), 
                 Offset,
+                Val(..),
+                Relocs,
                 makeInfo, 
                 emptyInfo,
                 modifyLineCount
