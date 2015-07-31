@@ -16,10 +16,13 @@ a:       ds     ('a)
 a2:      ds     ('a * 2)
 
 main:
-    pushv 'o
+    pushv a
     printc
-    pushv 'k
+    pushv twenty
+    print
+    pushv ten
     printc
+
     halt
 
 entry main
