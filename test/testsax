@@ -1,11 +1,11 @@
 #!/usr/bin/dash
 
-cd  "../src/"
-ghc "Hsax.hs" -outputdir "../test/build" -o "../test/build/hsax" || exit 2
-ghc "Hsxxl.hs" -outputdir "../test/build" -o "../test/build/hsxxl" || exit 3
-ghc "Hsxx.hs" -outputdir "../test/build" -o "../test/build/hsxx" || exit 4
+cd  "build/"
+ghc "Hsax.hs" -o "hsax" || exit 2
+ghc "Hsxxl.hs" -o "hsxxl" || exit 3
+ghc "Hsxx.hs" -o "hsxx" || exit 4
 
-cd "../test/sax/"
+cd "../sax/"
 echo "testing all files in sax/ ..."
 
 for filename in *.sax ; do
