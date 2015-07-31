@@ -8,3 +8,4 @@ main:
     printc
     pushv 'k
     printc
+    halt
