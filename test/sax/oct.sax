@@ -1,9 +1,8 @@
-stuff equ 072 ; 58
+fiftyeight: dw 072 ; 58
 
 main:   call prompt
         read
-        call prompt
-        read
+        push fiftyeight
         add
         print
         pushv 10
@@ -13,3 +12,5 @@ main:   call prompt
 prompt: pushv '>
         printc
         return
+
+entry main
