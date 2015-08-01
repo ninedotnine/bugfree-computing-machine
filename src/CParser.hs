@@ -34,7 +34,15 @@ lexerStyle = Token.LanguageDef {
 data Expr = Number Int
           | Identifier String
           | FuncCall String [Expr]
+          | BinOp Op Expr Expr
           deriving (Show)
+
+data Op = Plus
+        | Minus
+        | Mult
+        | Div
+        | Mod
+        deriving (Show)
 
 type Stmts = [Stmt]
 data Stmt = StmtWhile Expr Stmts
