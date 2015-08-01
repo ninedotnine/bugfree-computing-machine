@@ -1,7 +1,7 @@
 module CParser where
 
 -- import System
--- import System.FilePath
+import System.FilePath
 import Text.Parsec
 -- import Text.Parsec.Expr
 import Text.Parsec.String
