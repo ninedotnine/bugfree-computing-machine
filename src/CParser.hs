@@ -1,15 +1,15 @@
--- module CParser where
+module CParser where
 
 -- import System
-import System.FilePath
+-- import System.FilePath
 import Text.Parsec
-import Text.Parsec.Expr
+-- import Text.Parsec.Expr
 import Text.Parsec.String
 import qualified Text.Parsec.Token as Token
-import qualified Data.Map as Map 
-import Foreign.C.String
-import Foreign.Ptr
-import Control.Monad
+-- import qualified Data.Map as Map 
+-- import Foreign.C.String
+-- import Foreign.Ptr
+-- import Control.Monad
 
 lexerStyle :: Token.LanguageDef ()
 lexerStyle = Token.LanguageDef {
