@@ -40,9 +40,10 @@ type Stmts = [Stmt]
 data Stmt = StmtWhile Expr Stmts
           | StmtIf Expr Stmts (Maybe Stmts)
           | StmtCall String [Expr]
+          | StmtEmpty
           deriving (Show)
 
-data CFuncDef = CFunc String [String] Stmts
+data CFuncDef = CFunc String [Expr] Stmts
     deriving (Show) 
 
 lexer :: Token.TokenParser ()
@@ -52,8 +53,8 @@ parens, braces :: Parser a -> Parser a
 parens = Token.parens lexer
 braces = Token.braces lexer
 
-natural :: Parser Integer
-natural = Token.natural lexer
+integer :: Parser Integer
+integer = Token.integer lexer
 
 identifier :: Parser String
 identifier = Token.identifier lexer
@@ -70,7 +71,7 @@ comma = Token.comma lexer
 semi = Token.semi lexer
 
 parseExpr :: Parser Expr
-parseExpr = Number . fromIntegral <$> natural
+parseExpr = Number . fromIntegral <$> integer
 
 parseStmt :: Parser Stmt
 parseStmt = undefined
@@ -78,7 +79,7 @@ parseStmt = undefined
 parseCall :: Parser Stmt
 parseCall = do
     funcName <- identifier
-    params <- parens $ parseExpr `endBy` comma
+    params <- parens $ parseExpr `sepBy` comma
     return $ StmtCall funcName params
 
 
@@ -86,20 +87,21 @@ parseIf :: Parser Stmt
 parseIf = do
     reserved "if"
     condition <- parens parseExpr
-    thenDo <- braces $ statement `endBy` semi
-    elseDo <- optionMaybe (reserved "else" *> braces (statement `endBy` semi))
+    thenDo <- braces $ many statement
+    elseDo <- optionMaybe (reserved "else" *> braces (statement `sepBy` semi))
     return $ StmtIf condition thenDo elseDo
 
 statement :: Parser Stmt
-statement = parseCall
+statement = parseCall <* semi
         <|> parseIf
 
 parseCFuncDef :: Parser CFuncDef
 parseCFuncDef = do
     reserved "int"
     funcName <- identifier
-    params <- parens $ reserved "void" >> return []
-    body <- braces $ statement `endBy` semi
+    params <- parens $ reserved "void" *> return [] 
+                    <|> parseExpr `sepBy` comma
+    body <- braces $ statement `sepBy` semi
     return $ CFunc funcName params body
 
 parseDefs :: Parser [CFuncDef]
