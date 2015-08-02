@@ -51,7 +51,9 @@ data Stmt = StmtWhile Expr Stmts
           | StmtEmpty
           deriving (Show)
 
-data CFuncDef = CFunc String [Expr] Stmts
+data Def = FuncDef String [Expr] Stmts
+         | DeclDef String
+--          | ConstDef String Expr
     deriving (Show) 
 
 lexer :: Token.TokenParser ()
@@ -103,17 +105,21 @@ statement :: Parser Stmt
 statement = parseCall <* semi
         <|> parseIf
 
-parseCFuncDef :: Parser CFuncDef
+parseCFuncDef :: Parser Def
 parseCFuncDef = do
     reserved "int"
     funcName <- identifier
     params <- parens $ reserved "void" *> return [] 
                     <|> parseExpr `sepBy` comma
     body <- braces $ statement `sepBy` semi
-    return $ CFunc funcName params body
+    return $ FuncDef funcName params body
 
-parseDefs :: Parser [CFuncDef]
-parseDefs = many parseCFuncDef <?> "function definition"
+topLevelDecl :: Parser Def
+topLevelDecl = DeclDef <$> (reserved "int" *> identifier <* semi)
+
+
+parseDefs :: Parser [Def]
+parseDefs = many (parseCFuncDef <|> topLevelDecl) <?> "top-level definition"
 
 parseLex :: Parser a -> Parser a
 parseLex p = do 
