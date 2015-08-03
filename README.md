@@ -11,7 +11,7 @@ I hope to combine bcm into one standalone binary and build it with cabal soon.
 In the meantime, bcm is divided into four separate programs: 
 
 hsxx
-====
+----
 
 hsxx is an emulator for the eXtended Stack Machine. It is documented in 
 `doc/assembler-doc.html`. Build it with `ghc Hsxx.hs` and run it with 
