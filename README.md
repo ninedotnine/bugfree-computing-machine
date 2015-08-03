@@ -26,9 +26,10 @@ Machine object modules typically end with `.out`.
 hsax
 ----
 
-hsax is an assembler for eXtended Stack Machine assembly. Build it with 
-`ghc Hsax.hs` and run it with `./Hsax <file>`. eXtended Stack Machine assembly
-files typically end with `.sax`.
+hsax is an assembler for eXtended Stack Machine assembly. It is documented in 
+`doc/Stack_Machine_Assembler.html`. Build it with `ghc Hsax.hs` and run it with 
+`./Hsax <file>`. eXtended Stack Machine assembly files typically end with 
+`.sax`.
 
 bcmcc
 -----
