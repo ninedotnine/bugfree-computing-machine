@@ -45,4 +45,5 @@ Credit goes to Dr. Timothy V. Fossum for giving birth to the eXtended Stack
 Machine. If not for him, such a creation would not exist. Credit also goes to
 Edward Banner for his own implementation of the eXtended Stack Machine: 
 https://github.com/ebanner/extended_stack_machine/blob/master/README.md
+Further credit goes to Dr. Christopher Lanz for overseeing the project.
 
