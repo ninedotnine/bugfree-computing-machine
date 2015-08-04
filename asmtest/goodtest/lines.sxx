@@ -1,0 +1,96 @@
+%SXX+Executable
+# Thu Oct  2 13:32:29 EDT 2014
+195 text length
+128 ENTRY file=lines.out
+# PUBLIC symbols and addresses:
+# PUBLIC read_string 149 file=../../../lib/reads.out
+# PUBLIC write_string 180 file=../../../lib/writes.out
+% text
+# File lines.out
+# Offset 0
+:128
+2
+62
+42
+2
+0
+22
+149
+1
+0
+20
+148
+2
+61
+42
+2
+0
+22
+180
+21
+128
+26
+# File ../../../lib/reads.out
+# Offset 149
+9
+41
+8
+2
+-1
+28
+20
+170
+10
+10
+6
+2
+10
+28
+20
+175
+2
+1
+27
+21
+150
+11
+2
+0
+6
+24
+2
+0
+7
+1
+24
+# File ../../../lib/writes.out
+# Offset 180
+9
+8
+3
+8
+20
+192
+42
+2
+1
+27
+21
+181
+38
+2
+24
+% relocation dictionary
+132
+134
+136
+138
+143
+145
+147
+156
+164
+169
+185
+191
+% end of executable module

@@ -1,0 +1,20 @@
+; read and write lines until EOF
+
+buf:   ds  128
+
+       entry	main
+       extern	read_string, write_string
+
+main:  pushv	'>
+       printc
+       pushv	buf
+       call	read_string
+       push	buf ; the first word in the buffer
+       beq	@1
+       pushv	'=
+       printc
+       pushv	buf
+       call	write_string
+       br	main
+
+@1:    halt

@@ -1,0 +1,76 @@
+  Line	Source code
+  ----	-----------
+     1	// { This program generates prime numbers up to 2000.  It will request        }
+     2	// { the maximum value for the prime and print the results to the screen.      }
+     3	
+     4	program test10
+     5	
+     6	  const  integer  ulimit = 2000
+     7	  var    integer  max 
+     8	  var    integer  i
+     9	  var    integer ii
+    10	  var    integer  j
+    11	  var    integer array prime[ulimit+1]
+    12	
+    13	begin
+    14	
+    15		writec "This program generates prime numbers.  Enter the upper\n"
+    16		writec "limit on the primes you want generated.  It must be\n"
+    17		writec "between 2 and "
+    18		write ulimit
+    19		writec " (zero to exit): "
+    20	
+    21		while true do
+    22			read max
+    23			if max >= 2 and max <= ulimit then exit endif
+    24			if max = 0 then return endif
+    25			writec "?? try again: "
+    26		endwhile
+    27	
+    28		// { Initialize the prime array }
+    29		i := 3
+    30		repeat
+    31			prime[i] := 1
+    32			i := i + 2
+    33		until i >= max
+    34	
+    35		writec "\nPrime numbers between 2 and "
+    36		write max
+    37		writec ":\n\n"
+    38		write 2
+    39		writec "\n"
+    40	
+    41		// { Find and print odd primes }
+    42	
+    43		i := 3
+    44		while i <= max do
+    45			if prime[i] = 1 then
+    46				write i
+    47				writec "\n"
+    48				// { Set all odd multiples of i to zero }
+    49				ii := i + i
+    50				j := i*i
+    51				while j <= max do
+    52					prime[j] := 0
+    53					j := j + ii
+    54				endwhile
+    55			endif
+    56			i := i + 2
+    57		endwhile
+    58	
+    59		writec "\n"
+    60		loop
+    61	end 
+
+Identifier Cross-reference
+--------------------------
+TEST10                            Prog            4
+.I                                Svar    Int     8   29   31   32   33   43
+                                                 44   45   46   49   50   56
+.II                               Svar    Int     9   49   53
+.J                                Svar    Int    10   50   51   52   53
+.MAX                              Svar    Int     7   22   23   24   33   36
+                                                 44   51
+.PRIME                            Avar    Int    11   31   45   52
+.ULIMIT                          Const    Int     6   11   18   23
+TRUE                             Const   Bool    21

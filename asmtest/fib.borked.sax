@@ -1,0 +1,25 @@
+
+; subroutine to print a value followed by a newline
+	entry	main
+prt:
+	swap
+	print
+	pushv	10
+	printc
+	return
+
+; iterative program to print the fibonacci numbers
+main:
+	pushv	0
+	dupl
+	call	prt
+	pushv	1
+	dupl
+	call	prt
+prt:	dupl ; uh oh, same label!!!!!!!!!!!!!!!!!!!!
+	rot
+	add
+	dupl
+	call	prt
+	br	loop
+

@@ -1,0 +1,15 @@
+	PUBLIC	foo
+
+foo:	br foo1
+	br foo2
+	br foo3
+
+foo1:	pushv 1
+	print
+	return
+foo2:	pushv 2
+	print
+	return
+foo3:	pushv 3
+	print
+	return

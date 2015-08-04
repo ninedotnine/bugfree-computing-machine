@@ -1,0 +1,21 @@
+; write_string
+;   assumes address of a null-terminated string is on the stack
+;     prior to calling write_string.  No automatic newline is added.
+;   returns nothing
+
+	PUBLIC write_string
+
+write_string:
+	swap
+@1:
+	dupl
+	indir
+	dupl
+	beq	@2
+	printc
+	pushv	1
+	add
+	br	@1
+@2:
+	addsp	2
+	return

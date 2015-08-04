@@ -1,0 +1,17 @@
+	extern foo
+foo1	equ foo
+foo2	equ foo1 + 2
+foo3	equ foo2 + 2
+
+
+main:	call foo
+	call foo + 2
+	call foo + 4
+	call foo3
+	call foo2
+	call foo1
+	pushv 10
+	printc
+	halt
+
+	entry main

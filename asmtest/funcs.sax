@@ -1,0 +1,33 @@
+    NL equ 10
+    FP equ 1
+inc :   ; inc 
+    push    FP
+    push    SP
+    pop     FP
+    push    FP
+    pushx   2
+
+    pushv   1
+    add 
+    push    FP
+    swap    
+    popx    3
+    pop     FP
+    retn    1
+
+main:
+    addsp   -1
+    pushv   42
+    dupl
+    print
+    call    @newline
+    call    inc
+    print
+    call    @newline
+    halt
+@newline:
+    pushv   10
+    printc
+    return
+
+entry main

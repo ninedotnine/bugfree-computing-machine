@@ -1,0 +1,38 @@
+    1:       0                  ; program to increment the value in a memory location
+    2:       0                  ; version 0.1
+    3:       0                  
+    4:       0              10R   	  entry main
+    5:       0                  
+    6:       0              10  NL	  equ	10
+    7:       0                  
+    8:       0  2           10  newline:  pushv NL
+    9:       2 42               	  printc
+   10:       3 24               	  return
+   11:       4                  
+   12:       4  1           42  printL:	  push  L
+   13:       6 40               	  print
+   14:       7 22            0R 	  call newline
+   15:       9 24               	  return
+   16:      10                  
+   17:      10              42  L	  equ	42
+   18:      10                  
+   19:      10                  	  ; first print the current value in L
+   20:      10 22            4R main:	  call printL
+   21:      12  1           42  	  push  L
+   22:      14  2            1  	  pushv 1
+   23:      16 27               	  add
+   24:      17  5           42  	  pop   L
+   25:      19 22            4R 	  call  printL	  
+   26:      21 26               	  halt
+   27:      22                  
+  EOF:      22                  
+
+Cross Reference List
+--------------------
+Symbol                               Value   Line Numbers
+------                               -----   ------------
+L                                       42 |    12     17*    21     24 
+NL                                      10 |     6*     8 
+main                                    10R|     4     20*
+newline                                  0R|     8*    14 
+printL                                   4R|    12*    20     25 

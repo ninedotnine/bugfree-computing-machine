@@ -1,0 +1,96 @@
+
+NL	equ	10	; the ASCII code for newline
+FP	equ	1	; the frame pointer register
+
+ack:	; int ack(int m, int n) { return Ackerman's function }
+	; set up the stack frame
+	push  FP
+	push  SP
+	pop   FP
+	; check for m==0
+	push  FP
+	pushx  3
+	beq    case1
+	; m>0 if we get here
+	; so check for n==0
+	push  FP
+	pushx  2
+	beq    case2
+	; both m>0 and n>0 now
+	br     case3
+
+case1:
+	; m==0
+	push	FP
+	pushx   2
+	pushv   1
+	add		; n+1 is now on the stack
+	push	FP
+	swap
+	popx	4       ; return value
+	br 	out
+
+case2:
+	; m>0 and n==0
+	addsp   -1      ; space for return value
+        push	FP
+	pushx	 3
+	; m is on the stack
+	pushv	 1
+	sub
+	; m-1 is on the stack
+	pushv   1
+	; 1 and m-1 are on the stack
+	call	ack
+	; ack(m-1,1) is now on the stack
+	push	FP
+	swap
+	popx	4
+	br	out
+
+case3:  ; m>0 and n>0
+	addsp   -1
+        push	FP
+	pushx	 3
+	; m is on the stack
+	pushv	 1
+	sub
+	; m-1 is on the stack
+
+	; now recursively call ack(m, n-1)
+	addsp   -1
+        push	FP
+	pushx	 3
+	; m is on the stack
+	push    FP
+	pushx	2
+	; n is on the stack
+	pushv  1
+	sub
+	; n-1 is on the stack
+	call ack
+
+	; ack(m,n-1) is on the stack
+	; followed by m-1
+
+	;; recursively call ack(m-1, ack(m, n-1))
+	call ack
+	push   FP
+	swap
+	popx   4
+	
+
+out:	pop	FP ; restore caller's frame pointer
+	retn	2  ; clean up the stack and return
+
+main:
+	addsp	-1      ; space for the return value
+	pushv	3
+	pushv	6
+	call    ack
+	print           ; this should print 5
+	pushv	10
+	printc
+	halt
+
+	entry	main
