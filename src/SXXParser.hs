@@ -46,9 +46,9 @@ populateVector mem input = do
 fillVector :: MyVector -> MyParser Int16
 fillVector mem = do 
     header
-    textLength <- readNat <* skipToEOL
+    textLength <- natural <* skipToEOL
     liftIO $ putStrLn $ "textlength: " ++ show textLength 
-    entry <- readNat <* skipToEOL 
+    entry <- natural <* skipToEOL 
     percentSeparator
     liftIO $ putStrLn $ "entry: " ++ show entry 
     instruction mem `endBy` (try skipComments <|> skipSpaces)
@@ -76,26 +76,27 @@ instruction mem = notDS mem <|> sxxDS
 
 sxxDS :: MyParser ()
 sxxDS = do 
-    val <- toInt <$> (char ':' *> readNat)
+    val <- toInt <$> (char ':' *> natural)
     liftIO $ putStrLn $ "ds: " ++ show val
     modifyState (+val)
 
 notDS :: MyVector -> MyParser ()
 notDS mem = let ?mem = mem in do
-    val <- readInt
+    val <- integer
     index <- getState
     liftIO $ putStrLn $ "read: " ++ show val
     liftIO $ write index val
     modifyState (+1)
 
-readInt :: MyParser Int32
-readInt = sign <*> readNat
+integer :: MyParser Int32
+integer = sign <*> natural
     where
         sign :: MyParser (Int32 -> Int32)
         sign = char '-' *> return negate <|> optional (char '+') *> return id
 
-readNat :: MyParser Int32
-readNat = do
+-- parses a non-negative number
+natural :: MyParser Int32
+natural = do
     str <- many1 digit  
     case readMaybe str of
         Just x -> return x
@@ -105,7 +106,7 @@ readNat = do
 -- is DS-allocated space supposed to be in the relocation dict?
 relocatable :: MyVector -> MyParser ()
 relocatable mem = let ?mem = mem in do 
-    index <- toInt <$> readNat 
+    index <- toInt <$> natural 
     val <- liftIO $ V.read mem (index + baseAddr)
     liftIO $ write (index + baseAddr) (val + baseAddr)
 
