@@ -50,6 +50,7 @@ import ObjParser
 
 printInfos :: [Info] -> Integer -> IO ()
 printInfos infos textlength = do
+--     putStr "## INFOs: ## " >> print infos
     let entries = filter hasEntry infos
 --     putStr "## ENTRIES: ## " >> print entries
     when (length entries > 1) $ putStrLn "multiple entries" >> exitFailure
@@ -67,13 +68,10 @@ printInfos infos textlength = do
         relocs = concatMap getRelocs infos
 
     putStrLn "% text"
---     mapM_ printText infos
     forM_ infos $ \info -> do
         putStrLn $ getName info
         putStrLn $ ("# offset: " ++) $ show $ getOffset info
-        printText (getText info) (getOffset info) 
-            (dropWhile (< getOffset info) relocs) (getOffset info)
-        
+        mapM_ putStrLn (map show (getText info))
 
     putStrLn "% relocation dictionary"
     mapM_ print relocs
@@ -83,17 +81,7 @@ printInfos infos textlength = do
 -- printAllText infos relocs = forM_ infos
 
 printText :: [Val] -> Integer -> Relocs -> Offset -> IO ()
-printText text _ [] _ = putStrLn $ concat $ intersperse "\n" $ map show text
-printText text count (r:relocs) offset = do
---     putStrLn $ concat $ intersperse "\n" $ map show text
-    when (count > r) (putStrLn ("external fixup address " ++ show r ++ 
-        " does not match object module location") >> exitFailure)
-    let val = head text
-    if count == r
-        then print (getVal val + offset)
-            >> printText (tail text) ((addCount val) count) relocs offset
-        else print val
-            >> printText (tail text) ((addCount val) count) (r:relocs) offset
+printText text _ _ _ = mapM_ putStrLn $ map show text
 
 getVal :: Val -> Integer
 getVal (Val x) = x

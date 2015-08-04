@@ -85,7 +85,7 @@ data Info = Info { getName      :: String,
 
 data Val = Val Integer
          | DS Integer
---          deriving Show
+         deriving (Eq)
 instance Show Val where
     show (Val x) = show x
     show (DS x) = ':' : show x

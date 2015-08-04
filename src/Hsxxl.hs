@@ -5,6 +5,7 @@ import System.Exit
 import Text.ParserCombinators.Parsec (ParseError)
 import Control.Monad
 import Data.Traversable (mapAccumL)
+import Data.List
 import Data.Either (partitionEithers)
 import qualified Data.Map.Strict as Map
 
@@ -38,15 +39,16 @@ main = do
 --     putStr "## ENTRIES: ## " >> print entries
     when (length entries > 1) $ putStrLn "multiple entries" >> exitFailure
 
-    putStrLn  "++++++++++++++++++++++++++++++++++++++++++"
-    mapM_ print infos
+--     putStrLn  "++++++++++++++++++++++++++++++++++++++++++"
+--     mapM_ print infos
 
-    putStrLn  "**********************************************"
-    pubs <- combinePublics' infos
-    print pubs
+--     putStrLn  "**********************************************"
+--     pubs <- combinePublics' infos
+--     print pubs
 
-    putStrLn  "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-    printInfos infos totalTextLength
+--     putStrLn  "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
+    printInfos (map adjustText infos) totalTextLength
+--     printInfos infos totalTextLength
 
 
 {-
@@ -98,6 +100,26 @@ combinePublics :: Publics  -> Publics -> Maybe Publics
 combinePublics xs ys = if Map.intersection xs ys == Map.empty 
     then Just $ Map.union xs ys
     else Nothing
+
+-- this takes an info and creates a new info with its text values relocated
+adjustText :: Info -> Info
+adjustText info = let 
+    newText :: [Val]
+    newText = f 0 (getOffset info) (getText info) (getRelocs info)
+    in info {getText = newText}
+    where
+        f :: Integer -> Integer -> [Val] -> Relocs -> [Val]
+        f _ _ text [] = text
+        f count off text (i:relocs) 
+            | text == [] = error "text ran out before relocs" 
+            | i == count = (addVal (head text) off) 
+                            : (f (count+1) off (tail text) relocs)
+            | i > count = head text : f (count+1) off (tail text) (i:relocs)
+            | otherwise = error "count too high" 
+
+addVal :: Val -> Integer -> Val
+addVal (Val x) y = Val (x + y)
+addVal (DS _) _ = error "DS in addval, tried to relocate a DS"
 
 badformat :: IO ()
 badformat = putStrLn "hsxxl: bad format" >> exitFailure
