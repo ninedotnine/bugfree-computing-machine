@@ -94,23 +94,18 @@ execute mem pc = do
         TSTNE -> pop >>= \x -> push $ if x /= 0 then 1 else 0
 
         -- we subtract 1 from the addr since PC will be incremented afterward
-        BNE -> pop >>= (getArg >>=) . (. (setPC . subtract 1)) . when . toBool
-        BEQ -> pop >>= (getArg >>=) . (. (setPC . subtract 1)) . when . (==0)
-        BR  -> getArg >>= setPC . subtract 1
+        BNE -> pop >>= (getArg >>=) . (. setPC) . when . toBool
+        BEQ -> pop >>= (getArg >>=) . (. setPC) . when . (==0)
+        BR  -> getArg >>= setPC
         CALL  -> do
             push . toCell =<< getPC
-            setPC . (subtract 1) =<< getArg
+            setPC =<< getArg
         CALLS -> do
             val <- pop
             push . toCell . (subtract 1) =<< getPC
-            setPC . (subtract 1) $ val
-        RETURN -> pop >>= setPC . (+1)
-        RETN   -> pop >>= (getArg >>=) . (. (modSP . (+))) . (<*) . setPC . subtract 1
---         RETN   -> do
---             tmp <- pop 
---             val <- getArg
---             modSP (+val)
---             setPC (tmp-1)
+            setPC val
+        RETURN -> pop >>= setPC . (+2)
+        RETN   -> pop >>= (getArg >>=) . (. (modSP . (+))) . (<*) . setPC
         HALT -> putStrLn "execution halted" >> exitSuccess 
 
         -- binary operations on the stack
