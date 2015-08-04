@@ -1,0 +1,20 @@
+#!/bin/dash
+
+cd "sxx/"
+echo "testing all files in sxx/ ..."
+
+for filename in *.sxx ; do
+    echo "$filename"
+    if [ -f ".input.$filename" ] ; then
+        sxx "$filename" < ".input.$filename" > "/tmp/bcm.test" 2>&1
+        tail -n +2 ".output.$filename" > "/tmp/bcm.test.2"
+        diff "/tmp/bcm.test" "/tmp/bcm.test.2"  || exit 1
+    else
+        sxx "$filename" > "/tmp/bcm.test" 2>&1
+        tail -n +2 ".output.$filename" > "/tmp/bcm.test.2"
+        diff "/tmp/bcm.test" "/tmp/bcm.test.2"  || exit 1
+    fi
+
+done
+
+echo "OK :~)"
