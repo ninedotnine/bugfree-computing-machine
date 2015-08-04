@@ -6,7 +6,7 @@ import Text.ParserCombinators.Parsec (ParseError)
 import Control.Monad
 import Data.Traversable (mapAccumL)
 import Data.Either (partitionEithers)
--- import qualified Data.Map as Map
+import qualified Data.Map.Strict as Map
 
 import Decommenter
 import ObjParser
@@ -38,10 +38,14 @@ main = do
 --     putStr "## ENTRIES: ## " >> print entries
     when (length entries > 1) $ putStrLn "multiple entries" >> exitFailure
 
---     putStrLn  "++++++++++++++++++++++++++++++++++++++++++"
---     mapM_ print infos
+    putStrLn  "++++++++++++++++++++++++++++++++++++++++++"
+    mapM_ print infos
 
---     putStrLn  "**********************************************"
+    putStrLn  "**********************************************"
+    pubs <- combinePublics' infos
+    print pubs
+
+    putStrLn  "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
     printInfos infos totalTextLength
 
 
@@ -81,6 +85,19 @@ adder = (\x y -> (x+y, x+y))
 adder' :: Offset -> Info -> (Offset, Info)
 adder' x (Info name off lc txt relocs entry pubs exts) = 
     (x + lc, Info name (x + off) lc txt relocs entry pubs exts)
+
+combinePublics' :: [Info] -> IO Publics
+combinePublics' infos = do
+    let pubs = map getPublics infos
+        maybePubs = foldM combinePublics Map.empty pubs
+    case maybePubs of 
+        Just xs -> return xs
+        Nothing -> putStrLn "multiply defined publics" >> exitFailure
+
+combinePublics :: Publics  -> Publics -> Maybe Publics
+combinePublics xs ys = if Map.intersection xs ys == Map.empty 
+    then Just $ Map.union xs ys
+    else Nothing
 
 badformat :: IO ()
 badformat = putStrLn "hsxxl: bad format" >> exitFailure

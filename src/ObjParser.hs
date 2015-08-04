@@ -11,6 +11,7 @@ module ObjParser (
                 Offset,
                 Val(..),
                 Relocs,
+                Publics,
                 makeInfo, 
                 emptyInfo,
                 modifyLineCount
