@@ -1,0 +1,19 @@
+#!/bin/dash
+
+cd "sax/"
+echo "testing all files in sax/ ..."
+
+for filename in *.sax ; do
+    echo "$filename"
+    sax "$filename" > "/tmp/bcm.test" 2>&1
+    sxxl "/tmp/bcm.test" > "/tmp/bcm.test.2"
+    if [ -f ".input.$filename" ] ; then
+        sxx "/tmp/bcm.test.2" < ".input.$filename" > "/tmp/bcm.test.3" 2>&1
+    else
+        sxx "/tmp/bcm.test.2" > "/tmp/bcm.test.3" 2>&1
+    fi
+    tail -n +2 ".output.$filename" > "/tmp/bcm.test.4"
+    diff "/tmp/bcm.test.3" "/tmp/bcm.test.4"  || exit 1
+done
+
+echo "OK :~)"
