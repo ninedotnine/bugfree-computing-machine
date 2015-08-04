@@ -105,7 +105,12 @@ execute mem pc = do
             push . toCell . (subtract 1) =<< getPC
             setPC . (subtract 1) $ val
         RETURN -> pop >>= setPC . (+1)
-        RETN   -> pop >>= (getArg >>=) . (. (modSP . (+))) . (<*) . setPC
+        RETN   -> pop >>= (getArg >>=) . (. (modSP . (+))) . (<*) . setPC . subtract 1
+--         RETN   -> do
+--             tmp <- pop 
+--             val <- getArg
+--             modSP (+val)
+--             setPC (tmp-1)
         HALT -> putStrLn "execution halted" >> exitSuccess 
 
         -- binary operations on the stack
