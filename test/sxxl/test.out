@@ -1,0 +1,16 @@
+%SXX+Object fil
+# trivial program, prints "a\n" and quits
+7 text length
+% text
+2
+97
+42
+2
+10
+42
+26
+% relocs
+% entry, extern, pubs
+ENTRY main 0
+PUBLIC newlineAndHalt 3
+% eof
