@@ -12,7 +12,7 @@ import qualified Data.Vector.Unboxed as IM (Vector)
 import qualified Data.Vector.Unboxed.Mutable as V (read, slice)
 import Control.Monad (when)
 import Control.Monad.Trans (liftIO)
-import Control.Applicative hiding (many)
+import Control.Applicative hiding (many, optional)
 import Data.List (intersperse)
 import Data.Int (Int32, Int16)
 import Text.Read (readMaybe)
@@ -46,9 +46,9 @@ populateVector mem input = do
 fillVector :: MyVector -> MyParser Int16
 fillVector mem = do 
     header
-    textLength <- readNum <* skipToEOL
+    textLength <- readNat <* skipToEOL
     liftIO $ putStrLn $ "textlength: " ++ show textLength 
-    entry <- readNum <* skipToEOL 
+    entry <- readNat <* skipToEOL 
     percentSeparator
     liftIO $ putStrLn $ "entry: " ++ show entry 
     instruction mem `endBy` (try skipComments <|> skipSpaces)
@@ -76,20 +76,26 @@ instruction mem = notDS mem <|> sxxDS
 
 sxxDS :: MyParser ()
 sxxDS = do 
-    val <- toInt <$> (char ':' *> readNum)
+    val <- toInt <$> (char ':' *> readNat)
     liftIO $ putStrLn $ "ds: " ++ show val
     modifyState (+val)
 
 notDS :: MyVector -> MyParser ()
 notDS mem = let ?mem = mem in do
-    val <- readNum
+    val <- readInt
     index <- getState
     liftIO $ putStrLn $ "read: " ++ show val
     liftIO $ write index val
     modifyState (+1)
 
-readNum :: MyParser Int32
-readNum = do
+readInt :: MyParser Int32
+readInt = sign <*> readNat
+    where
+        sign :: MyParser (Int32 -> Int32)
+        sign = char '-' *> return negate <|> optional (char '+') *> return id
+
+readNat :: MyParser Int32
+readNat = do
     str <- many1 digit  
     case readMaybe str of
         Just x -> return x
@@ -99,7 +105,7 @@ readNum = do
 -- is DS-allocated space supposed to be in the relocation dict?
 relocatable :: MyVector -> MyParser ()
 relocatable mem = let ?mem = mem in do 
-    index <- toInt <$> readNum 
+    index <- toInt <$> readNat 
     val <- liftIO $ V.read mem (index + baseAddr)
     liftIO $ write (index + baseAddr) (val + baseAddr)
 
