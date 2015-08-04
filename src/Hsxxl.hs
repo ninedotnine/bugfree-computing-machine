@@ -27,10 +27,6 @@ main = do
 --     mapM_ print eithers
     let (errors, rights) = partitionEithers eithers
     when (not (null errors)) $ mapM_ print errors >> exitFailure
---     let infos =  map 
-
---     let offsets = map getOffset infos
---     let offsets = mapAccumL getOffset infos
     let infos :: [Info]
         (totalTextLength, infos) = mapAccumL adder' 0 rights
 --         offsets' = mapAccumL (\x y -> (x+y, x+y)) 0 offsets
@@ -47,7 +43,7 @@ main = do
 --     print pubs
 
 --     putStrLn  "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-    printInfos (map adjustText infos) totalTextLength
+    printInfos (map (adjustText . adjustPublics) infos) totalTextLength
 --     printInfos infos totalTextLength
 
 
@@ -101,7 +97,15 @@ combinePublics xs ys = if Map.intersection xs ys == Map.empty
     then Just $ Map.union xs ys
     else Nothing
 
--- this takes an info and creates a new info with its text values relocated
+-- this takes an info and returns a new info with its publics offset
+adjustPublics :: Info -> Info
+adjustPublics info = let 
+    newPublics :: Publics
+    newPublics = Map.map (+ (getOffset info)) (getPublics info)
+    in info {getPublics = newPublics}
+
+
+-- this takes an info and returns a new info with its text values relocated
 adjustText :: Info -> Info
 adjustText info = let 
     newText :: [Val]
