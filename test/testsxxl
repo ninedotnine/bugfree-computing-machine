@@ -1,0 +1,24 @@
+#!/bin/dash
+
+cd  "build/"
+ghc "Hsxxl.hs" -o "hsxxl" || exit 3
+ghc "Hsxx.hs" -o "hsxx" || exit 4
+
+cd "../sxxl/"
+echo "testing all files in sxxl/ ..."
+
+for filename in *.out ; do
+    echo "$filename"
+# #     echo "compare with: .output.$filename"
+    ../build/hsxxl "$filename" > "/tmp/testsxxl.sxx"
+    ../build/hsxx "/tmp/testsxxl.sxx" | \
+    if [ -f ".input.$filename" ] ; then
+        ../build/hsxx "/tmp/testsxxl.sxx" < ".input.$filename" > "/tmp/output"
+    else 
+        ../build/hsxx "/tmp/testsxxl.sxx" > "/tmp/output"
+    fi
+    awk '/beginning execution --------------------/,0' "/tmp/output" | \
+        diff ".output.$filename" - || exit 1
+done
+
+echo "OK :~)"
