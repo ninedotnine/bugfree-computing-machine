@@ -1,4 +1,4 @@
-#!/usr/bin/dash
+#!/bin/dash
 
 cd  "build/"
 ghc "Hsax.hs" -o "hsax" || exit 2
