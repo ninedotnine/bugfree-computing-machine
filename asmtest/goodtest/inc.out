@@ -1,0 +1,40 @@
+%SXX+Object Module
+# Object module for file inc.sax
+# Thu Oct 02 12:10:94 EDT 2014
+25 text length
+% text
+2
+10
+42
+24
+1
+10
+40
+22
+0
+24
+42
+91
+158
+22
+4
+1
+10
+2
+1
+27
+5
+10
+22
+4
+26
+% relocation dictionary
+5
+8
+14
+16
+21
+23
+% ENTRY, EXTERN, and PUBLIC references
+ENTRY main 13
+% end of object module

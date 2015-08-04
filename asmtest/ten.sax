@@ -1,0 +1,19 @@
+; program to print 10
+; note that 48 is the ASCII value
+; of the character '0'
+
+NL	EQU	0xa	; newline
+
+main:	pushv	4*10+9
+	call	prtc
+	pushv	060	
+	call	prtc
+	pushv	NL
+	printc
+	halt
+
+prtc:	swap
+	printc
+	return
+
+	entry	main

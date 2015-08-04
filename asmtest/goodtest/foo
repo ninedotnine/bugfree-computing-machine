@@ -1,0 +1,15 @@
+
+NL	equ	10	; the ASCII code for newline
+
+foo:	; print the passed value, followed by a newline
+	pushv 	42
+	print
+	pushv	NL
+	printc
+	return
+
+main:
+	call foo
+	halt
+
+	entry	main

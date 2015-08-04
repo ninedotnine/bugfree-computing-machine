@@ -1,0 +1,38 @@
+%SXX+Object Module
+# Object module for file lines.sax
+# Thu Oct 02 13:10:213 EDT 2014
+149 text length
+% text
+:128
+2
+62
+42
+2
+0
+22
+0
+1
+0
+20
+148
+2
+61
+42
+2
+0
+22
+0
+21
+128
+26
+% relocation dictionary
+132
+136
+138
+143
+147
+% ENTRY, EXTERN, and PUBLIC references
+ENTRY main 128
+EXTERN read_string 134
+EXTERN write_string 145
+% end of object module

@@ -1,0 +1,79 @@
+    1:       0                  
+    2:       0              10  NL	equ	10	; the ASCII code for newline
+    3:       0               1  FP	equ	1	; the frame pointer register
+    4:       0                  
+    5:       0                  println:
+    6:       0                  	; print the value whose address is on the top of the stack,
+    7:       0                  	; followed by a NL -- the value itself is next on the stack
+    8:       0                  	; set up the stack frame 
+    9:       0  1            1  	push  FP
+   10:       2  1            0  	push  SP
+   11:       4  5            1  	pop   FP
+   12:       6                  	; retrieve the address of the value
+   13:       6  1            1  	push  FP
+   14:       8  4            2  	pushx 2
+   15:      10                  	; retrieve the value at that address
+   16:      10  3               	indir 
+   17:      11                  	;; the previous two instructions would be replaced by the following,
+   18:      11                          ;; if we wanted to use the value directly instead of through its address
+   19:      11                          ;pushx 3
+   20:      11                  	; print the value
+   21:      11 40               	print
+   22:      12                  	; now print the newline
+   23:      12  2           10  	pushv NL
+   24:      14 42               	printc
+   25:      15                  	; restore caller's FP
+   26:      15  5            1  	pop   FP
+   27:      17                  	; clean up and return
+   28:      17 25            2  	retn	2
+   29:      19                  
+   30:      19                  foo:
+   31:      19                  	; set up the stack frame
+   32:      19  1            1  	push  FP
+   33:      21  1            0  	push  SP
+   34:      23  5            1  	pop   FP
+   35:      25                  	; push the three parameter values
+   36:      25  1            1          push  FP
+   37:      27  4            4  	pushx 4
+   38:      29  1            1  	push  FP
+   39:      31  4            3  	pushx 3
+   40:      33  1            1  	push  FP
+   41:      35  4            2  	pushx 2
+   42:      37                  	; add them up
+   43:      37 27               	add
+   44:      38 27               	add
+   45:      39                  	; push the address of the value on top of the stack
+   46:      39  1            1  	push	FP
+   47:      41  2            1  	pushv	1
+   48:      43 28               	sub
+   49:      44                  	; now, SP -> address, SP+1 -> value
+   50:      44 22            0R 	call	println
+   51:      46  5            1  	pop	FP ; restore caller's frame pointer
+   52:      48 25            3  	retn	3  ; clean up the stack and return
+   53:      50                  
+   54:      50                  main:
+   55:      50  2           42  	pushv	42
+   56:      52  2           11  	pushv	11
+   57:      54  2            2  	pushv	2
+   58:      56 22           19R 	call	foo
+   59:      58  2            1  	pushv	1
+   60:      60  2            2  	pushv	2
+   61:      62  2            3  	pushv	3
+   62:      64 22           19R 	call	foo
+   63:      66 26               	halt
+   64:      67                  
+   65:      67              50R 	entry	main
+  EOF:      67                  
+
+Cross Reference List
+--------------------
+Symbol                               Value   Line Numbers
+------                               -----   ------------
+FP                                       1 |     3*     9     11     13     26 
+                                                32     34     36     38     40 
+                                                46     51 
+NL                                      10 |     2*    23 
+SP                                       0 |    10     33 
+foo                                     19R|    30*    58     62 
+main                                    50R|    54*    65 
+println                                  0R|     5*    50 

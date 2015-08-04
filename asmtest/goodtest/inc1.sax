@@ -1,0 +1,34 @@
+; program to increment the value in a memory location containing the value 42
+; version 0.1
+
+  	  entry main
+
+NL	  equ	10
+
+newline:  pushv NL
+	  printc
+	  return
+
+; increment the value in the memory cell whose address is on the stack
+incr:	  swap
+	  dupl
+	  indir
+	  addx 1
+	  pops
+	  return
+	  
+
+printL:	  push  L
+	  print
+	  call newline
+	  return
+
+L:	  dw	42
+
+	  ; first print the current value in L
+main:	  call printL
+	  pushv L
+	  call incr
+	  call  printL	  
+	  halt
+

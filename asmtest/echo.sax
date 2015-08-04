@@ -1,0 +1,9 @@
+loop:
+	readc
+	dupl
+	tstlt
+	bne out
+	printc
+	br loop
+out:	halt
+;	halt

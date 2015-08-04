@@ -1,0 +1,6 @@
+; loop:	pushv	121
+loop:	pushv	'y
+	printc
+	pushv	10
+	printc
+	br	loop

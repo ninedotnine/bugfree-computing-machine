@@ -1,0 +1,65 @@
+
+NL	equ	10	; the ASCII code for newline
+FP	equ	1	; the frame pointer register
+
+println:
+	; print the value whose address is on the top of the stack,
+	; followed by a NL -- the value itself is next on the stack
+	; set up the stack frame 
+	push  FP
+	push  SP
+	pop   FP
+	; retrieve the address of the value
+	push  FP
+	pushx 2
+	; retrieve the value at that address
+	indir 
+	;; the previous two instructions would be replaced by the following,
+        ;; if we wanted to use the value directly instead of through its address
+        ;pushx 3
+	; print the value
+	print
+	; now print the newline
+	pushv NL
+	printc
+	; restore caller's FP
+	pop   FP
+	; clean up and return
+	retn	2
+
+foo:
+	; set up the stack frame
+	push  FP
+	push  SP
+	pop   FP
+	; push the three parameter values
+        push  FP
+	pushx 4
+	push  FP
+	pushx 3
+	push  FP
+	pushx 2
+	; add them up
+	add
+	add
+	; push the address of the value on top of the stack
+	push	FP
+	pushv	1
+	sub
+	; now, SP -> address, SP+1 -> value
+	call	println
+	pop	FP ; restore caller's frame pointer
+	retn	3  ; clean up the stack and return
+
+main:
+	pushv	42
+	pushv	11
+	pushv	2
+	call	foo
+	pushv	1
+	pushv	2
+	pushv	3
+	call	foo
+	halt
+
+	entry	main

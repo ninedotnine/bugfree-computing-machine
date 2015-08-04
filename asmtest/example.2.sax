@@ -1,0 +1,13 @@
+; this is from the assignment
+A   EQU 15
+B   EQU str + 3
+
+START:  push   B
+        print
+        halt
+str:    DW      "ABC",$
+        ; this is a cement
+@1:     DS      100
+
+
+

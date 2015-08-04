@@ -1,0 +1,31 @@
+    1:       0                  ; read and write lines until EOF
+    2:       0                  
+    3:       0             128  buf:   ds  128
+    4:     128                  
+    5:     128             128R        entry	main
+    6:     128                         extern	read_string, write_string
+    7:     128                  
+    8:     128  2           62  main:  pushv	'>
+    9:     130 42                      printc
+   10:     131  2            0R        pushv	buf
+   11:     133 22            0E        call	read_string
+   12:     135  1            0R        push	buf ; the first word in the buffer
+   13:     137 20          148R        beq	@1
+   14:     139  2           61         pushv	'=
+   15:     141 42                      printc
+   16:     142  2            0R        pushv	buf
+   17:     144 22            0E        call	write_string
+   18:     146 21          128R        br	main
+   19:     148                  
+   20:     148 26               @1:    halt
+  EOF:     149                  
+
+Cross Reference List
+--------------------
+Symbol                               Value   Line Numbers
+------                               -----   ------------
+buf                                      0R|     3*    10     12     16 
+main                                   128R|     5      8*    18 
+@1                                     148R|    13     20*
+read_string                         EXTERN |     6*    11 
+write_string                        EXTERN |     6*    17 
