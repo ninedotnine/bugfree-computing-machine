@@ -1,0 +1,79 @@
+#!/bin/dash
+
+# this script is used to compare the results of running the assembly output of 
+# the the reference compiler against my own compiler. 
+
+# you can provide an argument to test a single file. if the output is not
+# equal, it will run vimdiff on the outputs, otherwise outputs "cool".
+
+# with no arguments provided, it will test every file in the output.
+# the return status will be zero if all files are equal, otherwise the 
+# exit status will equal the number of different outputs.
+
+# makes output prettier
+boldon=$(tput bold)
+boldoff=$(tput sgr0)
+colour='\033[1;30m'
+NC='\033[0m' # no colour
+# 
+
+echo "$colour------------------ now running plccmk ------------------$NC"
+plccmk || exit 99
+
+# will be returned to the os
+exit_status=0
+
+# list of files that didn't work
+borked="$colour broken stuff:$NC$boldon"
+
+# location of the reference implementation
+ref="/usr/bin/local/plax"
+
+cd "Java/"
+if [ "$#" -eq 1 ]; then
+    # if argument is provided, test only that file 
+    filename="../$1"
+    echo "$colour------------------ now running plax $filename ------------------$NC"
+    plax "$filename" 2>&1 | awk 'NR > 4' | tee ref.txt
+    echo "$colour------------------ now running java PL $filename ------------------$NC"
+    java PL "$filename" > dantest
+    bass dantest 2>&1 | tee mine.txt
+    # if files aren't equal, drop into vimdiff
+    echo "$colour------------------ now comparing ------------------$NC"
+    diff --brief "mine.txt" "ref.txt" \
+        && echo "cool!" || vimdiff -R "mine.txt" "ref.txt" 
+else
+    # else just compare everything in the test directory
+    echo "$colour------------------ now comparing ------------------$NC"
+#     for filename in $(ls -1 "./Test/*.sax"); do
+    for filename in $(find -L ../test/ ! -name "*.*" ! -type d); do
+        echo "$boldon $filename $boldoff" 
+#         echo "$colour------------------ now running plax $filename ------------------$NC"
+        echo -n "plax: "
+        plax "$filename" 2>&1 | awk 'NR > 4' | tee ref.txt
+#         echo "$colour------------------ now running java PL $filename ------------------$NC"
+        echo -n "mine: "
+        java PL "$filename" > dantest
+        bass dantest 2>&1 | tee mine.txt
+        diff --brief "mine.txt" "ref.txt"
+        if [ "$?" -eq 0 ]; then
+            echo "cool!" 
+        else
+            exit_status=$((exit_status+1))
+            borked="$borked \n$filename"
+        fi
+    done
+fi
+
+echo "$colour------------------ done! ------------------$NC"
+if [ "$exit_status" -eq 0 ]; then
+    echo "☺"
+else
+    echo "$borked$boldoff"
+fi
+
+echo "cleaning up..."
+# rm "mine.txt" "ref.txt"
+cd ..
+
+return "$exit_status"
