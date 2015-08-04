@@ -17,8 +17,7 @@
 
 ---------- hsxx ----------
 [x] relocation dict
-[ ] DW
 [x] DS 
-[ ] make READ, READC behave like reference implementation
+[ ] make READ, READC behave like reference implementation, buffering and stuff
 
 ---------- compiler ----------
