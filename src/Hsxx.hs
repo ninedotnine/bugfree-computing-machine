@@ -58,6 +58,7 @@ execute mem pc = do
     incPC
 --     pointer <- toCell <$> getPC
 --     putStrLn $ "pointer is: " ++ show pointer
+--     printStack mem
 --     instr <- toEnum . toInt <$> deref pointer
     instr <- toEnum . toInt <$> (deref =<< toCell <$> getPC)
 --     putStrLn $ "HANDLING INSTRUCTION: " ++ show instr
@@ -93,18 +94,17 @@ execute mem pc = do
         TSTEQ -> pop >>= \x -> push $ if x == 0 then 1 else 0
         TSTNE -> pop >>= \x -> push $ if x /= 0 then 1 else 0
 
-        -- we subtract 1 from the addr since PC will be incremented afterward
         BNE -> pop >>= (getArg >>=) . (. setPC) . when . toBool
         BEQ -> pop >>= (getArg >>=) . (. setPC) . when . (==0)
         BR  -> getArg >>= setPC
         CALL  -> do
-            push . toCell =<< getPC
+            push . (+2) . toCell =<< getPC
             setPC =<< getArg
         CALLS -> do
             val <- pop
-            push . toCell . (subtract 1) =<< getPC
+            push . toCell . (+1) =<< getPC
             setPC val
-        RETURN -> pop >>= setPC . (+2)
+        RETURN -> pop >>= setPC 
         RETN   -> pop >>= (getArg >>=) . (. (modSP . (+))) . (<*) . setPC
         HALT -> putStrLn "execution halted" >> exitSuccess 
 
