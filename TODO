@@ -13,7 +13,9 @@
 ---------- decommenter ----------
 
 ---------- linker ----------
-[ ] add publics, externs to respective maps
+[x] add publics, externs to respective maps
+[ ] use publics map to adjust locations in infos' texts
+[ ] change text field of info type to a vector of Vals
 
 ---------- hsxx ----------
 [x] relocation dict
