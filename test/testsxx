@@ -1,0 +1,58 @@
+#!/bin/dash
+
+# makes output prettier
+boldon=$(tput bold)
+boldoff=$(tput sgr0)
+colour='\033[1;30m'
+NC='\033[0m' # no colour
+
+# will be returned to the os
+exit_status=0
+
+# list of files that didn't work
+borked="$colour broken stuff:$NC$boldon"
+
+cd  "build/"
+ghc "Hsxx.hs" -o "hsxx" || exit 99
+
+cd "../sxx/"
+
+if [ "$#" -eq 1 ]; then
+    # if argument is provided, test only that file 
+    filename=$(basename "$1")
+    if [ -f ".input.$filename" ] ; then
+        ../build/hsxx "$filename" < ".input.$filename" > "/tmp/bcm.test"
+    else
+        ../build/hsxx "$filename" > "/tmp/bcm.test"
+    fi
+    # if files aren't equal, drop into vimdiff
+    awk '/beginning execution --------------------/,0' "/tmp/bcm.test" | \
+        diff --brief ".output.$filename" - \
+            && echo "aw yay!" || vimdiff -R "/tmp/bcm.test" ".output.$filename"
+else
+    # else just compare everything in the test directory
+    echo "testing all files in sxx/ ..."
+
+    for filename in *.sxx ; do
+        echo "$boldon $filename $boldoff" 
+        if [ -f ".input.$filename" ] ; then
+            ../build/hsxx "$filename" < ".input.$filename" > "/tmp/bcm.test"
+        else
+            ../build/hsxx "$filename" > "/tmp/bcm.test"
+        fi
+        awk '/beginning execution --------------------/,0' "/tmp/bcm.test" | \
+            diff --brief ".output.$filename" -
+        if [ ! "$?" -eq 0 ]; then
+            exit_status=$((exit_status+1))
+            borked="$borked \n$filename"
+        fi
+    done
+fi
+
+if [ "$exit_status" -eq 0 ]; then
+    echo "OK :~)"
+else
+    echo "$borked$boldoff"
+fi
+
+return "$exit_status"
