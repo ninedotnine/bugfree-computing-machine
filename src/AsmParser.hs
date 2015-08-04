@@ -211,7 +211,7 @@ opcode = do
         readOpSynonym _       = Nothing
 
 intOrChar :: MyParser Integer
-intOrChar = try octInt <|> try hexInt <|> int <|> asmChar where 
+intOrChar = try octInt <|> try hexInt <|> int <|> asmChar <?> "lit" where 
     int, octInt, hexInt, asmChar :: MyParser Integer
     octInt = char '0' *> (read . ("0o"++) <$> many1 octDigit)
     hexInt = string "0x" *> (read . ("0x"++) <$> many1 hexDigit)
@@ -219,7 +219,7 @@ intOrChar = try octInt <|> try hexInt <|> int <|> asmChar where
     asmChar = toInteger . ord <$> (char '\'' *> anyChar)
 
 skipJunk :: MyParser ()
-skipJunk = skipSpaces <|> skipComment
+skipJunk = skipSpaces <|> skipComment <?> ""
 -- skipJunk = spaces <|> skipComment
 
 skipSpaces :: MyParser ()
@@ -299,7 +299,7 @@ addop = spaces *> char '+' *> spaces *> return (+)
 
 asmEQU :: MyParser Token
 asmEQU = do
-    name <- globalLabel <* skipSpaces
+    name <- globalLabel <* skipSpaces <?> ""
     def <- caseInsensitiveString "equ" *> skipSpaces *> expr
     addToLabels name def -- add it to the map of labels
     return $ EQU name def
