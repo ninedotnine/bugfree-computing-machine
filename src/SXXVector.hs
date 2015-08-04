@@ -44,9 +44,8 @@ incPC :: (?pc :: IORef Int16) => IO ()
 incPC = modifyIORef' ?pc (+1)
 
 setPC :: (?pc :: IORef Int16, Integral a) => a -> IO ()
--- setPC :: (?pc :: IORef Int16) => Int16 -> IO ()
-setPC x = writeIORef ?pc (toPC x)
--- setPC = (writeIORef ?pc) . toPC
+-- subtract 1 from the addr since PC will be incremented afterward
+setPC = (writeIORef ?pc) . toPC . subtract 1
 
 getPC :: (?pc :: IORef Int16) => IO Int16
 getPC = readIORef ?pc
