@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-} 
 -- {-# OPTIONS_GHC -Wall #-} 
 
 import System.Environment (getArgs)
