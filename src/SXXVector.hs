@@ -91,7 +91,6 @@ instance SXXBool Int32 where
 -- strict version of modifyIORef
 modifyIORef' ref f = do
     x <- readIORef ref
-        let x' = f x
-            x' `seq` writeIORef ref x'
---     toInt32 = toCell
+    let x' = f x
+    x' `seq` writeIORef ref x'
 #endif
