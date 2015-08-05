@@ -14,6 +14,5 @@
 24 
 % relocation dictionary
 % ENTRY, EXTERN, and PUBLIC references
-ENTRY main 0
 PUBLIC prompt 7
 % end of object module
