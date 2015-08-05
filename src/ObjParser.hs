@@ -46,7 +46,11 @@ import Control.Applicative hiding (many, optional)
 -- import Data.Map.Strict (Map, (!))
 -- import qualified Data.Map.Strict as Map (Map, singleton)
 -- import Data.Map.Strict as Map (Map, singleton)
+#if __GLASGOW_HASKELL__ < 706
+import qualified Data.Map as Map 
+#else
 import qualified Data.Map.Strict as Map 
+#endif
 
 -- import Debug.Trace (trace)
 
