@@ -1,4 +1,4 @@
-{-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE ImplicitParams, CPP #-}
 
 -- module SXXVector (MyVector, populateVector, printVector) where
 module SXXVector  where
@@ -9,7 +9,11 @@ import qualified Data.Vector.Unboxed.Mutable as V
 import Control.Monad.Primitive (PrimState)
 
 import Data.Int (Int32, Int16)
+#if __GLASGOW_HASKELL__ < 706
+import Data.IORef (IORef, readIORef, writeIORef)
+#else
 import Data.IORef (IORef, readIORef, writeIORef, modifyIORef')
+#endif
 
 type MyVector = V.MVector (PrimState IO) Int32
 
@@ -82,4 +86,12 @@ instance SXXBool Bool where
 instance SXXBool Int32 where
     toBool = (/= 0)
     toInt32 = id
+
+#if __GLASGOW_HASKELL__ < 706
+-- strict version of modifyIORef
+modifyIORef' ref f = do
+    x <- readIORef ref
+        let x' = f x
+            x' `seq` writeIORef ref x'
 --     toInt32 = toCell
+#endif
