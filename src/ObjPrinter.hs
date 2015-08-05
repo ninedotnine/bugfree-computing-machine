@@ -40,7 +40,11 @@ import Data.Maybe (fromJust)
 
 -- import Data.Map.Strict (Map, (!))
 -- import qualified Data.Map.Strict as Map (Map, singleton)
+#if __GLASGOW_HASKELL__ < 706
+import Data.Map as Map (Map, singleton, fromList)
+#else
 import Data.Map.Strict as Map (Map, singleton, fromList)
+#endif
 
 import Debug.Trace (trace)
 -- import Control.Exception
