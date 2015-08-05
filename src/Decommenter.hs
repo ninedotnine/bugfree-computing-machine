@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, OverloadedStrings #-}
+{-# LANGUAGE FlexibleInstances, OverloadedStrings, CPP #-}
 -- {-# OPTIONS_GHC -Wall #-}
 
 module Decommenter (decomment, Stringy) where
@@ -12,6 +12,9 @@ import qualified Data.Text.IO as TextIO (interact)
 import Data.Monoid
 import Data.String (IsString)
 import Data.Char (isSpace)
+#if __GLASGOW_HASKELL < 710
+import Control.Applicative ((<$>), (<*>))
+#endif
 {- 
 this module exports decomment, which removes:
     empty lines
