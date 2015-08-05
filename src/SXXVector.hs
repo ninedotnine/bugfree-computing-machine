@@ -15,6 +15,10 @@ import Data.IORef (IORef, readIORef, writeIORef)
 import Data.IORef (IORef, readIORef, writeIORef, modifyIORef')
 #endif
 
+#if __GLASGOW_HASKELL__ < 710
+import Control.Applicative
+#endif
+
 type MyVector = V.MVector (PrimState IO) Int32
 
 -- this code requires the ghc ImplicitParams extension
