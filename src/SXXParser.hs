@@ -1,4 +1,5 @@
 {-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -Wall #-} 
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
 
@@ -15,11 +16,19 @@ import Control.Monad.Trans (liftIO)
 import Control.Applicative hiding (many, optional)
 import Data.List (intersperse)
 import Data.Int (Int32, Int16)
-import Text.Read (readMaybe)
-
--- import Debug.Trace (traceM)
 
 import SXXVector
+
+#if __GLASGOW_HASKELL__ > 705
+import Text.Read (readMaybe)
+#else
+readMaybe :: (Read a) => String -> Maybe a
+readMaybe s = case reads s of
+    [(x, "")] -> Just x
+    _ -> Nothing
+#endif
+
+-- import Debug.Trace (traceM)
 
 {-
 MyParser is a type 
