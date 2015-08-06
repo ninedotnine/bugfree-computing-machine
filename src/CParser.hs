@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-} 
+
 module CParser where
 
 -- import System
@@ -10,6 +12,10 @@ import qualified Text.Parsec.Token as Token
 -- import Foreign.C.String
 -- import Foreign.Ptr
 -- import Control.Monad
+
+#if __GLASGOW_HASKELL__ < 710
+import Control.Applicative ((<$>), (<*), (*>))
+#endif
 
 lexerStyle :: Token.LanguageDef ()
 lexerStyle = Token.LanguageDef {
