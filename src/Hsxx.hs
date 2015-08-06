@@ -1,7 +1,8 @@
 {-# OPTIONS_GHC -Wall #-} 
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE ImplicitParams #-}
 import Prelude hiding (or, and)
 import Data.IORef (IORef, newIORef) 
 import Data.Char
@@ -27,6 +28,10 @@ import System.IO (hFlush, stdout)
 import Instructions
 import SXXParser
 import SXXVector
+
+#if __GLASGOW_HASKELL__ < 710
+import Control.Applicative ((<$>), (<*>))
+#endif
 
 main :: IO ()
 main = do
