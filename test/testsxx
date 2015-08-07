@@ -12,6 +12,7 @@ exit_status=0
 # list of files that didn't work
 borked="$colour broken stuff:$NC$boldon"
 
+mkdir -p  "build/"
 cd  "build/"
 ghc "Hsxx.hs" -o "hsxx" || exit 99
 

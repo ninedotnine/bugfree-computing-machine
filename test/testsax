@@ -1,5 +1,6 @@
 #!/bin/dash
 
+mkdir -p  "build/"
 cd  "build/"
 ghc "Hsax.hs" -o "hsax" || exit 2
 ghc "Hsxxl.hs" -o "hsxxl" || exit 3
