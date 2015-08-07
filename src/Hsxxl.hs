@@ -1,8 +1,10 @@
 {-# LANGUAGE CPP #-} 
--- {-# OPTIONS_GHC -Wall #-} 
+{-# OPTIONS_GHC -Wall #-} 
 
 import System.Environment (getArgs)
 import System.Exit 
+import Data.List (sortBy)
+import Data.Function (on)
 import Text.ParserCombinators.Parsec (ParseError)
 import Control.Monad
 import Data.Traversable (mapAccumL)
@@ -25,13 +27,9 @@ main :: IO ()
 main = do
     args <- getArgs
     inputs <- map decomment <$> mapM readFile args
---     (filename, input) <- getFileData
---     mapM_ (print . pass1 
     let zippy = zip args inputs
---     forM_ zippy $ print . (\(fn, txt) -> pass1 fn 0 txt)
     let eithers :: [Either ParseError Info]
         eithers = map (\(fn, txt) -> pass1 fn 0 txt) zippy
---     mapM_ print eithers
     let (errors, rights) = partitionEithers eithers
     when (not (null errors)) $ mapM_ print errors >> exitFailure
     let infos :: [Info]
@@ -39,43 +37,45 @@ main = do
 --         offsets' = mapAccumL (\x y -> (x+y, x+y)) 0 offsets
 --         offsets' = mapAccumL adder 0 offsets
     let entries = filter hasEntry infos
---     putStr "## ENTRIES: ## " >> print entries
     when (length entries > 1) $ putStrLn "multiple entries" >> exitFailure
 
---     putStrLn  "++++++++++++++++++++++++++++++++++++++++++"
---     mapM_ print infos
+    let infos' = map (adjustText . adjustExterns . adjustPublics) infos
+    pubs <- combinePublics' infos'
+    let extList = sortBy (compare `on` fst) $ concat $ externsToList <$> infos'
+    when (doubles extList) $ putStrLn "multiple externs" >> exitFailure
+    let infos'' = map (fixExterns pubs extList) infos'
+    printInfos infos'' totalTextLength
 
---     putStrLn  "**********************************************"
---     pubs <- combinePublics' infos
---     print pubs
+-- this takes an info and returns a new info with its externs offset
+adjustExterns :: Info -> Info
+adjustExterns info = let 
+    newExterns :: Externs
+    newExterns = Map.map (map (+ (getOffset info))) (getExterns info)
+    in info {getExterns = newExterns}
 
---     putStrLn  "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"
-    printInfos (map (adjustText . adjustPublics) infos) totalTextLength
---     printInfos infos totalTextLength
+externsToList :: Info -> [(Integer, String)]
+externsToList info = let
+    exts :: [(String, [Integer])]
+    exts = Map.toList $ getExterns info
+    mapped :: [[(Integer, String)]]
+    mapped = map f exts
+    in concat mapped
+    where 
+        f :: (String, [Integer]) -> [(Integer, String)]
+        f (str, xs) = (map ((flip (,)) str) xs)
 
-
-{-
-    let input = head inputs
-        filename = head args
-    let result :: Either ParseError Info
-        result = pass1 filename 0 input
-    putStrLn  "------------------------------------------"
-    case result of
-        Left err -> putStrLn $ "error: " ++ (show err) 
-                    ++ "\ninput:\n" ++ input
-        Right info -> do 
-        let result2 :: Either ParseError String
-            result2 = pass2 info input
-        case result2 of
-            Left err -> putStrLn $ "error: " ++ (show err) 
-                        ++ "\ninput:\n" ++ input
-            Right output -> putStrLn output
-            -}
+-- doubles returns true if two tuples have the same first element
+-- the input list must be sorted for this to work!
+doubles :: [(Integer, String)] -> Bool
+doubles [] = False
+doubles (_:[]) = False
+doubles (x:y:xs) = (fst x == fst y) || doubles (y:xs)
+    
 
 -- first Integer is the addr
 -- second Integer is the ref
 -- String is the symbol
-type Pref = (Integer, Integer, String)
+-- type Pref = (Integer, Integer, String)
 
 
 -- Traversable t => (a -> b -> (a, c)) -> a -> t b -> (a, t c)
@@ -84,8 +84,8 @@ type Pref = (Integer, Integer, String)
 -- adder'' :: Offset -> b -> (Offset, Either ParseError Info)
 -- adder'' x (fn, txt) = let info = pass1 fn x txt in (x+getOffset info, info)
 
-adder :: Offset -> Offset -> (Offset, Offset)
-adder = (\x y -> (x+y, x+y))
+-- adder :: Offset -> Offset -> (Offset, Offset)
+-- adder = (\x y -> (x+y, x+y))
 
 adder' :: Offset -> Info -> (Offset, Info)
 adder' x (Info name off lc txt relocs entry pubs exts) = 
@@ -111,6 +111,22 @@ adjustPublics info = let
     newPublics = Map.map (+ (getOffset info)) (getPublics info)
     in info {getPublics = newPublics}
 
+-- this takes an info and returns a new info with its text externified
+fixExterns :: Publics -> [(Integer, String)] -> Info -> Info
+fixExterns dict exts info = let
+    newText :: [Val]
+--     newText = f 0 (getText info) (map fst exts)
+    newText = f (getOffset info) (getText info) exts
+    in info {getText = newText}
+    where
+        f :: Integer -> [Val] -> [(Integer, String)] -> [Val]
+        f _ text [] = text
+        f count text ((loc,name):is) 
+            | text == [] = text
+            | loc == count = (Val (dict Map.! name)) 
+                            : (f (count+1) (tail text) is)
+            | loc > count = head text : f (count+1) (tail text) ((loc,name):is)
+            | otherwise = text
 
 -- this takes an info and returns a new info with its text values relocated
 adjustText :: Info -> Info
@@ -132,5 +148,5 @@ addVal :: Val -> Integer -> Val
 addVal (Val x) y = Val (x + y)
 addVal (DS _) _ = error "DS in addval, tried to relocate a DS"
 
-badformat :: IO ()
-badformat = putStrLn "hsxxl: bad format" >> exitFailure
+-- badformat :: IO ()
+-- badformat = putStrLn "hsxxl: bad format" >> exitFailure

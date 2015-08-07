@@ -55,7 +55,7 @@ import ObjParser
 
 printInfos :: [Info] -> Integer -> IO ()
 printInfos infos textlength = do
-    putStr "## INFOs: ## " >> mapM print infos
+--     putStr "## INFOs: ## " >> mapM print infos
     let entries = filter hasEntry infos
 --     putStr "## ENTRIES: ## " >> print entries
     when (length entries > 1) $ putStrLn "multiple entries" >> exitFailure
