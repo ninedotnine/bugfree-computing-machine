@@ -1,9 +1,9 @@
 {-# LANGUAGE ImplicitParams, CPP #-}
+{-# OPTIONS_GHC -Wall #-} 
 
 -- module SXXVector (MyVector, populateVector, printVector) where
 module SXXVector  where
 
-import qualified Data.Vector.Unboxed as IM
 import qualified Data.Vector.Unboxed.Mutable as V
 
 import Control.Monad.Primitive (PrimState)
