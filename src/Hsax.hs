@@ -13,7 +13,9 @@ import Text.ParserCombinators.Parsec (ParseError)
 -- import Text.Parsec.Prim (runParserT)
 import Control.Monad
 import Control.Monad.Writer
--- import Control.Applicative ((<$>))
+#if __GLASGOW_HASKELL__ < 710
+import Control.Applicative ((<$>))
+#endif
 -- import Control.Applicative hiding ((<|>))
 -- import Text.Read 
 
