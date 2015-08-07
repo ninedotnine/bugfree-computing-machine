@@ -6,7 +6,6 @@ import System.Exit
 import Text.ParserCombinators.Parsec (ParseError)
 import Control.Monad
 import Data.Traversable (mapAccumL)
-import Data.List
 import Data.Either (partitionEithers)
 #if __GLASGOW_HASKELL__ < 706
 import qualified Data.Map as Map
