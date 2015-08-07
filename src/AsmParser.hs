@@ -27,7 +27,7 @@ import Data.Char (toUpper, toLower, ord)
 import Data.List (genericLength)
 import Data.String (IsString, fromString)
 -- import Data.Foldable (traverse_)
-import Text.Read (readMaybe)
+-- import Text.Read (readMaybe)
 
 -- import Data.Map.Strict (Map, (!))
 -- import qualified Data.Map.Strict as Map (Map, singleton)
@@ -40,6 +40,15 @@ import qualified Data.Map.Strict as Map (Map, singleton)
 import Debug.Trace (trace)
 
 import Instructions
+
+#if __GLASGOW_HASKELL__ > 705
+import Text.Read (readMaybe)
+#else
+readMaybe :: (Read a) => String -> Maybe a
+readMaybe s = case reads s of
+    [(x, "")] -> Just x
+    _ -> Nothing
+#endif
 
 
 traceM :: (Monad m) => String -> m ()
