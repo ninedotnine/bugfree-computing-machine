@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-} 
 {-# OPTIONS_GHC -Wall #-} 
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
@@ -30,7 +31,11 @@ import Text.Read (readMaybe)
 
 -- import Data.Map.Strict (Map, (!))
 -- import qualified Data.Map.Strict as Map (Map, singleton)
-import Data.Map.Strict as Map (Map, singleton)
+#if __GLASGOW_HASKELL__ < 706
+import qualified Data.Map as Map (Map, singleton)
+#else
+import qualified Data.Map.Strict as Map (Map, singleton)
+#endif
 
 import Debug.Trace (trace)
 
