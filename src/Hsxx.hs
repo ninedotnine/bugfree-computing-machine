@@ -37,16 +37,14 @@ main :: IO ()
 main = do
     mem <- V.new 16384
     V.write mem 0 (16384 :: Int32) -- initialize SP
-    printStack mem
     args <- getArgs
     input <- readFile (head args)
     entryPoint <- populateVector mem input 
     pc <- newIORef (15 + entryPoint)
     putStrLn "beginning execution --------------------"
-    forever $ do 
-        execute mem pc 
---         printStack mem
+    forever $ execute mem pc 
 
+{-
 printStack :: MyVector -> IO ()
 printStack vec = do 
     let ?mem = vec
@@ -54,6 +52,7 @@ printStack vec = do
     putStrLn $ "sp is : " ++ show sp
     putStr "stack: "
     printVector sp (16384 - (sp)) vec
+-}
 
 execute :: MyVector -> IORef Int16 -> IO ()
 execute mem pc = do 

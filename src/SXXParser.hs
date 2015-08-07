@@ -49,29 +49,23 @@ populateVector mem input = do
     result <- runParserT (fillVector mem) baseAddr "input" input
     case result of
         Left err -> putStrLn ("error: " ++ (show err)) >> exitFailure
-        Right entry -> putStrLn "successful parse" >> return entry
+        Right entry -> return entry
 
 -- if successful, returns the entry point
 fillVector :: MyVector -> MyParser Int16
 fillVector mem = do 
     header
     textLength <- natural <* skipToEOL
-    liftIO $ putStrLn $ "textlength: " ++ show textLength 
     entry <- natural <* skipToEOL 
     percentSeparator
-    liftIO $ putStrLn $ "entry: " ++ show entry 
     instruction mem `endBy` (try skipComments <|> skipSpaces)
     lastInstruction <- getState 
     let counted = lastInstruction - baseAddr
     when (toInt textLength /= counted) $
         fail ("textLength " ++ show textLength ++ " counted " ++ show counted)
     percentSeparator
-    liftIO $ putStr "instruction space before reloc: " 
-    liftIO $ printVector baseAddr (lastInstruction - baseAddr) mem
     relocatable mem `endBy` skipSpaces *> percentSeparator
     eof
-    liftIO $ putStr "instruction space after reloc: " 
-    liftIO $ printVector baseAddr (lastInstruction - baseAddr) mem
     return (fromIntegral entry)
 
 header :: MyParser ()
@@ -93,7 +87,6 @@ notDS :: MyVector -> MyParser ()
 notDS mem = let ?mem = mem in do
     val <- integer
     index <- getState
-    liftIO $ putStrLn $ "read: " ++ show val
     liftIO $ write index val
     modifyState (+1)
 
