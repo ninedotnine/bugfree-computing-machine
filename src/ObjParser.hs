@@ -13,6 +13,7 @@ module ObjParser (
                 Val(..),
                 Relocs,
                 Publics,
+                Externs,
                 makeInfo, 
                 emptyInfo,
                 modifyLineCount
