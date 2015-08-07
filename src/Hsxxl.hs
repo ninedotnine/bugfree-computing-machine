@@ -12,6 +12,9 @@ import qualified Data.Map as Map
 #else
 import qualified Data.Map.Strict as Map
 #endif
+#if __GLASGOW_HASKELL__ < 710
+import Control.Applicative ((<$>))
+#endif
 
 import Decommenter
 import ObjParser
