@@ -3,8 +3,8 @@
 [ ] expressions
 [x] hex, oct integers
 [x] strings in DWs
-[ ] extern
-[ ] public
+[x] extern
+[x] public
 [x] equ
 [ ] labels silently truncated after 30 characters.
 [ ] check for multiply-defined labels
@@ -14,7 +14,7 @@
 
 ---------- linker ----------
 [x] add publics, externs to respective maps
-[ ] use publics map to adjust locations in infos' texts
+[x] use publics map to adjust locations in infos' texts
 [ ] change text field of info type to a vector of Vals
 
 ---------- hsxx ----------
@@ -23,3 +23,5 @@
 [ ] make READ, READC behave like reference implementation, buffering and stuff
 
 ---------- compiler ----------
+[x] parse tree
+[ ] output assembly code
