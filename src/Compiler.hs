@@ -8,7 +8,6 @@ testfile = "../test/c/else.c"
 
 main :: IO ()
 main = do
-    putStrLn "HELLO"
     eith <- parseFromFile (parseLex parseDefs) testfile
     case eith of 
         Left err -> print err
