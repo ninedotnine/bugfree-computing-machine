@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -Wall #-} 
 -- module Hsax where
 -- import Prelude hiding (mapM_, words, error, fst, snd)
@@ -17,8 +18,13 @@ import Control.Monad.Writer
 -- import Text.Read 
 
 -- import qualified Data.Map.Strict as Map
+#if __GLASGOW_HASKELL__ < 706
+import Data.Map (Map, (!))
+import qualified Data.Map as Map (showTree)
+#else
 import Data.Map.Strict (Map, (!))
 import qualified Data.Map.Strict as Map (showTree)
+#endif
 -- import Data.Maybe (fromJust)
 import Data.List (intersperse)
 
