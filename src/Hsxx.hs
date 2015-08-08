@@ -8,18 +8,9 @@ import Data.IORef (IORef, newIORef)
 import Data.Char
 
 import Control.Monad
--- import Control.Monad.Primitive (PrimState)
 
--- import Data.Vector.Unboxed.Mutable (new, write, MVector)
--- import Data.Vector.Unboxed.Mutable (new)
-import qualified Data.Vector.Unboxed.Mutable as V
+import qualified Data.Vector.Unboxed.Mutable as V (new, write)
  
--- import qualified Data.ByteString.Lazy.Char8 as L
--- import qualified Data.Vector                as U
--- import Data.Vector.Unboxed hiding ((++))
--- import Data.Vector.Unboxed.Mutable hiding ((++))
--- import Data.Vector.Generic hiding ((++))
--- import Data.Vector.Generic.Mutable hiding (MVector(..), (++))
 import Data.Int
 import System.Environment
 import System.Exit
