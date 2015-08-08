@@ -4,16 +4,16 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ImplicitParams #-}
 import Prelude hiding (or, and)
+
+import Control.Monad (forever, join, when, ap, liftM2)
+
+import Data.Char (ord, chr)
 import Data.IORef (IORef, newIORef) 
-import Data.Char
-
-import Control.Monad
-
+import Data.Int (Int32, Int16)
 import qualified Data.Vector.Unboxed.Mutable as V (new, write)
- 
-import Data.Int
-import System.Environment
-import System.Exit
+
+import System.Environment (getArgs)
+import System.Exit (exitSuccess)
 import System.IO (hFlush, stdout)
 
 import Instructions
