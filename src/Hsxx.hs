@@ -1,8 +1,5 @@
 {-# OPTIONS_GHC -Wall #-} 
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ImplicitParams #-}
+{-# LANGUAGE BangPatterns, CPP, DataKinds, ImplicitParams #-}
 import Prelude hiding (or, and)
 
 import Control.Monad (forever, join, when, ap, liftM2)
@@ -46,7 +43,7 @@ printStack vec = do
 -}
 
 execute :: MyVector -> IORef Int16 -> IO ()
-execute mem pc = do 
+execute !mem !pc = do 
     let ?mem = mem
         ?pc  = pc 
     incPC
