@@ -23,13 +23,13 @@ type MyVector = V.MVector (PrimState IO) Int32
 
 -- this code requires the ghc ImplicitParams extension
 pop :: (?mem :: MyVector) => IO Int32
-pop = deref =<< getSP <* modSP (+1)
+pop = deref =<< getSP <* addSP 1
 
 deref :: (?mem :: MyVector) => Int32 -> IO Int32
 deref val = V.read ?mem (toInt val)
 
 push :: (?mem :: MyVector) => Int32 -> IO ()
-push val = modSP (subtract 1) >> getSP >>= (\sp -> write sp val)
+push val = addSP (-1) >> getSP >>= (\sp -> write sp val)
 
 getArg :: (?pc :: IORef Int16, ?mem :: MyVector) => IO Int32
 getArg = incPC >> readIORef ?pc >>= deref . toCell
@@ -41,8 +41,8 @@ write = V.write ?mem . toInt
 getSP :: (?mem :: MyVector) => IO Int32
 getSP = V.read ?mem 0
 
-modSP :: (?mem :: MyVector) => (Int32 -> Int32) -> IO ()
-modSP = modVal 0 
+addSP :: (?mem :: MyVector) => Int32 -> IO ()
+addSP = modVal 0 . (+)
 
 modVal :: (?mem :: MyVector) => Int -> (Int32 -> Int32) -> IO ()
 -- modVal = ((.) . (>>=) . V.read ?mem) <*> ((.) . write)

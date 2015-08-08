@@ -83,7 +83,7 @@ execute mem pc = do
         SWAP  -> pop >>= (pop >>=) . (. push) . (>>) . push
 
         OVER  -> getSP >>= deref . (+1) >>= push
-        DROP  -> modSP (+1)
+        DROP  -> addSP 1
         ROT   -> do
             sp <- getSP
             val <- deref sp
@@ -109,7 +109,7 @@ execute mem pc = do
             push . toCell . (+1) =<< getPC
             setPC val
         RETURN -> pop >>= setPC 
-        RETN   -> pop >>= (getArg >>=) . (. (modSP . (+))) . (<*) . setPC
+        RETN   -> pop >>= (getArg >>=) . (. addSP) . (<*) . setPC
         HALT -> putStrLn "execution halted" >> exitSuccess 
 
         -- binary operations on the stack
@@ -125,7 +125,7 @@ execute mem pc = do
         NOT -> push . not' =<< pop
         NEG -> push . negate =<< pop
         ADDX -> push =<< liftM2 (+) getArg pop
-        ADDSP -> modSP . (+) =<< getArg
+        ADDSP -> addSP =<< getArg
 
         -- FIXME: READ, READC maybe wrong implementation
         READ  -> push =<< (read <$> getLine)
