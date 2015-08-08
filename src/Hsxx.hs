@@ -47,17 +47,10 @@ printStack vec = do
 
 execute :: MyVector -> IORef Int16 -> IO ()
 execute mem pc = do 
---     putStrLn "now beginning execute"    
     let ?mem = mem
         ?pc  = pc 
     incPC
---     pointer <- toCell <$> getPC
---     putStrLn $ "pointer is: " ++ show pointer
---     printStack mem
---     instr <- toEnum . toInt <$> deref pointer
     instr <- toEnum . toInt <$> (deref =<< toCell <$> getPC)
---     putStrLn $ "HANDLING INSTRUCTION: " ++ show instr
-
     case instr of
         BKPT  -> putStrLn "what is the sxx debugger?"
         PUSH  -> getArg >>= deref >>= push
@@ -127,5 +120,3 @@ execute mem pc = do
         TROFF -> putStrLn "TROFF does nothing"
         DUMP  -> putStrLn "DUMP does nothing"
         ERROR -> putStrLn "ERROR isn't even a real opcode"
---         _     -> error ("ERROR: " ++ show instr ++ "NOT done yet")
-
