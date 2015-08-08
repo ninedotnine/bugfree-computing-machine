@@ -122,8 +122,8 @@ execute mem pc = do
         AND -> push =<< liftM2 and pop pop
         XOR -> push =<< liftM2 ((ap . ((and . not') .) . and) <*> or) pop pop
 
-        NOT -> push =<< liftM (not' ) pop
-        NEG -> push =<< liftM negate pop
+        NOT -> push . not' =<< pop
+        NEG -> push . negate =<< pop
         ADDX -> push =<< liftM2 (+) getArg pop
         ADDSP -> modSP . (+) =<< getArg
 
