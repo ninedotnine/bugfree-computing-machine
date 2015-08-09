@@ -24,4 +24,5 @@
 
 ---------- compiler ----------
 [x] parse tree
+[ ] type checker
 [ ] output assembly code
