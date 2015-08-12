@@ -96,7 +96,7 @@ the writer: ([Integer], [String], [String])
         gen (Lit x) = return $ show x
         gen (NewLabel str) = return $ "# " ++ str
         gen (Label str loc) = do
-            addReloc loc
+            unless (str == "SP") $ addReloc loc
             return $ show (labels ! str) ++ "     # label: " ++ str
             -- (!) is unsafe, but should be fine here 
             -- because i used these very labels to populate the map 
