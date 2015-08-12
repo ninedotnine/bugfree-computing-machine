@@ -3,6 +3,7 @@
     global... so if it's local, it won't turn up in the map. investigate
     sax's behaviour.
 [ ] spaces between a new label and the ':'
+[ ] can characters be negative? ((-'a) == -97) ? 
 
 ---------- decommenter ----------
 [ ] a string with a '#' in it will make it explode
