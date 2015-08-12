@@ -1,0 +1,14 @@
+main:   call prompt
+        pushv 30
+        pushv -99
+        add
+        print
+        pushv 10
+        printc
+        halt
+
+prompt: pushv '$
+        printc
+        return
+
+entry main
