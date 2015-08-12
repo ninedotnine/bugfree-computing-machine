@@ -20,7 +20,7 @@ import Control.Monad
 import Control.Monad.Writer (Writer, runWriter, tell, lift)
 -- import Control.Monad.State (runState, evalState, execState)
 -- import Control.Applicative hiding (many, (<|>))
-import Control.Applicative hiding (many)
+import Control.Applicative hiding (many, optional)
 -- import Control.Applicative ((<$>))
 -- import Control.Applicative hiding ((<|>))
 import Data.Char (toUpper, toLower, ord)
@@ -225,12 +225,15 @@ opcode = do
         readOpSynonym _       = Nothing
 
 intOrChar :: MyParser Integer
-intOrChar = try octInt <|> try hexInt <|> int <|> asmChar <?> "lit" where 
+intOrChar = sign <*> (try octInt <|> try hexInt <|> int <|> asmChar) <?> "lit"
+    where
     int, octInt, hexInt, asmChar :: MyParser Integer
     octInt = char '0' *> (read . ("0o"++) <$> many1 octDigit)
     hexInt = string "0x" *> (read . ("0x"++) <$> many1 hexDigit)
     int = read <$> (many1 digit)
     asmChar = toInteger . ord <$> (char '\'' *> anyChar)
+    sign :: MyParser (Integer -> Integer)
+    sign = char '-' *> return negate <|> optional (char '+') *> return id
 
 skipJunk :: MyParser ()
 skipJunk = skipSpaces <|> skipComment <?> ""
