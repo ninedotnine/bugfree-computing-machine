@@ -1,0 +1,17 @@
+stuff equ 99
+
+main:   call star
+        pushv stuff
+        call star
+        tsteq
+        print
+        call done
+
+star: pushv '*
+      printc
+      return
+
+done: 
+    pushv 10
+    printc
+    halt
