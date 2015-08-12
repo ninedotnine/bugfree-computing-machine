@@ -142,6 +142,7 @@ instance IsString EntryPoint where
 
 instructions :: MyParser (Integer, EntryPoint, [Token])
 instructions = do 
+    addToLabels "SP" 0
     res <- join <$> many (try instruction) `sepBy` skipJunk
     skipMany skipJunk *> eof
     (counter, entry, _) <- getState
