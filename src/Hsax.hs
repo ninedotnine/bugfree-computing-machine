@@ -37,14 +37,14 @@ main = do
     (filename, input) <- getFileData
 --     let result :: (Either ParseError (Integer, String, [Token]), [(String, Integer)])
 --     let result :: Either ParseError (Integer, String, [Token], [(String, Integer)])
-    let result :: Either ParseError (Integer, EntryPoint, [Token], Map String Integer)
+    let result :: Either ParseError (Integer, EntryPoint, [Token], Labels)
         result = parseEverything filename input 
 --     print result
     case result of
         Left error -> putStrLn $ "HEY! NOPE!" ++ (show error)
         Right r -> outputResult filename r
 
-outputResult :: FilePath -> (Integer, EntryPoint, [Token], Map String Integer) -> IO ()
+outputResult :: FilePath -> (Integer, EntryPoint, [Token], Labels) -> IO ()
 outputResult filename (textLength, entry, toks, labels) = do
     putStrLn "%SXX+Object Module"
     putStrLn $ "# object module for file: " ++ filename
@@ -95,11 +95,11 @@ the writer: ([Integer], [String], [String])
         gen (Op x) = return $ show (fromEnum x) ++ " # " ++ show x
         gen (Lit x) = return $ show x
         gen (NewLabel str) = return $ "# " ++ str
-        gen (Label str loc) = do
-            unless (str == "SP") $ addReloc loc
-            return $ show (labels ! str) ++ "     # label: " ++ str
+        gen (Label str loc) = let val = labels ! str in do
             -- (!) is unsafe, but should be fine here 
             -- because i used these very labels to populate the map 
+            when (isRelocatable val) (addReloc loc)
+            return $ show val ++ "     # label: " ++ str
         gen (EQU name val) = return $ "# equ here: " ++ name ++ 
                                                     " = " ++ show val
         gen (Extern names) = do
@@ -110,6 +110,10 @@ the writer: ([Integer], [String], [String])
             return $ "# public here: " ++ (concat $ intersperse ", " $ names)
 
 --------------------------------------------
+
+isRelocatable :: Val -> Bool
+isRelocatable (Rel _) = True
+isRelocatable (Abs _) = False
 
 addReloc :: Integer -> Writer ([Integer], [String], [String]) ()
 addReloc x = tell ([x], [], [])

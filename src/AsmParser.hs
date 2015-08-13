@@ -6,6 +6,8 @@
 module AsmParser (Instruction(..), 
                 Token(..), 
                 EntryPoint(..),
+                Val(..),
+                Labels,
                 parseEverything) where 
 
 import Text.ParserCombinators.Parsec hiding (try, label, labels, (<|>))
@@ -110,7 +112,13 @@ Writer Labels is the transformed monad. when a label is parsed,
     the String in this case is the name of the label; 
         the Integer is its location. 
 -}
-type Labels = Map.Map String Integer
+type Labels = Map.Map String Val
+data Val = Abs Integer
+        | Rel Integer
+
+instance Show Val where
+    show (Abs x) = show x
+    show (Rel x) = show x
 
 {-
 Token is an algebraic data type
@@ -142,7 +150,7 @@ instance IsString EntryPoint where
 
 instructions :: MyParser (Integer, EntryPoint, [Token])
 instructions = do 
-    addToLabels "SP" 0
+    addToLabels "SP" (Abs 0)
     res <- join <$> many (try instruction) `sepBy` skipJunk
     skipMany skipJunk *> eof
     (counter, entry, _) <- getState
@@ -182,7 +190,7 @@ newLocalLabel = do
 --     traceM $ ">>> name is: " ++ name
     pos <- getLoc -- get the current position in the count
 --     lift $ tell (Map.singleton name pos) -- add it to the map of labels
-    addToLabels name pos -- add it to the map of labels
+    addToLabels name (Rel pos) -- add it to the map of labels
     return name
 
 newGlobalLabel :: MyParser String
@@ -191,7 +199,7 @@ newGlobalLabel = do
     setLabelPrefix name -- new current scope
     pos <- getLoc -- get the current position in the count
 --     lift $ tell (Map.singleton name pos) -- add it to the map of labels
-    addToLabels name pos -- add it to the map of labels
+    addToLabels name (Rel pos) -- add it to the map of labels
     return name
 
 localLabel :: MyParser String
@@ -284,7 +292,7 @@ setEntry = modifyState . setEntry' where
     setEntry' name (i, "", labl) = (i, name, labl) 
     setEntry' _ _ = error "multiple entries?" 
 
-addToLabels :: String -> Integer -> MyParser ()
+addToLabels :: String -> Val -> MyParser ()
 addToLabels name val = lift $ tell (Map.singleton name val)
 
 setLabelPrefix :: String -> MyParser ()
@@ -319,7 +327,7 @@ asmEQU :: MyParser Token
 asmEQU = do
     name <- globalLabel <* skipSpaces <?> ""
     def <- caseInsensitiveString "equ" *> skipSpaces *> expr
-    addToLabels name def -- add it to the map of labels
+    addToLabels name (Abs def) -- add it to the map of labels
     return $ EQU name def
 
 asmDS :: MyParser Token
@@ -360,7 +368,7 @@ asmExtern :: MyParser Token
 asmExtern = do
     caseInsensitiveString "extern" <* skipSpaces <?> "EXTERN"
     args <- globalLabel `sepBy1` (char ',' *> spaces)
-    forM_ args (flip addToLabels (-9)) -- FIXME: what value should it have?
+    forM_ args (flip addToLabels (Abs (-9))) -- FIXME: what value should it have?
 --     traverse_ (flip addToLabels (-9)) args -- FIXME: what value should it have?
 --     mapM_ (flip addToLabels (-9)) args  -- FIXME: what value should it have?
 --     traceM $ "asmExtern: args: " ++ show args
@@ -370,7 +378,7 @@ asmPublic :: MyParser Token
 asmPublic = do
     caseInsensitiveString "public" <* skipSpaces <?> "PUBLIC"
     args <- globalLabel `sepBy1` (char ',' *> spaces)
-    forM_ args (flip addToLabels (-9)) -- FIXME: what value should it have?
+    forM_ args (flip addToLabels (Rel (-9))) -- FIXME: what value should it have?
 --     traverse_ (flip addToLabels (-9)) args -- FIXME: what value should it have?
 --     mapM_ (flip addToLabels (-9)) args  -- FIXME: what value should it have?
 --     return $ Public (show args)
