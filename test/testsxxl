@@ -12,7 +12,6 @@ for filename in *.out ; do
     echo "$filename"
 # #     echo "compare with: .output.$filename"
     ../build/hsxxl "$filename" > "/tmp/testsxxl.sxx"
-    ../build/hsxx "/tmp/testsxxl.sxx" | \
     if [ -f ".input.$filename" ] ; then
         ../build/hsxx "/tmp/testsxxl.sxx" < ".input.$filename" > "/tmp/output"
     else 
