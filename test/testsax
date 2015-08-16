@@ -14,7 +14,6 @@ for filename in *.sax ; do
 # #     echo "compare with: .output.$filename"
     ../build/hsax "$filename" > "/tmp/testsax.out"
     ../build/hsxxl "/tmp/testsax.out" > "/tmp/testsax.sxx"
-    ../build/hsxx "/tmp/testsax.sxx" | \
     if [ -f ".input.$filename" ] ; then
         ../build/hsxx "/tmp/testsax.sxx" < ".input.$filename" > "/tmp/output"
     else 
