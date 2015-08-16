@@ -4,7 +4,7 @@ mkdir -p  "build/"
 cd  "build/"
 ghc "Hsax.hs" -o "hsax" || exit 2
 ghc "Hsxxl.hs" -o "hsxxl" || exit 3
-ghc "Hsxx.hs" -o "hsxx" || exit 4
+ghc -O2 "Hsxx.hs" -o "hsxx" || exit 4
 
 cd "../sax/"
 echo "testing all files in sax/ ..."
