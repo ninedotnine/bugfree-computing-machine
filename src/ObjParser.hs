@@ -183,10 +183,10 @@ relocDict = skipMany $ do
 eep :: MyParser ()
 eep = skipMany (try entry <|> extern <|> public)
 
--- FIXME : this breaks if the entry label is not "main"
+-- FIXME : this discards the name of the entry. is that okay? 
 entry :: MyParser ()
 entry = do 
-    ent <- string "ENTRY main " *> readNum <* skipToEOL
+    ent <- string "ENTRY " *> label *> skipSpaces *> readNum <* skipToEOL
     info <- getState
     when (getEntry info /= Nothing) $ fail "multiple ENTRY"
     putState $ setEntry (Just ent) info
