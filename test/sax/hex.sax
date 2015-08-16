@@ -1,15 +1,13 @@
 stuff equ 0xa2 ; 162
 
-main:   call prompt
-        read
-        call prompt
-        read
-        add
+main:   pushv stuff
+        call hash
+        addx 9
         print
         pushv 10
         printc
         halt
 
-prompt: pushv '>
+hash: pushv '#
         printc
         return
