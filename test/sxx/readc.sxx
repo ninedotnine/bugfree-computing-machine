@@ -1,0 +1,25 @@
+%SXX+Executable
+16 text length
+0 ENTRY (default)
+% text
+# call readc twice and multiply them 
+22
+12
+41
+22
+12
+41
+29
+40
+2
+10
+42
+26
+2
+62
+42
+24
+% relocation dictionary
+1
+4
+% end of executable module
