@@ -4,8 +4,8 @@ import Prelude hiding (or, and)
 
 import Control.Monad (forever, join, when, ap, liftM2)
 
-import Data.Char (ord, chr)
-import Data.IORef (IORef, newIORef) 
+import Data.Char (ord, chr, isDigit, isSpace)
+import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Int (Int32, Int16)
 import qualified Data.Vector.Unboxed.Mutable as V (new, write)
 
@@ -23,14 +23,16 @@ import Control.Applicative ((<$>), (<*>), (<*))
 
 main :: IO ()
 main = do
+    stdin <- getContents
     mem <- V.new 16384
     V.write mem 0 (16384 :: Int32) -- initialize SP
     args <- getArgs
     input <- readFile (head args)
     entryPoint <- populateVector mem input 
     pc <- newIORef (15 + entryPoint)
+    inptr <- newIORef stdin
     putStrLn "beginning execution --------------------"
-    forever $ execute mem pc 
+    forever $ execute mem pc inptr
 
 {-
 printStack :: MyVector -> IO ()
@@ -42,8 +44,8 @@ printStack vec = do
     printVector sp (16384 - (sp)) vec
 -}
 
-execute :: MyVector -> IORef Int16 -> IO ()
-execute !mem !pc = do 
+execute :: MyVector -> IORef Int16 -> IORef String -> IO ()
+execute !mem !pc stdin = do 
     let ?mem = mem
         ?pc  = pc 
     incPC
@@ -109,18 +111,23 @@ execute !mem !pc = do
         ADDSP -> addSP =<< getArg
 
         -- FIXME: READ, READC maybe wrong implementation
-        READ  -> push =<< (read <$> getInput)
+        READ  -> push =<< readn stdin
         PRINT -> pop >>= (putStr . show)
-        READC  -> push =<< (fmap (toCell . ord . head) getInput)
+        READC  -> push =<< (fmap (toCell . ord) (readc stdin))
         PRINTC -> pop >>= (putChar . chr . toInt) >> hFlush stdout 
         TRON  -> putStrLn "TRON does nothing"
         TROFF -> putStrLn "TROFF does nothing"
         DUMP  -> putStrLn "DUMP does nothing"
         ERROR -> putStrLn "ERROR isn't even a real opcode"
 
-getInput :: IO String
-getInput = do 
-    x <- getLine
-    if null x 
-        then getInput
-        else return x
+readn :: IORef String -> IO Int32
+readn stdin = do 
+    (num, input) <- (span isDigit . dropWhile isSpace) <$> readIORef stdin
+    writeIORef stdin input
+    return (read num)
+
+readc :: IORef String -> IO Char
+readc stdin = do
+    input <- readIORef stdin
+    writeIORef stdin (tail input)
+    return (head input)
