@@ -109,11 +109,18 @@ execute !mem !pc = do
         ADDSP -> addSP =<< getArg
 
         -- FIXME: READ, READC maybe wrong implementation
-        READ  -> push =<< (read <$> getLine)
+        READ  -> push =<< (read <$> getInput)
         PRINT -> pop >>= (putStr . show)
-        READC  -> push =<< (fmap (toCell . ord . head) getLine)
+        READC  -> push =<< (fmap (toCell . ord . head) getInput)
         PRINTC -> pop >>= (putChar . chr . toInt) >> hFlush stdout 
         TRON  -> putStrLn "TRON does nothing"
         TROFF -> putStrLn "TROFF does nothing"
         DUMP  -> putStrLn "DUMP does nothing"
         ERROR -> putStrLn "ERROR isn't even a real opcode"
+
+getInput :: IO String
+getInput = do 
+    x <- getLine
+    if null x 
+        then getInput
+        else return x
