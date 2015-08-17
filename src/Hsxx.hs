@@ -113,7 +113,7 @@ execute !mem !pc stdin = do
         -- FIXME: READ, READC maybe wrong implementation
         READ  -> push =<< readn stdin
         PRINT -> pop >>= (putStr . show)
-        READC  -> push =<< (fmap (toCell . ord) (readc stdin))
+        READC  -> push =<< readc stdin
         PRINTC -> pop >>= (putChar . chr . toInt) >> hFlush stdout 
         TRON  -> putStrLn "TRON does nothing"
         TROFF -> putStrLn "TROFF does nothing"
@@ -126,8 +126,9 @@ readn stdin = do
     writeIORef stdin input
     return (read num)
 
-readc :: IORef String -> IO Char
+readc :: IORef String -> IO Int32
 readc stdin = do
     input <- readIORef stdin
-    writeIORef stdin (tail input)
-    return (head input)
+    case input of
+        [] -> return (-1)
+        (char:etc) -> writeIORef stdin etc >> return (toCell (ord char))
