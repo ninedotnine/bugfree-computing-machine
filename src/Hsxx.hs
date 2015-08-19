@@ -7,6 +7,7 @@ import Control.Monad (forever, join, when, ap, liftM2)
 import Data.Char (ord, chr, isDigit, isSpace)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Int (Int32, Int16)
+import Text.Read (readMaybe)
 import qualified Data.Vector.Unboxed.Mutable as V (new, write)
 
 import System.Environment (getArgs)
@@ -124,7 +125,9 @@ readn :: IORef String -> IO Int32
 readn stdin = do 
     (num, input) <- (span isDigit . dropWhile isSpace) <$> readIORef stdin
     writeIORef stdin input
-    return (read num)
+    case readMaybe num of
+        Just v -> return v
+        Nothing -> error $ "not an integer: \"" ++ num ++ "\""
 
 readc :: IORef String -> IO Int32
 readc stdin = do
