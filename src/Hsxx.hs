@@ -123,7 +123,7 @@ execute !mem !pc stdin = do
 
 readn :: IORef String -> IO Int32
 readn stdin = do 
-    (num, input) <- (span isDigit . dropWhile isSpace) <$> readIORef stdin
+    (num, input) <- (span (liftM2 (||) (=='-') isDigit) . dropWhile isSpace) <$> readIORef stdin
     writeIORef stdin input
     case readMaybe num of
         Just v -> return v
