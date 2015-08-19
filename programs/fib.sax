@@ -1,7 +1,7 @@
 ; subroutine to print a value followed by a newline
 start:
 	entry	main
-@prt:
+prt:
 	swap
 	print
 	pushv	10
@@ -21,5 +21,5 @@ main:
 	add
 	dupl
 	call	prt
-	br	loop
+	br	@loop
 
