@@ -12,5 +12,6 @@
 
 ---------- hsxx ----------
 [ ] investigate behaviour of BR: does it set the PC and then also increment it?
+[ ] reading multiple negative signs is weird
 
 ---------- compiler ----------
