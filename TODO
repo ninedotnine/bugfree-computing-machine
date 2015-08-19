@@ -9,6 +9,7 @@
 [ ] labels silently truncated after 30 characters.
 [ ] check for multiply-defined labels
 [ ] magic '$'
+[ ] somehow i need to be able to tell whether a label is local or global
 
 ---------- decommenter ----------
 
