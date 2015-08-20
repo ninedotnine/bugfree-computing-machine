@@ -7,7 +7,6 @@ import Control.Monad (forever, join, when, ap, liftM2, mplus)
 import Data.Char (ord, chr, isDigit, isSpace)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Int (Int32, Int16)
-import Text.Read (readMaybe)
 import qualified Data.Vector.Unboxed.Mutable as V (new, write)
 
 import System.Environment (getArgs)
@@ -21,6 +20,16 @@ import SXXVector
 #if __GLASGOW_HASKELL__ < 710
 import Control.Applicative ((<$>), (<*>), (<*))
 #endif
+
+#if __GLASGOW_HASKELL__ > 705
+import Text.Read (readMaybe)
+#else
+readMaybe :: (Read a) => String -> Maybe a
+readMaybe s = case reads s of
+    [(x, "")] -> Just x
+    _ -> Nothing
+#endif
+
 
 main :: IO ()
 main = do
