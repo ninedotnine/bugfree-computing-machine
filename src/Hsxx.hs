@@ -123,11 +123,15 @@ execute !mem !pc stdin = do
 
 readn :: IORef String -> IO Int32
 readn stdin = do 
-    (num, input) <- (span (liftM2 (||) (=='-') isDigit) . dropWhile isSpace) <$> readIORef stdin
+    (num, input) <- (span (liftM2 (||) (`elem` "+-") isDigit) . dropWhile isSpace) <$> readIORef stdin
     writeIORef stdin input
     case readMaybe num of
         Just v -> return v
-        Nothing -> error $ "not an integer: \"" ++ num ++ "\""
+        Nothing -> if head num == '+'
+            then case readMaybe (tail num) of
+                Just v -> return v
+                Nothing -> error $ "not an integer: \"" ++ num ++ "\""
+            else error $ "not an integer: \"" ++ num ++ "\""
 
 readc :: IORef String -> IO Int32
 readc stdin = do
