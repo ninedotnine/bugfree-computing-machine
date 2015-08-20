@@ -2,7 +2,7 @@
 {-# LANGUAGE BangPatterns, CPP, DataKinds, ImplicitParams #-}
 import Prelude hiding (or, and)
 
-import Control.Monad (forever, join, when, ap, liftM2)
+import Control.Monad (forever, join, when, ap, liftM2, mplus)
 
 import Data.Char (ord, chr, isDigit, isSpace)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef)
@@ -111,7 +111,6 @@ execute !mem !pc stdin = do
         ADDX -> push =<< liftM2 (+) getArg pop
         ADDSP -> addSP =<< getArg
 
-        -- FIXME: READ, READC maybe wrong implementation
         READ  -> push =<< readn stdin
         PRINT -> pop >>= (putStr . show)
         READC  -> push =<< readc stdin
@@ -123,15 +122,16 @@ execute !mem !pc stdin = do
 
 readn :: IORef String -> IO Int32
 readn stdin = do 
-    (num, input) <- (span (liftM2 (||) (`elem` "+-") isDigit) . dropWhile isSpace) <$> readIORef stdin
-    writeIORef stdin input
-    case readMaybe num of
+    input <- dropWhile isSpace <$> readIORef stdin
+    -- FIXME: this allows '+' and '-' even in the middle or after a num
+    let (num, etc) = span (liftM2 (||) (`elem` "+-") isDigit) input
+    writeIORef stdin etc
+    case readMaybe num `mplus` readPlusMaybe num of
         Just v -> return v
-        Nothing -> if head num == '+'
-            then case readMaybe (tail num) of
-                Just v -> return v
-                Nothing -> error $ "not an integer: \"" ++ num ++ "\""
-            else error $ "not an integer: \"" ++ num ++ "\""
+        Nothing -> error $ "not an integer: \"" ++ num ++ "\""
+    where readPlusMaybe str = if not (null str) && head str == '+'
+            then readMaybe (tail str)
+            else Nothing
 
 readc :: IORef String -> IO Int32
 readc stdin = do
