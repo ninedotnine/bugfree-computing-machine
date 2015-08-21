@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+-- {-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wall #-} 
 -- module Hsax where
 -- import Prelude hiding (mapM_, words, error, fst, snd)
@@ -8,9 +9,11 @@ import System.Environment (getArgs)
 -- import System.Exit  (exitFailure)
 -- import System.Time (getClockTime)
 import Data.Time 
+import Data.Char (ord)
 -- import Text.ParserCombinators.Parsec (parse)
-import Text.ParserCombinators.Parsec (ParseError)
--- import Text.Parsec.Prim (runParserT)
+-- import Text.ParserCombinators.Parsec (ParseError)
+import Text.Parsec hiding (labels)
+import Text.Read (readMaybe)
 import Control.Monad
 import Control.Monad.Writer
 #if __GLASGOW_HASKELL__ < 710
@@ -22,15 +25,19 @@ import Control.Applicative ((<$>))
 -- import qualified Data.Map.Strict as Map
 #if __GLASGOW_HASKELL__ < 706
 import Data.Map (Map, (!))
-import qualified Data.Map as Map (showTree)
+import qualified Data.Map as Map (showTree, lookup)
 #else
 import Data.Map.Strict (Map, (!))
-import qualified Data.Map.Strict as Map (showTree)
+import qualified Data.Map.Strict as Map (showTree, lookup)
 #endif
 -- import Data.Maybe (fromJust)
 import Data.List (intersperse)
 
+import Debug.Trace (trace)
 import AsmParser
+
+traceM :: (Monad m) => String -> m ()
+traceM str = trace str $ return ()
 
 main :: IO ()
 main = do
@@ -94,6 +101,7 @@ the writer: ([Integer], [String], [String])
         gen (Entry x) = return $ "# entry found: " ++ show x
         gen (Op x) = return $ show (fromEnum x) ++ " # " ++ show x
         gen (Lit x) = return $ show x
+        gen (LitExpr expr) = return $ show $ eval expr
         gen (NewLabel str) = return $ "# " ++ str
         gen (Label str loc) = let val = labels ! str in do
             -- (!) is unsafe, but should be fine here 
@@ -106,6 +114,80 @@ the writer: ([Integer], [String], [String])
             return ("# extern here: " ++ (concat $ intersperse ", " $ names))
         gen (Public names) = addPublic names >>
             return ("# public here: " ++ (concat $ intersperse ", " $ names))
+
+        eval :: String -> Integer
+        eval str = case runParser expr labels "evaller" str of
+--                 Right x -> trace ("HIYA: " ++ str) x
+                Right x -> x
+                Left _ -> 9999999 -- FIXME: i hope this never happens
+
+
+--------------------------------------------
+
+type EvalParser a = Parsec String Labels a
+-- FIXME: expressions don't support labels
+expr   :: EvalParser Integer
+expr   = (term <* spaces) `chainl1` (addop) <?> "expression" -- FIXME
+
+term   :: EvalParser Integer
+term   = (factor <* spaces) `chainl1` (mulop) <?> "term"
+
+factor :: EvalParser Integer
+-- factor = intOrChar <|> parens expr <?> "factor"
+factor = intOrChar <|> parens expr <|> var <?> "factor"
+    where parens = between (char '(' *> spaces) (char ')')
+
+var :: EvalParser Integer
+var = do
+    name <- labelName
+--     traceM $ "NAAAAAAAME: " ++  name
+    labels <- getState 
+    case Map.lookup name labels of
+        Nothing -> return 99988889
+        Just (Rel x) -> return x
+        Just (Abs x) -> return x
+
+labelName :: EvalParser String
+labelName = (globalLabel) <?> "label"
+-- labelName = (localLabel <|> globalLabel) <* skipMany skipJunk <?> "label"
+
+{-
+localLabel :: EvalParser String
+localLabel = do
+    char '@'
+    tailer <- many labelChar
+    header <- getLabelPrefix
+--     traceM $ header is: " ++ header
+    return (header ++ '-' : tailer) -- join them with '-' to prevent clashes
+    -}
+
+globalLabel :: EvalParser String
+globalLabel = (:) <$> letter <*> (many labelChar)
+
+labelChar :: EvalParser Char
+labelChar = letter <|> digit <|> oneOf "._"
+
+
+mulop :: EvalParser (Integer -> Integer -> Integer)
+mulop = spaces *> char '*' *> spaces *> return (*)
+    <|> spaces *> char '/' *> spaces *> return div 
+    <|> spaces *> char '%' *> spaces *> return rem
+
+addop :: EvalParser (Integer -> Integer -> Integer)
+addop = spaces *> char '+' *> spaces *> return (+)
+    <|> spaces *> char '-' *> spaces *> return (-)
+
+intOrChar :: EvalParser Integer
+intOrChar = sign <*> (try octInt <|> try hexInt <|> int <|> asmChar) <?> "lit"
+    where
+    int, octInt, hexInt, asmChar :: EvalParser Integer
+    octInt = char '0' *> (read . ("0o"++) <$> many1 octDigit)
+    hexInt = string "0x" *> (read . ("0x"++) <$> many1 hexDigit)
+    int = read <$> (many1 digit)
+    asmChar = toInteger . ord <$> (char '\'' *> anyChar)
+    sign :: EvalParser (Integer -> Integer)
+    sign = char '-' *> return negate <|> optional (char '+') *> return id
+
 
 --------------------------------------------
 

@@ -114,7 +114,7 @@ Writer Labels is the transformed monad. when a label is parsed,
 -}
 type Labels = Map.Map String Val
 data Val = Abs Integer
-        | Rel Integer
+        | Rel Integer -- this could probably be done with phantom types?
 
 instance Show Val where
     show (Abs x) = show x
@@ -127,6 +127,8 @@ an Op is any of the opcodes
 a Label is a label
 -}
 data Token = Lit Integer
+--             | LitExpr Expr
+            | LitExpr String
             | Op Instruction
             | Label String Integer -- the int is the current location counter
             | NewLabel String
@@ -135,9 +137,10 @@ data Token = Lit Integer
             | EQU String Integer 
             | Entry EntryPoint
             | Extern [String]
---             | Public String -- FIXME: [String], just like Extern i think
             | Public [String] -- FIXME: [String], just like Extern i think
             deriving (Show)
+
+-- newtype Expr = Expr String deriving (Show)
 
 newtype EntryPoint = EntryPoint String deriving (Eq)
 
@@ -158,8 +161,9 @@ instructions = do
 
 instruction :: MyParser Token
 instruction = skipMany skipJunk *>
-    fmap Lit intOrChar <* loc (+1)
-    <|> try asmEQU 
+--     fmap Lit intOrChar <* loc (+1)
+--     asmExpr <* loc (+1)
+    try asmEQU
     <|> try asmDS 
     <|> try asmDW 
     <|> try asmEntry 
@@ -167,7 +171,8 @@ instruction = skipMany skipJunk *>
     <|> try asmPublic
     <|> try newLabel 
     <|> try opcode <* loc (+1)
-    <|> label <* loc (+1)
+    <|> try label <* loc (+1)
+    <|> asmExpr <* loc (+1)
 
 
 newLabel :: MyParser Token
@@ -224,6 +229,65 @@ opcode = do
         readOpSynonym "BF"    = Just BEQ
         readOpSynonym "POPPC" = Just RETURN
         readOpSynonym _       = Nothing
+
+asmExpr :: MyParser Token
+-- asmExpr = LitExpr <$> asmExprStr
+asmExpr = LitExpr <$> tempexpr
+
+---------------------------------------------------------------------------
+
+tempexpr :: MyParser String
+tempexpr = (do
+    first <- spaces *> tempterm <* spaces
+    more <- many ((:) <$> oneOf "+-" <*> tempterm)
+    return (concat (first:more))) <?> "expression"
+
+tempterm :: MyParser String
+tempterm = (do
+    first <- spaces *> tempfactor <* spaces
+    more <- many ((:) <$> oneOf "*/%" <*> tempfactor)
+    return (concat (first:more))) <?> "tempterm"
+
+tempfactor :: MyParser String
+tempfactor = spaces *> (show <$> intOrChar <|> subExpr <|> labelName) <* spaces <?> "tempfactor"
+--     where subExpr = concat <$> sequence [string "(", tempexpr, string ")"] 
+    where subExpr = char '(' <:> tempexpr <++> string ")"
+
+---------------------------------------------------------------------------
+
+asmExprStr :: MyParser String
+asmExprStr = do
+    first <- term'
+    more <- term' `sepBy` spaces
+    return (concat (first:more)) <?> "new expression" -- FIXME
+--     str <- intOrChar <|> label
+--     str <- labelName
+
+-- FIXME: expressions don't support labels
+-- expr   :: MyParser Integer
+-- expr   = (term <* spaces) `chainl1` (addop) <?> "expression" -- FIXME
+
+term'   :: MyParser String
+-- term'   = (factor' <* spaces) `chainl1` (mulop) <?> "term"
+term'   = do
+    first <- factor'
+    more <- factor' `sepBy` (spaces *> oneOf "*/%" <* spaces)
+    return (concat (first:more)) <?> "new term"
+
+
+factor' :: MyParser String
+factor' = (show <$> intOrChar) <|> parens asmExprStr <?> "factor"
+    where parens = between (char '(' *> spaces) (char ')')
+
+-- mulop :: MyParser (Integer -> Integer -> Integer)
+-- mulop = spaces *> char '*' *> spaces *> return (*)
+--     <|> spaces *> char '/' *> spaces *> return div 
+--     <|> spaces *> char '%' *> spaces *> return rem
+
+-- addop :: MyParser (Integer -> Integer -> Integer)
+-- addop = spaces *> char '+' *> spaces *> return (+)
+--     <|> spaces *> char '-' *> spaces *> return (-)
+
 
 intOrChar :: MyParser Integer
 intOrChar = sign <*> (try octInt <|> try hexInt <|> int <|> asmChar) <?> "lit"
@@ -375,3 +439,9 @@ asmPublic = do
 --     mapM_ (flip addToLabels (-9)) args  -- FIXME: what value should it have?
 --     return $ Public (show args)
     return $ Public (args)
+
+
+(<:>) :: MyParser Char -> MyParser String -> MyParser String
+a <:> b = (:) <$> a <*> b
+(<++>) :: MyParser String -> MyParser String -> MyParser String
+a <++> b = (++) <$> a <*> b
