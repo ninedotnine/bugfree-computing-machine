@@ -1,0 +1,20 @@
+stuff equ 99
+
+main:   call lpar
+        pushv (2 * stuff)
+        print
+        call rpar
+        call done
+
+lpar: pushv '(
+      printc
+      return
+
+rpar: pushv ')
+      printc
+      return
+
+done: 
+    pushv 10
+    printc
+    halt
