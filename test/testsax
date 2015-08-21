@@ -1,27 +1,65 @@
 #!/bin/dash
 
+# makes output prettier
+boldon=$(tput bold)
+boldoff=$(tput sgr0)
+colour='\033[36m'
+NC='\033[0m' # no colour
+
+# will be returned to the os
+exit_status=0
+
+# list of files that didn't work
+borked="\n$colour broken stuff:$NC$boldon"
+
 mkdir -p  "build/"
 cd  "build/"
-ghc "Hsax.hs" -o "hsax" || exit 2
-ghc "Hsxxl.hs" -o "hsxxl" || exit 3
-ghc -O2 "Hsxx.hs" -o "hsxx" || exit 4
+ghc -O2 "Hsax.hs" -o "hsax" || exit 97
+ghc -O2 "Hsxxl.hs" -o "hsxxl" || exit 98
+ghc -O2 "Hsxx.hs" -o "hsxx" || exit 99
 
 cd "../sax/"
-echo "testing all files in sax/ ..."
 
-for filename in *.sax ; do
-    echo "$filename"
-# #     echo "compare with: .output.$filename"
+if [ "$#" -eq 1 ]; then
+    # if argument is provided, test only that file 
+    filename=$(basename "$1")
     ../build/hsax "$filename" > "/tmp/testsax.out"
     ../build/hsxxl "/tmp/testsax.out" > "/tmp/testsax.sxx"
     if [ -f ".input.$filename" ] ; then
         ../build/hsxx "/tmp/testsax.sxx" < ".input.$filename" > "/tmp/output"
-    else 
+    else
         ../build/hsxx "/tmp/testsax.sxx" > "/tmp/output"
     fi
+    # if files aren't equal, drop into vimdiff
     awk '/beginning execution --------------------/,0' "/tmp/output" | \
-        diff ".output.$filename" - || exit 1
+        diff --brief ".output.$filename" - \
+            && echo "aw yay!" || vimdiff -R "/tmp/output" ".output.$filename"
+else
+    # else just compare everything in the test directory
+    echo "testing all files in sax/ ..."
 
-done
+    for filename in *.sax ; do
+        echo "$boldon $filename $boldoff" 
+        ../build/hsax "$filename" > "/tmp/testsax.out"
+        ../build/hsxxl "/tmp/testsax.out" > "/tmp/testsax.sxx"
+        if [ -f ".input.$filename" ] ; then
+            ../build/hsxx "/tmp/testsax.sxx" < ".input.$filename" > "/tmp/output"
+        else 
+            ../build/hsxx "/tmp/testsax.sxx" > "/tmp/output"
+        fi
+        awk '/beginning execution --------------------/,0' "/tmp/output" | \
+            diff --brief ".output.$filename" -
+        if [ ! "$?" -eq 0 ]; then
+            exit_status=$((exit_status+1))
+            borked="$borked \n$filename"
+        fi
+    done
+fi
 
-echo "OK :~)"
+if [ "$exit_status" -eq 0 ]; then
+    echo "OK :~)"
+else
+    echo "$borked$boldoff"
+fi
+
+return "$exit_status"
