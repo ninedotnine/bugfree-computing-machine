@@ -175,11 +175,7 @@ newLabel = NewLabel <$> (newGlobalLabel <|> newLocalLabel) <* skipMany skipJunk
         <?> "label"
 
 label :: MyParser Token
--- label = Label <$> (localLabel <|> globalLabel) <* skipMany skipJunk
-label = do 
-    str <- labelName
-    int <- getLoc
-    return $ Label str int
+label = Label <$> labelName <*> getLoc
 
 labelName :: MyParser String
 labelName = (localLabel <|> globalLabel) <* skipMany skipJunk <?> "label"
