@@ -207,11 +207,7 @@ localLabel = do
     return (header ++ '-' : tailer) -- join them with '-' to prevent clashes
 
 globalLabel :: MyParser String
-globalLabel = do
-    header <- letter
-    tailer <- many labelChar
-    return (header:tailer)
-
+globalLabel = (:) <$> letter <*> (many labelChar)
 
 opcode :: MyParser Token
 opcode = do 
