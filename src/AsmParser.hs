@@ -56,22 +56,6 @@ readMaybe s = case reads s of
 traceM :: (Monad m) => String -> m ()
 traceM str = trace str $ return ()
 
-testfile :: FilePath
-testfile = "programs/testfile6"
-
-main :: IO ()
-main = do
-    putStrLn $ "# object module for file: " ++ testfile
-    c <- readFile testfile
-    let result :: Either ParseError (Integer, EntryPoint, [Token], Labels)
-        result = parseEverything testfile c
-    putStr "result is: " >> print result
-    putStrLn  "------------------------------------------"
-    case result of
-        Left err -> putStrLn $ "error: " ++ (show err)
-        Right r -> print r
-    putStrLn "okay"
-
 parseEverything :: SourceName 
         -> String 
         -> Either ParseError (Integer, EntryPoint, [Token], Labels)
