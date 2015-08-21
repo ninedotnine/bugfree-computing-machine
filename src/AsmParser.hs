@@ -146,7 +146,6 @@ instructions = do
 instruction :: MyParser Token
 instruction = skipMany skipJunk *>
 --     fmap Lit intOrChar <* loc (+1)
---     asmExpr <* loc (+1)
     try asmEQU
     <|> try asmDS 
     <|> try asmDW 
@@ -156,7 +155,7 @@ instruction = skipMany skipJunk *>
     <|> try newLabel 
     <|> try opcode <* loc (+1)
     <|> try label <* loc (+1)
-    <|> asmExpr <* loc (+1)
+    <|> LitExpr <$> asmExprStr <* loc (+1)
 
 
 newLabel :: MyParser Token
@@ -214,64 +213,22 @@ opcode = do
         readOpSynonym "POPPC" = Just RETURN
         readOpSynonym _       = Nothing
 
-asmExpr :: MyParser Token
--- asmExpr = LitExpr <$> asmExprStr
-asmExpr = LitExpr <$> tempexpr
-
----------------------------------------------------------------------------
-
-tempexpr :: MyParser String
-tempexpr = (do
-    first <- spaces *> tempterm <* spaces
-    more <- many ((:) <$> oneOf "+-" <*> tempterm)
+asmExprStr :: MyParser String
+asmExprStr = (do
+    first <- spaces *> term <* spaces
+    more <- many ((:) <$> oneOf "+-" <*> term)
     return (concat (first:more))) <?> "expression"
 
-tempterm :: MyParser String
-tempterm = (do
-    first <- spaces *> tempfactor <* spaces
-    more <- many ((:) <$> oneOf "*/%" <*> tempfactor)
-    return (concat (first:more))) <?> "tempterm"
+term :: MyParser String
+term = (do
+    first <- spaces *> factor <* spaces
+    more <- many ((:) <$> oneOf "*/%" <*> factor)
+    return (concat (first:more))) <?> "term"
 
-tempfactor :: MyParser String
-tempfactor = spaces *> (show <$> intOrChar <|> subExpr <|> labelName) <* spaces <?> "tempfactor"
+factor :: MyParser String
+factor = spaces *> (show <$> intOrChar <|> subExpr <|> labelName) <* spaces <?> "factor"
 --     where subExpr = concat <$> sequence [string "(", tempexpr, string ")"] 
-    where subExpr = char '(' <:> tempexpr <++> string ")"
-
----------------------------------------------------------------------------
-
-asmExprStr :: MyParser String
-asmExprStr = do
-    first <- term'
-    more <- term' `sepBy` spaces
-    return (concat (first:more)) <?> "new expression" -- FIXME
---     str <- intOrChar <|> label
---     str <- labelName
-
--- FIXME: expressions don't support labels
--- expr   :: MyParser Integer
--- expr   = (term <* spaces) `chainl1` (addop) <?> "expression" -- FIXME
-
-term'   :: MyParser String
--- term'   = (factor' <* spaces) `chainl1` (mulop) <?> "term"
-term'   = do
-    first <- factor'
-    more <- factor' `sepBy` (spaces *> oneOf "*/%" <* spaces)
-    return (concat (first:more)) <?> "new term"
-
-
-factor' :: MyParser String
-factor' = (show <$> intOrChar) <|> parens asmExprStr <?> "factor"
-    where parens = between (char '(' *> spaces) (char ')')
-
--- mulop :: MyParser (Integer -> Integer -> Integer)
--- mulop = spaces *> char '*' *> spaces *> return (*)
---     <|> spaces *> char '/' *> spaces *> return div 
---     <|> spaces *> char '%' *> spaces *> return rem
-
--- addop :: MyParser (Integer -> Integer -> Integer)
--- addop = spaces *> char '+' *> spaces *> return (+)
---     <|> spaces *> char '-' *> spaces *> return (-)
-
+    where subExpr = char '(' <:> asmExprStr <++> string ")"
 
 intOrChar :: MyParser Integer
 intOrChar = sign <*> (try octInt <|> try hexInt <|> int <|> asmChar) <?> "lit"
@@ -344,14 +301,14 @@ getLabelPrefix = getState >>= \(_, _, labl) -> return labl
 
 
 -- FIXME: expressions don't support labels
-expr   :: MyParser Integer
-expr   = (term <* spaces) `chainl1` (addop) <?> "expression" -- FIXME
+pass1expr   :: MyParser Integer
+pass1expr   = (pass1term <* spaces) `chainl1` (addop) <?> "expression" -- FIXME
 
-term   :: MyParser Integer
-term   = (factor <* spaces) `chainl1` (mulop) <?> "term"
+pass1term   :: MyParser Integer
+pass1term   = (pass1factor <* spaces) `chainl1` (mulop) <?> "pass1term"
 
-factor :: MyParser Integer
-factor = intOrChar <|> parens expr <?> "factor"
+pass1factor :: MyParser Integer
+pass1factor = intOrChar <|> parens pass1expr <?> "pass1factor"
     where parens = between (char '(' *> spaces) (char ')')
 
 mulop :: MyParser (Integer -> Integer -> Integer)
@@ -366,14 +323,14 @@ addop = spaces *> char '+' *> spaces *> return (+)
 asmEQU :: MyParser Token
 asmEQU = do
     name <- globalLabel <* skipSpaces <?> ""
-    def <- caseInsensitiveString "equ" *> skipSpaces *> expr
+    def <- caseInsensitiveString "equ" *> skipSpaces *> pass1expr
     addToLabels name (Abs def) -- add it to the map of labels
     return $ EQU name def
 
 asmDS :: MyParser Token
 asmDS = do
     caseInsensitiveString "ds" *> skipSpaces <?> "DS"
-    size <- expr
+    size <- pass1expr
 -- a DS should not increase the text length...
     loc (+size) -- but its operand should, by its value
     return (DS size)
