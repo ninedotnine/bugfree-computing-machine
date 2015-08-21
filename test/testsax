@@ -54,12 +54,12 @@ else
             borked="$borked \n$filename"
         fi
     done
-fi
 
-if [ "$exit_status" -eq 0 ]; then
-    echo "OK :~)"
-else
-    echo "$borked$boldoff"
+    if [ "$exit_status" -eq 0 ]; then
+        echo "OK :~)"
+    else
+        echo "$borked$boldoff"
+    fi
 fi
 
 return "$exit_status"
