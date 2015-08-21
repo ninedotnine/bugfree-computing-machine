@@ -1,0 +1,7 @@
+entry main
+
+main: pushv 9+2*4 ; 17
+      print
+newl: pushv 40/4
+      printc
+      halt
