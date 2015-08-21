@@ -65,7 +65,7 @@ outputResult filename (textLength, entry, toks, labels) = do
     let (text, metadata) = runWriter (unlines <$> mapM gen toks)
         (relocs, exts, pubs) = metadata :: ([Integer], [String], [String])
     putStrLn text
-    
+
     putStrLn "# -------------------- METADATA --------------------"
     putStrLn $ "# relocs: " ++ show relocs
     putStrLn $ "# exts: " ++ show exts
@@ -100,14 +100,12 @@ the writer: ([Integer], [String], [String])
             -- because i used these very labels to populate the map 
             when (isRelocatable val) (addReloc loc)
             return $ show val ++ "     # label: " ++ str
-        gen (EQU name val) = return $ "# equ here: " ++ name ++ 
-                                                    " = " ++ show val
-        gen (Extern names) = do
-            addExtern names 
-            return (("# extern here: " ++) (concat $ intersperse ", " $ names))
-        gen (Public names) = do
-            addPublic names
-            return $ "# public here: " ++ (concat $ intersperse ", " $ names)
+        gen (EQU name val) = -- FIXME make this check relocatableness
+            return ("# equ here: " ++ name ++ " = " ++ show val)
+        gen (Extern names) = addExtern names >>
+            return ("# extern here: " ++ (concat $ intersperse ", " $ names))
+        gen (Public names) = addPublic names >>
+            return ("# public here: " ++ (concat $ intersperse ", " $ names))
 
 --------------------------------------------
 
@@ -121,9 +119,7 @@ addReloc x = tell ([x], [], [])
 addExtern :: [String] -> Writer ([Integer], [String], [String]) ()
 addExtern = mapM_ (\str -> tell ([], [str], []))
 
--- addPublic :: String -> Writer ([Integer], [String], [String]) ()
 addPublic :: [String] -> Writer ([Integer], [String], [String]) ()
--- addPublic strs = forM_ strs (\str -> tell ([], [], [str]))
 addPublic = mapM_ (\str -> tell ([], [], [str]))
 
 getFileData :: IO (FilePath, String)
