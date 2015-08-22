@@ -8,12 +8,12 @@ import Prelude hiding (mapM_, words, error)
 import System.Environment (getArgs)
 -- import System.Exit  (exitFailure)
 -- import System.Time (getClockTime)
-import Data.Time 
+import Data.Time (getCurrentTime, formatTime, defaultTimeLocale)
 import Data.Char (ord)
 -- import Text.ParserCombinators.Parsec (parse)
 -- import Text.ParserCombinators.Parsec (ParseError)
 import Text.Parsec hiding (labels)
-import Text.Read (readMaybe)
+-- import Text.Read (readMaybe)
 import Control.Monad
 import Control.Monad.Writer
 #if __GLASGOW_HASKELL__ < 710
@@ -24,20 +24,17 @@ import Control.Applicative ((<$>))
 
 -- import qualified Data.Map.Strict as Map
 #if __GLASGOW_HASKELL__ < 706
-import Data.Map (Map, (!))
+import Data.Map ((!))
 import qualified Data.Map as Map (showTree, lookup)
 #else
-import Data.Map.Strict (Map, (!))
+import Data.Map.Strict ((!))
 import qualified Data.Map.Strict as Map (showTree, lookup)
 #endif
 -- import Data.Maybe (fromJust)
 import Data.List (intersperse)
 
-import Debug.Trace (trace)
+import Debug.Trace (trace, traceM)
 import AsmParser
-
-traceM :: (Monad m) => String -> m ()
-traceM str = trace str $ return ()
 
 main :: IO ()
 main = do
@@ -46,7 +43,6 @@ main = do
 --     let result :: Either ParseError (Integer, String, [Token], [(String, Integer)])
     let result :: Either ParseError (Integer, EntryPoint, [Token], Labels)
         result = parseEverything filename input 
---     print result
     case result of
         Left error -> putStrLn $ "HEY! NOPE!" ++ (show error)
         Right r -> outputResult filename r
