@@ -9,7 +9,9 @@ import Prelude hiding (mapM_, words)
 import System.Environment (getArgs)
 -- import System.Exit  (exitFailure)
 -- import System.Time (getClockTime)
+#if __GLASGOW_HASKELL__ > 709
 import Data.Time (getCurrentTime, formatTime, defaultTimeLocale)
+#endif
 import Data.Char (ord)
 -- import Text.ParserCombinators.Parsec (parse)
 -- import Text.ParserCombinators.Parsec (ParseError)
@@ -18,7 +20,7 @@ import Text.Parsec hiding (labels)
 import Control.Monad
 import Control.Monad.Writer
 #if __GLASGOW_HASKELL__ < 710
-import Control.Applicative ((<$>))
+import Control.Applicative ((<$>), (<*), (<*>), (*>))
 #endif
 -- import Control.Applicative hiding ((<|>))
 -- import Text.Read 
@@ -34,7 +36,6 @@ import qualified Data.Map.Strict as Map (showTree, lookup)
 -- import Data.Maybe (fromJust)
 import Data.List (intersperse)
 
-import Debug.Trace (trace, traceM)
 import AsmParser
 
 main :: IO ()
