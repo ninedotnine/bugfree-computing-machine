@@ -3,7 +3,8 @@
 {-# OPTIONS_GHC -Wall #-} 
 -- module Hsax where
 -- import Prelude hiding (mapM_, words, error, fst, snd)
-import Prelude hiding (mapM_, words, error)
+-- import Prelude hiding (mapM_, words, error)
+import Prelude hiding (mapM_, words)
 -- import System.IO (hGetContents)
 import System.Environment (getArgs)
 -- import System.Exit  (exitFailure)
@@ -44,7 +45,7 @@ main = do
     let result :: Either ParseError (Integer, EntryPoint, [Token], Labels)
         result = parseEverything filename input 
     case result of
-        Left error -> putStrLn $ "HEY! NOPE!" ++ (show error)
+        Left err -> putStrLn $ "HEY! NOPE!" ++ (show err)
         Right r -> outputResult filename r
 
 outputResult :: FilePath -> (Integer, EntryPoint, [Token], Labels) -> IO ()
@@ -99,10 +100,11 @@ the writer: ([Integer], [String], [String])
         gen (Entry x) = return $ "# entry found: " ++ show x
         gen (Op x) = return $ show (fromEnum x) ++ " # " ++ show x
         gen (Lit x) = return $ show x
---         gen (LitExpr expr) = return $ show $ eval expr
-        gen (LitExpr str) = return $ case runParser expr labels "eval" str of
-            Right x -> show x
-            Left _ -> "9999999" -- FIXME: i hope this never happens
+        gen (LitExpr str loc) = case runParser expr labels "eval" str of
+            Right x -> do
+                when (isRelocatable x) (addReloc loc)
+                return $ show x
+            Left err -> error (show err) -- FIXME: i hope this never happens
         gen (NewLabel str) = return $ "# " ++ str
         gen (Label str loc) = let val = labels ! str in do
             -- (!) is unsafe, but should be fine here 
@@ -121,25 +123,26 @@ the writer: ([Integer], [String], [String])
 --------------------------------------------
 
 type EvalParser a = Parsec String Labels a
-expr :: EvalParser Integer
+expr :: EvalParser Val
 expr = (term <* spaces) `chainl1` (addop) <?> "expression"
 
-term :: EvalParser Integer
+term :: EvalParser Val
 term = (factor <* spaces) `chainl1` (mulop) <?> "term"
 
-factor :: EvalParser Integer
+factor :: EvalParser Val
 factor = intOrChar <|> parens expr <|> var <?> "factor"
     where parens = between (char '(' *> spaces) (char ')')
 
-var :: EvalParser Integer
+var :: EvalParser Val
 var = do
     name <- labelName <?> ""
-    traceM $ "NAAAAAAAME: " ++  name
     labels <- getState
+    traceM $ "NAAME: " ++  name ++ " in map: " ++ show (Map.lookup name labels)
     case Map.lookup name labels of
         Nothing -> fail $ "undefined in pass 2: " ++ name
-        Just (Rel x) -> return x
-        Just (Abs x) -> return x
+        Just x -> return x
+--         Just (Rel x) -> return x
+--         Just (Abs x) -> return x
 
 labelName :: EvalParser String
 labelName = (globalLabel) <?> "label"
@@ -162,17 +165,44 @@ labelChar :: EvalParser Char
 labelChar = letter <|> digit <|> oneOf "._"
 
 
-mulop :: EvalParser (Integer -> Integer -> Integer)
-mulop = spaces *> char '*' *> spaces *> return (*)
-    <|> spaces *> char '/' *> spaces *> return div 
-    <|> spaces *> char '%' *> spaces *> return rem
+-- mulop :: EvalParser (Integer -> Integer -> Integer)
+mulop :: EvalParser (Val -> Val -> Val)
+mulop = spaces *> char '*' *> spaces *> return mulVal
+    <|> spaces *> char '/' *> spaces *> return divVal
+    <|> spaces *> char '%' *> spaces *> return modVal
 
-addop :: EvalParser (Integer -> Integer -> Integer)
-addop = spaces *> char '+' *> spaces *> return (+)
-    <|> spaces *> char '-' *> spaces *> return (-)
+-- addop :: EvalParser (Integer -> Integer -> Integer)
+addop :: EvalParser (Val -> Val -> Val)
+addop = spaces *> char '+' *> spaces *> return addVal
+    <|> spaces *> char '-' *> spaces *> return subVal
 
-intOrChar :: EvalParser Integer
-intOrChar = sign <*> (try octInt <|> try hexInt <|> int <|> asmChar) <?> "lit"
+addVal :: Val -> Val -> Val
+addVal (Abs x) (Abs y) = Abs (x + y)
+addVal (Rel x) (Abs y) = Rel (x + y)
+addVal (Abs x) (Rel y) = Rel (x + y)
+addVal (Rel _) (Rel _) = error "addVal: both operands can't be relocatable"
+
+subVal :: Val -> Val -> Val
+subVal (Abs x) (Abs y) = Abs (x - y)
+subVal (Rel x) (Abs y) = Rel (x - y)
+subVal (Abs x) (Rel y) = Rel (x - y)
+subVal (Rel _) (Rel _) = error "subVal: both operands can't be relocatable"
+
+
+mulVal :: Val -> Val -> Val
+mulVal (Abs x) (Abs y) = Abs (x * y)
+mulVal _ _ = error "mulVal: operands must be absolute"
+
+divVal :: Val -> Val -> Val
+divVal (Abs x) (Abs y) = Abs (x `div` y)
+divVal _ _ = error "divVal: operands must be absolute"
+
+modVal :: Val -> Val -> Val
+modVal (Abs x) (Abs y) = Abs (x `rem` y)
+modVal _ _ = error "modVal: operands must be absolute"
+
+intOrChar :: EvalParser Val
+intOrChar = Abs <$> (sign <*> (try octInt <|> try hexInt <|> int <|> asmChar) <?> "lit")
     where
     int, octInt, hexInt, asmChar :: EvalParser Integer
     octInt = char '0' *> (read . ("0o"++) <$> many1 octDigit)
