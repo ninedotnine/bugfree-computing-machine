@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-} 
 {-# OPTIONS_GHC -Wall #-} 
 
 module AsmExprEval (expr) where
@@ -5,6 +6,10 @@ module AsmExprEval (expr) where
 import Data.Char (ord)
 import Text.Parsec hiding (labels)
 import qualified Data.Map as Map (lookup)
+#if __GLASGOW_HASKELL < 710
+import Control.Applicative ((<$>), (<*>), (<*), (*>))
+#endif
+
 
 import AsmParser
 
