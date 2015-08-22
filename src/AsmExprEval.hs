@@ -15,14 +15,14 @@ import AsmParser
 type EvalParser a = Parsec String Labels a
 
 expr :: EvalParser Val
-expr = (term <* spaces) `chainl1` (addop) <?> "expression"
+expr = term `chainl1` addop <?> "expression"
 
 term :: EvalParser Val
-term = (factor <* spaces) `chainl1` (mulop) <?> "term"
+term = factor `chainl1` mulop <?> "term"
 
 factor :: EvalParser Val
 factor = intOrChar <|> parens expr <|> var <?> "factor"
-    where parens = between (char '(' *> spaces) (char ')')
+    where parens = between (char '(') (char ')')
 
 var :: EvalParser Val
 var = do
@@ -49,13 +49,13 @@ labelChar = letter <|> digit <|> oneOf "._"
 
 
 addop :: EvalParser (Val -> Val -> Val)
-addop = spaces *> char '+' *> spaces *> return (addVal (+))
-    <|> spaces *> char '-' *> spaces *> return (addVal subtract)
+addop = char '+' *> return (addVal (+))
+    <|> char '-' *> return (addVal subtract)
 
 mulop :: EvalParser (Val -> Val -> Val)
-mulop = spaces *> char '*' *> spaces *> return (mulVal (*))
-    <|> spaces *> char '/' *> spaces *> return (mulVal div)
-    <|> spaces *> char '%' *> spaces *> return (mulVal rem)
+mulop = char '*' *> return (mulVal (*))
+    <|> char '/' *> return (mulVal div)
+    <|> char '%' *> return (mulVal rem)
 
 addVal :: (Integer -> Integer -> Integer) -> Val -> Val -> Val
 addVal op (Abs x) (Abs y) = Abs (x `op` y)
