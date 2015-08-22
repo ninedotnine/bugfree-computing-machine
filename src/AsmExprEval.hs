@@ -10,77 +10,57 @@ import qualified Data.Map as Map (lookup)
 import Control.Applicative ((<$>), (<*>), (<*), (*>))
 #endif
 
-
 import AsmParser
 
 type EvalParser a = Parsec String Labels a
 
 expr :: EvalParser Val
-expr = (term <* spaces) `chainl1` (addop) <?> "expression"
+expr = term `chainl1` addop <?> "expression"
 
 term :: EvalParser Val
-term = (factor <* spaces) `chainl1` (mulop) <?> "term"
+term = factor `chainl1` mulop <?> "term"
 
 factor :: EvalParser Val
 factor = intOrChar <|> parens expr <|> var <?> "factor"
-    where parens = between (char '(' *> spaces) (char ')')
+    where parens = between (char '(') (char ')')
 
 var :: EvalParser Val
 var = do
-    name <- labelName <?> ""
+    name <- labelName <?> "label"
     labels <- getState
     case Map.lookup name labels of
         Nothing -> fail $ "undefined in pass 2: " ++ name
         Just x -> return x
 
 labelName :: EvalParser String
-labelName = (try localLabel <|> globalLabel) <?> "label"
-
-localLabel :: EvalParser String
-localLabel = do
-    global <- globalLabel
-    tailer <- char '@' *> many1 labelChar
-    return (global ++ '@' : tailer) -- join them with '-' to prevent clashes
-
-globalLabel :: EvalParser String
-globalLabel = (:) <$> letter <*> (many labelChar)
+labelName = do
+    global <- (:) <$> letter <*> (many labelChar)
+    tailer <- optionMaybe (char '@' *> many1 labelChar)
+    case tailer of
+        Just local -> return (global ++ '@' : local) -- join them with '@'
+        Nothing -> return global
 
 labelChar :: EvalParser Char
 labelChar = letter <|> digit <|> oneOf "._"
 
+addop :: EvalParser (Val -> Val -> Val)
+addop = char '+' *> return (addVal (+))
+    <|> char '-' *> return (addVal subtract)
 
 mulop :: EvalParser (Val -> Val -> Val)
-mulop = spaces *> char '*' *> spaces *> return mulVal
-    <|> spaces *> char '/' *> spaces *> return divVal
-    <|> spaces *> char '%' *> spaces *> return modVal
+mulop = char '*' *> return (mulVal (*))
+    <|> char '/' *> return (mulVal div)
+    <|> char '%' *> return (mulVal rem)
 
-addop :: EvalParser (Val -> Val -> Val)
-addop = spaces *> char '+' *> spaces *> return addVal
-    <|> spaces *> char '-' *> spaces *> return subVal
+addVal :: (Integer -> Integer -> Integer) -> Val -> Val -> Val
+addVal op (Abs x) (Abs y) = Abs (x `op` y)
+addVal op (Rel x) (Abs y) = Rel (x `op` y)
+addVal op (Abs x) (Rel y) = Rel (x `op` y)
+addVal _ (Rel _) (Rel _) = error "addVal: both operands can't be relocatable"
 
-addVal :: Val -> Val -> Val
-addVal (Abs x) (Abs y) = Abs (x + y)
-addVal (Rel x) (Abs y) = Rel (x + y)
-addVal (Abs x) (Rel y) = Rel (x + y)
-addVal (Rel _) (Rel _) = error "addVal: both operands can't be relocatable"
-
-subVal :: Val -> Val -> Val
-subVal (Abs x) (Abs y) = Abs (x - y)
-subVal (Rel x) (Abs y) = Rel (x - y)
-subVal (Abs x) (Rel y) = Rel (x - y)
-subVal (Rel _) (Rel _) = error "subVal: both operands can't be relocatable"
-
-mulVal :: Val -> Val -> Val
-mulVal (Abs x) (Abs y) = Abs (x * y)
-mulVal _ _ = error "mulVal: operands must be absolute"
-
-divVal :: Val -> Val -> Val
-divVal (Abs x) (Abs y) = Abs (x `div` y)
-divVal _ _ = error "divVal: operands must be absolute"
-
-modVal :: Val -> Val -> Val
-modVal (Abs x) (Abs y) = Abs (x `rem` y)
-modVal _ _ = error "modVal: operands must be absolute"
+mulVal :: (Integer -> Integer -> Integer) -> Val -> Val -> Val
+mulVal op (Abs x) (Abs y) = Abs (x `op` y)
+mulVal _ _ _ = error "mulVal: operands must be absolute"
 
 intOrChar :: EvalParser Val
 intOrChar = Abs <$> (sign <*> (try octInt <|> try hexInt <|> int <|> asmChar) <?> "lit")
