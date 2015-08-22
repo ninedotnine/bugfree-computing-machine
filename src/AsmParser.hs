@@ -192,7 +192,7 @@ localLabel = do
     tailer <- many labelChar
     header <- getLabelPrefix
 --     traceM $ header is: " ++ header
-    return (header ++ '-' : tailer) -- join them with '-' to prevent clashes
+    return (header ++ '@' : tailer) -- join them with '@' to prevent clashes
 
 globalLabel :: MyParser String
 globalLabel = (:) <$> letter <*> (many labelChar)
