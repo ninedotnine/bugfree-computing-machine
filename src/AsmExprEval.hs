@@ -26,27 +26,22 @@ factor = intOrChar <|> parens expr <|> var <?> "factor"
 
 var :: EvalParser Val
 var = do
-    name <- labelName <?> ""
+    name <- labelName <?> "label"
     labels <- getState
     case Map.lookup name labels of
         Nothing -> fail $ "undefined in pass 2: " ++ name
         Just x -> return x
 
 labelName :: EvalParser String
-labelName = (try localLabel <|> globalLabel) <?> "label"
-
-localLabel :: EvalParser String
-localLabel = do
-    global <- globalLabel
-    tailer <- char '@' *> many1 labelChar
-    return (global ++ '@' : tailer) -- join them with '-' to prevent clashes
-
-globalLabel :: EvalParser String
-globalLabel = (:) <$> letter <*> (many labelChar)
+labelName = do
+    global <- (:) <$> letter <*> (many labelChar)
+    tailer <- optionMaybe (char '@' *> many1 labelChar)
+    case tailer of
+        Just local -> return (global ++ '@' : local) -- join them with '@'
+        Nothing -> return global
 
 labelChar :: EvalParser Char
 labelChar = letter <|> digit <|> oneOf "._"
-
 
 addop :: EvalParser (Val -> Val -> Val)
 addop = char '+' *> return (addVal (+))
