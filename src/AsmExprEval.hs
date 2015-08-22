@@ -6,7 +6,7 @@ module AsmExprEval (expr) where
 import Data.Char (ord)
 import Text.Parsec hiding (labels)
 import qualified Data.Map as Map (lookup)
-#if __GLASGOW_HASKELL < 710
+#if __GLASGOW_HASKELL__ < 710
 import Control.Applicative ((<$>), (<*>), (<*), (*>))
 #endif
 
