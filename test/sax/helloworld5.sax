@@ -1,0 +1,29 @@
+; global labels in expressions?
+
+write_string:
+    swap
+one:
+    dupl
+    indir
+    dupl
+    beq (two + 3) ; will this break hsax?
+    printc
+    pushv   1
+    add
+    br  (one)
+two:
+    DS 3 ; just to cause chaos
+    addsp   2
+    return
+
+cello: DW "take 5  "
+       DW 0
+
+main: pushv cello
+      call write_string
+      pushv 10
+      printc
+      halt
+
+entry main
+
