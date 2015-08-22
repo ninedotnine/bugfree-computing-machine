@@ -112,7 +112,7 @@ a Label is a label
 -}
 data Token = Lit Integer
 --             | LitExpr Expr
-            | LitExpr String
+            | LitExpr String Integer -- the expr needs to know its location
             | Op Instruction
             | Label String Integer -- the int is the current location counter
             | NewLabel String
@@ -155,7 +155,7 @@ instruction = skipMany skipJunk *>
     <|> try newLabel 
     <|> try opcode <* loc (+1)
     <|> try label <* loc (+1)
-    <|> LitExpr <$> asmExprStr <* loc (+1)
+    <|> LitExpr <$> asmExprStr <*> getLoc <* loc (+1)
 
 
 newLabel :: MyParser Token
