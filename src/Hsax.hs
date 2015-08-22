@@ -119,25 +119,23 @@ the writer: ([Integer], [String], [String])
 --------------------------------------------
 
 type EvalParser a = Parsec String Labels a
--- FIXME: expressions don't support labels
-expr   :: EvalParser Integer
-expr   = (term <* spaces) `chainl1` (addop) <?> "expression" -- FIXME
+expr :: EvalParser Integer
+expr = (term <* spaces) `chainl1` (addop) <?> "expression"
 
-term   :: EvalParser Integer
-term   = (factor <* spaces) `chainl1` (mulop) <?> "term"
+term :: EvalParser Integer
+term = (factor <* spaces) `chainl1` (mulop) <?> "term"
 
 factor :: EvalParser Integer
--- factor = intOrChar <|> parens expr <?> "factor"
 factor = intOrChar <|> parens expr <|> var <?> "factor"
     where parens = between (char '(' *> spaces) (char ')')
 
 var :: EvalParser Integer
 var = do
-    name <- labelName
---     traceM $ "NAAAAAAAME: " ++  name
-    labels <- getState 
+    name <- labelName <?> ""
+    traceM $ "NAAAAAAAME: " ++  name
+    labels <- getState
     case Map.lookup name labels of
-        Nothing -> return 99988889
+        Nothing -> fail $ "undefined in pass 2: " ++ name
         Just (Rel x) -> return x
         Just (Abs x) -> return x
 
