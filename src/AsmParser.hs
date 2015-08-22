@@ -111,7 +111,6 @@ an Op is any of the opcodes
 a Label is a label
 -}
 data Token = Lit Integer
---             | LitExpr Expr
             | LitExpr String Integer -- the expr needs to know its location
             | Op Instruction
             | Label String Integer -- the int is the current location counter

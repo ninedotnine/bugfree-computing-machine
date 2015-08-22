@@ -100,11 +100,11 @@ the writer: ([Integer], [String], [String])
         gen (Entry x) = return $ "# entry found: " ++ show x
         gen (Op x) = return $ show (fromEnum x) ++ " # " ++ show x
         gen (Lit x) = return $ show x
-        gen (LitExpr str loc) = case runParser expr labels "eval" str of
+        gen (LitExpr str loc) = case runParser expr (labels) "eval" str of
             Right x -> do
                 when (isRelocatable x) (addReloc loc)
                 return $ show x
-            Left err -> error (show err) -- FIXME: i hope this never happens
+            Left err -> error $ "EXPLODE" ++ (show err) -- FIXME: i hope this never happens
         gen (NewLabel str) = return $ "# " ++ str
         gen (Label str loc) = let val = labels ! str in do
             -- (!) is unsafe, but should be fine here 
@@ -137,7 +137,6 @@ var :: EvalParser Val
 var = do
     name <- labelName <?> ""
     labels <- getState
-    traceM $ "NAAME: " ++  name ++ " in map: " ++ show (Map.lookup name labels)
     case Map.lookup name labels of
         Nothing -> fail $ "undefined in pass 2: " ++ name
         Just x -> return x
@@ -145,18 +144,13 @@ var = do
 --         Just (Abs x) -> return x
 
 labelName :: EvalParser String
-labelName = (globalLabel) <?> "label"
--- labelName = (localLabel <|> globalLabel) <* skipMany skipJunk <?> "label"
+labelName = (try localLabel <|> globalLabel) <?> "label"
 
-{-
 localLabel :: EvalParser String
 localLabel = do
-    char '@'
-    tailer <- many labelChar
-    header <- getLabelPrefix
---     traceM $ header is: " ++ header
-    return (header ++ '-' : tailer) -- join them with '-' to prevent clashes
-    -}
+    global <- globalLabel
+    tailer <- char '@' *> many1 labelChar
+    return (global ++ '@' : tailer) -- join them with '-' to prevent clashes
 
 globalLabel :: EvalParser String
 globalLabel = (:) <$> letter <*> (many labelChar)
