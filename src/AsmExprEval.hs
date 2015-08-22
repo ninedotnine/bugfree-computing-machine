@@ -10,7 +10,6 @@ import qualified Data.Map as Map (lookup)
 import Control.Applicative ((<$>), (<*>), (<*), (*>))
 #endif
 
-
 import AsmParser
 
 type EvalParser a = Parsec String Labels a
@@ -49,38 +48,24 @@ labelChar :: EvalParser Char
 labelChar = letter <|> digit <|> oneOf "._"
 
 
-mulop :: EvalParser (Val -> Val -> Val)
-mulop = spaces *> char '*' *> spaces *> return mulVal
-    <|> spaces *> char '/' *> spaces *> return divVal
-    <|> spaces *> char '%' *> spaces *> return modVal
-
 addop :: EvalParser (Val -> Val -> Val)
-addop = spaces *> char '+' *> spaces *> return addVal
-    <|> spaces *> char '-' *> spaces *> return subVal
+addop = spaces *> char '+' *> spaces *> return (addVal (+))
+    <|> spaces *> char '-' *> spaces *> return (addVal subtract)
 
-addVal :: Val -> Val -> Val
-addVal (Abs x) (Abs y) = Abs (x + y)
-addVal (Rel x) (Abs y) = Rel (x + y)
-addVal (Abs x) (Rel y) = Rel (x + y)
-addVal (Rel _) (Rel _) = error "addVal: both operands can't be relocatable"
+mulop :: EvalParser (Val -> Val -> Val)
+mulop = spaces *> char '*' *> spaces *> return (mulVal (*))
+    <|> spaces *> char '/' *> spaces *> return (mulVal div)
+    <|> spaces *> char '%' *> spaces *> return (mulVal rem)
 
-subVal :: Val -> Val -> Val
-subVal (Abs x) (Abs y) = Abs (x - y)
-subVal (Rel x) (Abs y) = Rel (x - y)
-subVal (Abs x) (Rel y) = Rel (x - y)
-subVal (Rel _) (Rel _) = error "subVal: both operands can't be relocatable"
+addVal :: (Integer -> Integer -> Integer) -> Val -> Val -> Val
+addVal op (Abs x) (Abs y) = Abs (x `op` y)
+addVal op (Rel x) (Abs y) = Rel (x `op` y)
+addVal op (Abs x) (Rel y) = Rel (x `op` y)
+addVal _ (Rel _) (Rel _) = error "addVal: both operands can't be relocatable"
 
-mulVal :: Val -> Val -> Val
-mulVal (Abs x) (Abs y) = Abs (x * y)
-mulVal _ _ = error "mulVal: operands must be absolute"
-
-divVal :: Val -> Val -> Val
-divVal (Abs x) (Abs y) = Abs (x `div` y)
-divVal _ _ = error "divVal: operands must be absolute"
-
-modVal :: Val -> Val -> Val
-modVal (Abs x) (Abs y) = Abs (x `rem` y)
-modVal _ _ = error "modVal: operands must be absolute"
+mulVal :: (Integer -> Integer -> Integer) -> Val -> Val -> Val
+mulVal op (Abs x) (Abs y) = Abs (x `op` y)
+mulVal _ _ _ = error "mulVal: operands must be absolute"
 
 intOrChar :: EvalParser Val
 intOrChar = Abs <$> (sign <*> (try octInt <|> try hexInt <|> int <|> asmChar) <?> "lit")
