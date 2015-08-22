@@ -97,7 +97,10 @@ the writer: ([Integer], [String], [String])
         gen (Entry x) = return $ "# entry found: " ++ show x
         gen (Op x) = return $ show (fromEnum x) ++ " # " ++ show x
         gen (Lit x) = return $ show x
-        gen (LitExpr expr) = return $ show $ eval expr
+--         gen (LitExpr expr) = return $ show $ eval expr
+        gen (LitExpr str) = return $ case runParser expr labels "eval" str of
+            Right x -> show x
+            Left _ -> "9999999" -- FIXME: i hope this never happens
         gen (NewLabel str) = return $ "# " ++ str
         gen (Label str loc) = let val = labels ! str in do
             -- (!) is unsafe, but should be fine here 
@@ -111,11 +114,6 @@ the writer: ([Integer], [String], [String])
         gen (Public names) = addPublic names >>
             return ("# public here: " ++ (concat $ intersperse ", " $ names))
 
-        eval :: String -> Integer
-        eval str = case runParser expr labels "evaller" str of
---                 Right x -> trace ("HIYA: " ++ str) x
-                Right x -> x
-                Left _ -> 9999999 -- FIXME: i hope this never happens
 
 
 --------------------------------------------
