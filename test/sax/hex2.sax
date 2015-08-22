@@ -1,0 +1,17 @@
+main:   pushv 0xff 
+        dupl
+        print
+        call hash
+        pushv 0777
+        dupl
+        print
+        call hash
+        add
+        print
+        pushv 0xa
+        printc
+        halt
+
+hash: pushv '#
+        printc
+        return
