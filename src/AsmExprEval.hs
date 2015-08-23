@@ -3,7 +3,6 @@
 
 module AsmExprEval (expr) where
 
-import Data.Char (ord)
 import Text.Parsec hiding (labels)
 import qualified Data.Map as Map (lookup)
 #if __GLASGOW_HASKELL__ < 710
@@ -63,12 +62,7 @@ mulVal op (Abs x) (Abs y) = Abs (x `op` y)
 mulVal _ _ _ = error "mulVal: operands must be absolute"
 
 intOrChar :: EvalParser Val
-intOrChar = Abs <$> (sign <*> (try octInt <|> try hexInt <|> int <|> asmChar) <?> "lit")
+intOrChar = Abs <$> (sign <*> (read <$> (many1 digit)) <?> "lit")
     where
-    int, octInt, hexInt, asmChar :: EvalParser Integer
-    octInt = char '0' *> (read . ("0o"++) <$> many1 octDigit)
-    hexInt = string "0x" *> (read . ("0x"++) <$> many1 hexDigit)
-    int = read <$> (many1 digit)
-    asmChar = toInteger . ord <$> (char '\'' *> anyChar)
-    sign :: EvalParser (Integer -> Integer)
-    sign = char '-' *> return negate <|> optional (char '+') *> return id
+        sign :: EvalParser (Integer -> Integer)
+        sign = char '-' *> return negate <|> optional (char '+') *> return id
