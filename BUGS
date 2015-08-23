@@ -1,9 +1,9 @@
 ---------- assembler ----------
-[ ] when a label is referred to before it is defined, it is assumed to be 
+[x] when a label is referred to before it is defined, it is assumed to be 
     global... so if it's local, it won't turn up in the map. investigate
     sax's behaviour.
 [x] spaces between a new label and the ':'
-[ ] can characters be negative? ((-'a) == -97) ? 
+[x] can characters be negative? ((-'a) == -97) ? 
 
 ---------- decommenter ----------
 [ ] a string with a '#' in it will make it explode
