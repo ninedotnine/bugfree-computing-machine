@@ -8,6 +8,7 @@ module AsmParser (Instruction(..),
                 EntryPoint(..),
                 Val(..),
                 Labels,
+                Expr(..),
                 parseEverything) where 
 
 import Text.ParserCombinators.Parsec hiding (try, label, labels, (<|>))
@@ -111,7 +112,7 @@ an Op is any of the opcodes
 a Label is a label
 -}
 data Token = Lit Integer
-            | LitExpr String Integer -- the expr needs to know its location
+            | LitExpr Expr Integer -- the expr needs to know its location
             | Op Instruction
             | Label String Integer -- the int is the current location counter
             | NewLabel String
@@ -123,7 +124,7 @@ data Token = Lit Integer
             | Public [String] -- FIXME: [String], just like Extern i think
             deriving (Show)
 
--- newtype Expr = Expr String deriving (Show)
+newtype Expr = Expr { getStr :: String } deriving (Show)
 
 newtype EntryPoint = EntryPoint String deriving (Eq)
 
@@ -154,7 +155,7 @@ instruction = skipMany skipJunk *>
     <|> try newLabel 
     <|> try opcode <* loc (+1)
     <|> try label <* loc (+1)
-    <|> LitExpr <$> asmExprStr <*> getLoc <* loc (+1)
+    <|> LitExpr <$> Expr <$> asmExprStr <*> getLoc <* loc (+1)
 
 
 newLabel :: MyParser Token
