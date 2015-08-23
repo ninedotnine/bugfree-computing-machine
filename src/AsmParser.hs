@@ -169,7 +169,7 @@ labelName = (localLabel <|> globalLabel) <* skipMany skipJunk <?> "label"
 
 newLocalLabel :: MyParser String
 newLocalLabel = do
-    name <- localLabel <* char ':'
+    name <- localLabel <* spaces <* char ':'
 --     traceM $ ">>> name is: " ++ name
     pos <- getLoc -- get the current position in the count
 --     lift $ tell (Map.singleton name pos) -- add it to the map of labels
@@ -178,7 +178,7 @@ newLocalLabel = do
 
 newGlobalLabel :: MyParser String
 newGlobalLabel = do
-    name <- globalLabel <* char ':' 
+    name <- globalLabel <* spaces <* char ':'
     setLabelPrefix name -- new current scope
     pos <- getLoc -- get the current position in the count
 --     lift $ tell (Map.singleton name pos) -- add it to the map of labels
