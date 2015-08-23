@@ -1,0 +1,12 @@
+main:   pushv prompt
+        calls
+        pushv -'k ; negative character! oh no!
+        print
+        pushv -10
+        neg
+        printc
+        halt
+
+prompt: pushv '>
+        printc
+        return
