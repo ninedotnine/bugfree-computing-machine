@@ -98,7 +98,7 @@ the writer: ([Integer], [String], [String])
         gen (Entry x) = return $ "# entry found: " ++ show x
         gen (Op x) = return $ show (fromEnum x) ++ " # " ++ show x
         gen (Lit x) = return $ show x
-        gen (LitExpr str loc) = case runParser expr (labels) "eval" str of
+        gen (LitExpr e loc) = case runParser expr labels "eval" (getStr e) of
             Right x -> do
                 when (isRelocatable x) (addReloc loc)
                 return $ show x
