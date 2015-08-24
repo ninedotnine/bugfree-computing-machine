@@ -6,7 +6,6 @@
 [x] can characters be negative? ((-'a) == -97) ? 
 
 ---------- decommenter ----------
-[ ] a string with a '#' in it will make it explode
 
 ---------- linker ----------
 [ ] i'm pretty sure the data isn't counted correctly for DS instructions
