@@ -4,8 +4,10 @@
     sax's behaviour.
 [x] spaces between a new label and the ':'
 [x] can characters be negative? ((-'a) == -97) ? 
+[ ] Local labels cannot be declared as ENTRY, PUBLIC, or EXTERN
 
 ---------- decommenter ----------
+[x] perfection achieved
 
 ---------- linker ----------
 [ ] i'm pretty sure the data isn't counted correctly for DS instructions
