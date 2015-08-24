@@ -1,0 +1,23 @@
+
+entry main
+
+BUFFER equ 50
+LENGTH EQU $-BUFFER
+
+main: pushv ($-main) ; 0
+      call write
+      pushv $-main ; 4
+      call write
+      pushv ($-main)*(10) ; 80
+      call write
+      pushv ($ - write) ; -9. this makes sense but + doesn't
+      call write
+      pushv (LENGTH - $) ; -66
+      call write
+      halt
+
+write: swap
+       print 
+       pushv 10*(40/4)/10*1 ; 10, ascii newline, heh
+       printc
+       return
