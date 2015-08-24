@@ -1,0 +1,30 @@
+entry main
+; hashes don't break anything!! 
+
+write_string:
+    swap
+@1:
+    dupl
+    indir
+    dupl
+    beq (((@aa)))
+    printc
+    pushv   1
+    add
+    br  (@1)
+@aa:
+    addsp   2
+    return
+
+hello: DW "this is a #hash string",0
+
+robot: dw "#_#",10, 0
+
+main: pushv hello
+      call write_string
+      pushv 10
+      printc
+      pushv robot
+      call write_string
+      halt
+
