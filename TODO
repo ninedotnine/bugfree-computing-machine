@@ -20,7 +20,7 @@
 ---------- hsxx ----------
 [x] relocation dict
 [x] DS 
-[ ] make READ, READC behave like reference implementation, buffering and stuff
+[x] make READ, READC behave like reference implementation, buffering and stuff
 
 ---------- compiler ----------
 [x] parse tree
