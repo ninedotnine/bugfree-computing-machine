@@ -1,41 +1,38 @@
 {-# LANGUAGE FlexibleInstances, OverloadedStrings, CPP #-}
--- {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wall #-}
 
-module Decommenter (decomment, Stringy) where
+module Decommenter (decomment) where
 
--- FIXME : a bug when '#' appears in quotes
+{-
+this module exports decomment, which removes:
+    empty lines
+    lines beginning with '#'
+    anything in a line following a '#'
+ -}
 
-import qualified Data.Text as T (Text, null, lines, unlines, 
+import qualified Data.Text as T (Text, null, lines, unlines,
                                  takeWhile, dropWhile, head)
 import qualified Data.Text.IO as TextIO (interact)
 
-import Data.Monoid
+import Data.Monoid ((<>))
 import Data.String (IsString)
 import Data.Char (isSpace)
-#if __GLASGOW_HASKELL < 710
+#if __GLASGOW_HASKELL__ < 710
 import Control.Applicative ((<$>), (<*>))
 #endif
-{- 
-this module exports decomment, which removes:
-    empty lines
-    lines beginning with '#' 
-    anything in a line following a '#' 
- -}
 
 main :: IO ()
--- main = interact decomment
 main = TextIO.interact decomment
 
 decomment :: (Stringy a) => a -> a
 decomment = unlines'' . map (dropWhile' isSpace) . removeInlineComments
             . removeLines . lines' 
 
-
 removeLines :: (Stringy a) => [a] -> [a]
 removeLines = filter $ (&&) <$> (not . null') <*> ((/='#') . head')
 
 removeInlineComments :: (Stringy a) => [a] -> [a]
-removeInlineComments = fmap $ takeWhile' (/= ('#')) -- FIXME: quoted strings
+removeInlineComments = fmap $ takeWhile' (/= ('#'))
 
 class (IsString a, Monoid a) => Stringy a where
     head' :: a -> Char
