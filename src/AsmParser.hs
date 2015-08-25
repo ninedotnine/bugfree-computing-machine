@@ -112,8 +112,8 @@ an Op is any of the opcodes
 a Label is a label
 -}
 data Token = Lit Integer
-            | LitExpr Expr -- the expr needs to know its location
-            | Op Instruction (Maybe Expr) -- optional expression argument
+            | LitExpr Expr
+            | Op Instruction (Maybe Expr)
             | Label String Integer -- the int is the current location counter
             | NewLabel String
             | DS Integer
@@ -121,12 +121,12 @@ data Token = Lit Integer
             | EQU String Integer 
             | Entry EntryPoint
             | Extern [String]
-            | Public [String] -- FIXME: [String], just like Extern i think
+            | Public [String]
             deriving (Show)
 
 newtype EntryPoint = EntryPoint String deriving (Eq)
 
-type Expr = (String, Integer) 
+type Expr = (String, Integer) -- Integer is the location to add to reloc dict
 
 instance Show EntryPoint where 
     show (EntryPoint name) = name
