@@ -1,16 +1,15 @@
-
 entry main
 
-main: pushv ($-main) ; 0
+main: pushv $ ; 0
       call write
-      pushv $-main ; 4
+      pushv $ ; 4
       call write
-      pushv ($-main)*(100) ; 800
+      pushv $ ; 8
       call write
       halt
 
 write: swap
        print 
-       pushv 10*(40/4)/10*1 ; 10, ascii newline, heh
+       pushv 10
        printc
        return

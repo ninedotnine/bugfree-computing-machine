@@ -1,0 +1,47 @@
+entry mane
+
+write_string:
+    swap
+@1: dupl
+    indir
+    dupl
+    beq (@2)
+    printc
+    pushv   NL/10 ; 1
+    add
+    br  (@1)
+@2: addsp   (2)
+    return
+
+hello: DW "this is a string",0
+
+NL equ 10
+
+mane: pushv ($-mane)
+      call sayNum
+      pushv $-write_string
+      call sayNum
+      pushv ( ($-sayNum)*(10)/2 )
+      call sayNum
+      pushv ($ - (sayNum) )
+      call sayNum
+      pushv hello
+      call write_string
+      call @line
+      pushv byebye
+      call write_string
+      halt
+
+@line: 
+    pushv NL
+    printc
+    return
+
+sayNum: 
+    swap
+    print 
+    pushv NL
+    printc
+    return
+
+byebye: DW 'g,'o,'o,'d," bye\n",0 ; newline in string!
