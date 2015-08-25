@@ -65,7 +65,7 @@ parseEverything name str = do
 
 parseEverything' :: SourceName -> String 
         -> (Either ParseError (Integer, EntryPoint, [Token], Labels))
-parseEverything' = runParser instructions (0, "", "", mempty)
+parseEverything' = runParser instructions (0, "", "", Map.singleton "SP" (Abs 0))
 
 {-
 MyParser is a type 
@@ -130,7 +130,6 @@ instance IsString EntryPoint where
 
 instructions :: MyParser (Integer, EntryPoint, [Token], Labels)
 instructions = do 
-    addToLabels "SP" (Abs 0)
     res <- join <$> many (try instruction) `sepBy` skipJunk
     skipMany skipJunk *> eof
     (counter, entry, _, labels) <- getState
