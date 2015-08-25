@@ -96,17 +96,16 @@ the writer: ([Integer], [String], [String])
         gen (DW xs) = return $ concat $ intersperse "\n" (map show xs)
         gen (DS x) = return $ ':' : show x
         gen (Entry x) = return $ "# entry found: " ++ show x
-        gen (Op x arg) = case arg of
+        gen (Op x maybeArg) = case maybeArg of
             Nothing -> return $ show (fromEnum x) ++ " # " ++ show x
             Just (e, loc) -> case runParser expr labels "eval" e of
-                Right (argy :: Val) -> do
-                    when (isRelocatable argy) (addReloc loc)
+                Right (arg :: Val) -> do
+                    when (isRelocatable arg) (addReloc loc)
                     return $ show (fromEnum x) ++ " # " ++ show x
-                            ++ "\n" ++ show argy ++ " # " ++ e
-
-                Left err -> error "problem with expression as argument."
+                            ++ "\n" ++ show arg ++ " # " ++ e
+                Left err -> error $ "problem with expression:\n" ++ show err
         gen (Lit x) = return $ show x
-        gen (LitExpr e loc) = case runParser expr labels "eval" (e) of
+        gen (LitExpr (e, loc)) = case runParser expr labels "eval" e of
             Right x -> do
                 when (isRelocatable x) (addReloc loc)
                 return $ show x

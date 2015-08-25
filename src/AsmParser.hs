@@ -112,8 +112,8 @@ an Op is any of the opcodes
 a Label is a label
 -}
 data Token = Lit Integer
-            | LitExpr String Integer -- the expr needs to know its location
-            | Op Instruction (Maybe (String, Integer)) -- optional expression argument
+            | LitExpr Expr -- the expr needs to know its location
+            | Op Instruction (Maybe Expr) -- optional expression argument
             | Label String Integer -- the int is the current location counter
             | NewLabel String
             | DS Integer
@@ -125,6 +125,8 @@ data Token = Lit Integer
             deriving (Show)
 
 newtype EntryPoint = EntryPoint String deriving (Eq)
+
+type Expr = (String, Integer) 
 
 instance Show EntryPoint where 
     show (EntryPoint name) = name
@@ -153,7 +155,12 @@ instruction = skipMany skipJunk *>
     <|> try newLabel 
     <|> try opcode <* loc (+1)
     <|> try label <* loc (+1)
-    <|> LitExpr <$> asmExprStr <*> getLoc <* loc (+1)
+--     <|> LitExpr <$> (,) <$> asmExprStr <*> getLoc <* loc (+1)
+    <|> do 
+        str <- asmExprStr
+        place <- getLoc
+        loc (+1)
+        return $ LitExpr (str, place)
 
 
 newLabel :: MyParser Token
