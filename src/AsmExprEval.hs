@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP #-} 
 {-# OPTIONS_GHC -Wall #-} 
 
-module AsmExprEval (expr) where
+module AsmExprEval (eval) where
 
 import Text.Parsec hiding (labels)
 import qualified Data.Map as Map (lookup)
@@ -12,6 +12,9 @@ import Control.Applicative ((<$>), (<*>), (<*), (*>))
 import AsmParser
 
 type EvalParser a = Parsec String Labels a
+
+eval :: Labels -> String -> Either ParseError Val
+eval labels e = runParser expr labels "eval" e
 
 expr :: EvalParser Val
 expr = term `chainl1` addop <?> "expression"

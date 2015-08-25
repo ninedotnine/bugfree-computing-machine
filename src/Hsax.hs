@@ -14,7 +14,8 @@ import Data.Time (getCurrentTime, formatTime, defaultTimeLocale)
 #endif
 -- import Text.ParserCombinators.Parsec (parse)
 -- import Text.ParserCombinators.Parsec (ParseError)
-import Text.Parsec hiding (labels)
+-- import Text.Parsec hiding (labels)
+import Text.Parsec (ParseError)
 -- import Text.Read (readMaybe)
 import Control.Monad
 import Control.Monad.Writer
@@ -98,14 +99,14 @@ the writer: ([Integer], [String], [String])
         gen (Entry x) = return $ "# entry found: " ++ show x
         gen (Op x maybeArg) = case maybeArg of
             Nothing -> return $ show (fromEnum x) ++ " # " ++ show x
-            Just (e, loc) -> case runParser expr labels "eval" e of
+            Just (e, loc) -> case eval labels e of
                 Right (arg :: Val) -> do
                     when (isRelocatable arg) (addReloc loc)
                     return $ show (fromEnum x) ++ " # " ++ show x
                             ++ "\n" ++ show arg ++ " # " ++ e
                 Left err -> error $ "problem with expression:\n" ++ show err
         gen (Lit x) = return $ show x
-        gen (LitExpr (e, loc)) = case runParser expr labels "eval" e of
+        gen (LitExpr (e, loc)) = case eval labels e of
             Right x -> do
                 when (isRelocatable x) (addReloc loc)
                 return $ show x
