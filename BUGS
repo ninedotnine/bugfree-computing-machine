@@ -7,6 +7,9 @@
 [ ] Local labels cannot be declared as ENTRY, PUBLIC, or EXTERN
 [ ] '$' gives the position of the expression it is in 
     it should give the position at the beginning of that line
+[ ] i think the test dollar.sax is incorrect: the values of the '$' expression
+    will be relocatable, so the output nondeterministic?
+    is dollar3.sax wrong as well?
 
 
 ---------- decommenter ----------
