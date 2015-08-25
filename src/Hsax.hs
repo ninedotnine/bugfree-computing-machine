@@ -39,8 +39,6 @@ import AsmExprEval
 main :: IO ()
 main = do
     (filename, input) <- getFileData
---     let result :: (Either ParseError (Integer, String, [Token]), [(String, Integer)])
---     let result :: Either ParseError (Integer, String, [Token], [(String, Integer)])
     let result :: Either ParseError (Integer, EntryPoint, [Token], Labels)
         result = parseEverything filename input 
     case result of
