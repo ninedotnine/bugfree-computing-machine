@@ -72,11 +72,12 @@ litInt = benjamins <|> intOrChar
 
 benjamins :: EvalParser Val
 -- in the first pass, the location is written immediately after the '$'. 
+-- the location can never be negative.
 -- a '$' expression is always relocatable.
-benjamins = Rel <$> (char '$' *> (sign <*> (read <$> (many1 digit))))
+benjamins = Rel <$> (char '$' *> (read <$> (many1 digit)))
 
 intOrChar :: EvalParser Val
 intOrChar = Abs <$> (sign <*> (read <$> (many1 digit)) <?> "lit")
-
-sign :: EvalParser (Integer -> Integer)
-sign = char '-' *> return negate <|> optional (char '+') *> return id
+    where
+        sign :: EvalParser (Integer -> Integer)
+        sign = char '-' *> return negate <|> optional (char '+') *> return id
