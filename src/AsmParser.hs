@@ -263,11 +263,9 @@ skipToEOL = anyChar `manyTill` newline *> skipMany space
 -- skipToEOL = many (noneOf "\n") *> return ()
 -- skipToEOL = skipMany (noneOf "\n") *> skipMany1 space -- skip past the '\n'
 
--- caseInsensitiveChar :: Char -> GenParser Char state Char
 caseInsensitiveChar :: Char -> MyParser Char
 caseInsensitiveChar c = (char (toLower c) <|> char (toUpper c)) *> pure c
 
--- caseInsensitiveString :: String -> GenParser Char state String
 caseInsensitiveString :: String -> MyParser String
 caseInsensitiveString = sequence . map caseInsensitiveChar
 
