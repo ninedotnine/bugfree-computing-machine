@@ -102,7 +102,8 @@ the writer: ([Integer], [String], [String])
             Right x -> do
                 when (isRelocatable x) (addReloc loc)
                 return $ show x
-            Left err -> error $ "EXPLODE" ++ (show err) -- FIXME: i hope this never happens
+            -- if Left, it means one of the two expr parsers is malfunctioning
+            Left err -> error $ "expression " ++ (getStr e) ++ '\n':(show err) 
         gen (NewLabel str) = return $ "# " ++ str
         gen (Label str loc) = let val = labels ! str in do
             -- (!) is unsafe, but should be fine here 
