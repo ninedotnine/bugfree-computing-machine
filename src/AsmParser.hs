@@ -20,7 +20,7 @@ import Text.Parsec.Prim hiding (runParser, label, labels, (<|>))
 -- import Control.Monad (join)
 import Control.Monad
 -- import Control.Monad.Identity
-import Control.Monad.Writer (Writer, runWriter, tell, lift)
+-- import Control.Monad.Writer (Writer, runWriter, tell, lift)
 -- import Control.Monad.State (runState, evalState, execState)
 -- import Control.Applicative hiding (many, (<|>))
 import Control.Applicative hiding (many, optional)
@@ -35,9 +35,9 @@ import Data.String (IsString, fromString)
 -- import Data.Map.Strict (Map, (!))
 -- import qualified Data.Map.Strict as Map (Map, singleton)
 #if __GLASGOW_HASKELL__ < 706
-import qualified Data.Map as Map (Map, singleton)
+import qualified Data.Map as Map (Map, singleton, member, insert)
 #else
-import qualified Data.Map.Strict as Map (Map, singleton)
+import qualified Data.Map.Strict as Map (Map, singleton, member, insert)
 #endif
 
 import Debug.Trace (trace)
@@ -57,16 +57,15 @@ parseEverything :: SourceName
         -> String 
         -> Either ParseError (Integer, EntryPoint, [Token], Labels)
 parseEverything name str = do
-    let eith :: Either ParseError (Integer, EntryPoint, [Token])
-        (eith, labels) = parseEverything' name str
+    let eith :: Either ParseError (Integer, EntryPoint, [Token], Labels)
+        (eith) = parseEverything' name str
     case eith of
         Left err -> Left err
-        Right (i, m, xs) -> return (i, m, xs, labels)
+        Right (i, m, xs, labels) -> return (i, m, xs, labels)
 
 parseEverything' :: SourceName -> String 
-        -> (Either ParseError (Integer, EntryPoint, [Token]), Labels)
-parseEverything' = (runWriter .) . runParserT instructions (0, "", "")
-
+        -> (Either ParseError (Integer, EntryPoint, [Token], Labels))
+parseEverything' = runParser instructions (0, "", "", mempty)
 
 {-
 MyParser is a type 
@@ -75,7 +74,7 @@ String is the stream type
 MyState is the state. 
 Writer Labels is the transformed monad.
 -}
-type MyParser a = ParsecT String MyState (Writer Labels) a
+type MyParser a = Parsec String MyState a
 
 {-
 i use the Integer to count words, both so i can output the text length and 
@@ -84,16 +83,14 @@ the EntryPoint is the name of the entry point after it has been found.
     it is the empty string if no entry point is found.
 the last String is the name of the current non-local label.
     it does not need to be known outside of the parsing stage.
--}
-type MyState = (Integer, EntryPoint, String)
-
-{-
-Writer Labels is the transformed monad. when a label is parsed,
-    a String and Integer pair is added to the Map using its Monoid instance.  
+when a label is parsed, a String and Integer pair is added to the Map 
     the String in this case is the name of the label; 
         the Integer is its location. 
 -}
+type MyState = (Integer, EntryPoint, String, Labels)
+
 type Labels = Map.Map String Val
+
 data Val = Abs Integer
         | Rel Integer -- this could probably be done with phantom types?
 
@@ -131,13 +128,13 @@ instance IsString EntryPoint where
 
 --------------------------------- parser begins here
 
-instructions :: MyParser (Integer, EntryPoint, [Token])
+instructions :: MyParser (Integer, EntryPoint, [Token], Labels)
 instructions = do 
     addToLabels "SP" (Abs 0)
     res <- join <$> many (try instruction) `sepBy` skipJunk
     skipMany skipJunk *> eof
-    (counter, entry, _) <- getState
-    return (counter, entry, res)
+    (counter, entry, _, labels) <- getState
+    return (counter, entry, res, labels)
 
 instruction :: MyParser Token
 instruction = skipMany skipJunk *>
@@ -290,29 +287,33 @@ labelChar = letter <|> digit <|> oneOf "._"
 
 -- loc f applies f to the location counter
 loc :: (Integer -> Integer) -> MyParser ()
-loc = modifyState . (\f (i, s, labl) -> (f i, s, labl))
+loc = modifyState . (\f (i, s, labl, labels) -> (f i, s, labl, labels))
 
 -- returns the current location counter
 getLoc :: MyParser Integer
-getLoc = getState >>= \(i, _, _) -> return i
+getLoc = getState >>= \(i, _, _, _) -> return i
 
 -- setEntry "main" makes the entry point "main", provided it isn't already set
 setEntry :: EntryPoint -> MyParser ()
 setEntry = modifyState . setEntry' where 
     -- pattern match the empty string
     setEntry' :: EntryPoint -> MyState -> MyState
-    setEntry' name (i, "", labl) = (i, name, labl) 
+    setEntry' name (i, "", labl, labels) = (i, name, labl, labels) 
     setEntry' _ _ = error "multiple entries?" -- FIXME: use parser monad fail
 
 addToLabels :: String -> Val -> MyParser ()
-addToLabels name val = lift $ tell (Map.singleton name val)
+addToLabels name val = do 
+    (i, ent, labl, labels) <- getState
+    if name `Map.member` labels
+        then error $ "multiply defined label: " ++ name
+        else putState (i, ent, labl, Map.insert name val labels)
 
 setLabelPrefix :: String -> MyParser ()
 setLabelPrefix = modifyState . setLabelPrefix' where
-    setLabelPrefix' str (i, ent, _) = (i, ent, str)
+    setLabelPrefix' str (i, ent, _, labels) = (i, ent, str, labels)
 
 getLabelPrefix :: MyParser String
-getLabelPrefix = getState >>= \(_, _, labl) -> return labl
+getLabelPrefix = getState >>= \(_, _, labl, _) -> return labl
 
 
 -- FIXME: figure out how to delete all of this. labels are cool now.
