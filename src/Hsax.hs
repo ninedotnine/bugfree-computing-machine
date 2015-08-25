@@ -1,5 +1,5 @@
 {-# LANGUAGE CPP #-}
--- {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wall #-} 
 -- module Hsax where
 -- import Prelude hiding (mapM_, words, error, fst, snd)
@@ -96,14 +96,22 @@ the writer: ([Integer], [String], [String])
         gen (DW xs) = return $ concat $ intersperse "\n" (map show xs)
         gen (DS x) = return $ ':' : show x
         gen (Entry x) = return $ "# entry found: " ++ show x
-        gen (Op x arg) = return $ show (fromEnum x) ++ " # " ++ show x
+        gen (Op x arg) = case arg of
+            Nothing -> return $ show (fromEnum x) ++ " # " ++ show x
+            Just (e, loc) -> case runParser expr labels "eval" e of
+                Right (argy :: Val) -> do
+                    when (isRelocatable argy) (addReloc loc)
+                    return $ show (fromEnum x) ++ " # " ++ show x
+                            ++ "\n" ++ show argy ++ " # " ++ e
+
+                Left err -> error "problem with expression as argument."
         gen (Lit x) = return $ show x
-        gen (LitExpr e loc) = case runParser expr labels "eval" (getStr e) of
+        gen (LitExpr e loc) = case runParser expr labels "eval" (e) of
             Right x -> do
                 when (isRelocatable x) (addReloc loc)
                 return $ show x
             -- if Left, it means one of the two expr parsers is malfunctioning
-            Left err -> error $ "expression " ++ (getStr e) ++ '\n':(show err) 
+            Left err -> error $ "expression " ++ e ++ '\n':(show err) 
         gen (NewLabel str) = return $ "# " ++ str
         gen (Label str loc) = let val = labels ! str in do
             -- (!) is unsafe, but should be fine here 
