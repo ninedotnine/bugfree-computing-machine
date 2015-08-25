@@ -20,7 +20,7 @@ term :: EvalParser Val
 term = factor `chainl1` mulop <?> "term"
 
 factor :: EvalParser Val
-factor = intOrChar <|> parens expr <|> var <?> "factor"
+factor = litInt <|> parens expr <|> var <?> "factor"
     where parens = between (char '(') (char ')')
 
 var :: EvalParser Val
@@ -67,8 +67,16 @@ mulValWith :: (Integer -> Integer -> Integer) -> Val -> Val -> Val
 mulValWith op (Abs x) (Abs y) = Abs (x `op` y)
 mulValWith _ _ _ = error "mulValWith: both operands must be absolute"
 
+litInt :: EvalParser Val
+litInt = benjamins <|> intOrChar
+
+benjamins :: EvalParser Val
+benjamins = do
+    num <- char '$' *> (sign <*> (read <$> (many1 digit)))
+    return (Rel num)
+
 intOrChar :: EvalParser Val
 intOrChar = Abs <$> (sign <*> (read <$> (many1 digit)) <?> "lit")
-    where
-        sign :: EvalParser (Integer -> Integer)
-        sign = char '-' *> return negate <|> optional (char '+') *> return id
+
+sign :: EvalParser (Integer -> Integer)
+sign = char '-' *> return negate <|> optional (char '+') *> return id

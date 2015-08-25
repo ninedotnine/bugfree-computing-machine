@@ -5,6 +5,9 @@
 [x] spaces between a new label and the ':'
 [x] can characters be negative? ((-'a) == -97) ? 
 [ ] Local labels cannot be declared as ENTRY, PUBLIC, or EXTERN
+[ ] '$' gives the position of the expression it is in 
+    it should give the position at the beginning of that line
+
 
 ---------- decommenter ----------
 [x] perfection achieved

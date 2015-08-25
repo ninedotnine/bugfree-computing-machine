@@ -226,9 +226,15 @@ term = (do
     return (concat (first:more))) <?> "term"
 
 factor :: MyParser String
-factor = spaces *> (show <$> intOrChar <|> subExpr <|> labelName) <* spaces <?> "factor"
+factor = spaces *> (benjamins <|> (show <$> intOrChar) <|> subExpr <|> labelName) <* spaces <?> "factor"
 --     where subExpr = concat <$> sequence [string "(", tempexpr, string ")"] 
     where subExpr = char '(' <:> asmExprStr <++> string ")"
+
+benjamins :: MyParser String
+benjamins = do
+    char '$' 
+    pos <- getLoc
+    return ('$' : show pos) -- FIXME
 
 intOrChar :: MyParser Integer
 intOrChar = sign <*> (try octInt <|> try hexInt <|> int <|> asmChar) <?> "lit"
