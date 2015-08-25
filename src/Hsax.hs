@@ -96,7 +96,7 @@ the writer: ([Integer], [String], [String])
         gen (DW xs) = return $ concat $ intersperse "\n" (map show xs)
         gen (DS x) = return $ ':' : show x
         gen (Entry x) = return $ "# entry found: " ++ show x
-        gen (Op x) = return $ show (fromEnum x) ++ " # " ++ show x
+        gen (Op x arg) = return $ show (fromEnum x) ++ " # " ++ show x
         gen (Lit x) = return $ show x
         gen (LitExpr e loc) = case runParser expr labels "eval" (getStr e) of
             Right x -> do

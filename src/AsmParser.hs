@@ -113,7 +113,7 @@ a Label is a label
 -}
 data Token = Lit Integer
             | LitExpr Expr Integer -- the expr needs to know its location
-            | Op Instruction
+            | Op Instruction (Maybe Expr) -- optional argument
             | Label String Integer -- the int is the current location counter
             | NewLabel String
             | DS Integer
@@ -203,7 +203,7 @@ opcode = do
     uppers <- map toUpper <$> many1 letter <?> "opcode" 
      -- try to read it as an Instruction
     case readMaybe uppers `mplus` readOpSynonym uppers of --alternatively, <|>
-        Just x -> return (Op x)
+        Just x -> return (Op x Nothing)
         Nothing -> fail "can't parse as opcode"
     where
         readOpSynonym :: String -> (Maybe Instruction)
