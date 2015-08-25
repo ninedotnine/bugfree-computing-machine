@@ -14,7 +14,7 @@ borked="$colour broken stuff:$NC$boldon"
 
 mkdir -p  "build/"
 cd  "build/"
-ghc -O2 "Hsxx.hs" -o "hsxx" || exit 99
+ghc -O "Hsxx.hs" -o "hsxx" || exit 99
 
 cd "../sxx/"
 
