@@ -290,8 +290,9 @@ getLoc = getState >>= \(i, _, _) -> return i
 setEntry :: EntryPoint -> MyParser ()
 setEntry = modifyState . setEntry' where 
     -- pattern match the empty string
+    setEntry' :: EntryPoint -> MyState -> MyState
     setEntry' name (i, "", labl) = (i, name, labl) 
-    setEntry' _ _ = error "multiple entries?" 
+    setEntry' _ _ = error "multiple entries?" -- FIXME: use parser monad fail
 
 addToLabels :: String -> Val -> MyParser ()
 addToLabels name val = lift $ tell (Map.singleton name val)
@@ -304,7 +305,7 @@ getLabelPrefix :: MyParser String
 getLabelPrefix = getState >>= \(_, _, labl) -> return labl
 
 
--- FIXME: expressions don't support labels
+-- FIXME: figure out how to delete all of this. labels are cool now.
 pass1expr   :: MyParser Integer
 pass1expr   = (pass1term <* spaces) `chainl1` (addop) <?> "expression" -- FIXME
 
