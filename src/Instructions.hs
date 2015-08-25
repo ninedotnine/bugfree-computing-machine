@@ -49,4 +49,4 @@ data Instruction =
     | TROFF
     | DUMP
     | ERROR
-    deriving (Show, Read, Enum)
+    deriving (Show, Read, Enum, Eq)

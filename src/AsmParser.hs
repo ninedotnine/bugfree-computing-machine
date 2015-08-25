@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE OverloadedStrings #-} 
 {-# OPTIONS_GHC -Wall #-} 
 {-# OPTIONS_GHC -fno-warn-unused-do-bind #-} 
@@ -8,7 +9,6 @@ module AsmParser (Instruction(..),
                 EntryPoint(..),
                 Val(..),
                 Labels,
-                Expr(..),
                 parseEverything) where 
 
 import Text.ParserCombinators.Parsec hiding (try, label, labels, (<|>))
@@ -112,8 +112,8 @@ an Op is any of the opcodes
 a Label is a label
 -}
 data Token = Lit Integer
-            | LitExpr Expr Integer -- the expr needs to know its location
-            | Op Instruction (Maybe Expr) -- optional argument
+            | LitExpr String Integer -- the expr needs to know its location
+            | Op Instruction (Maybe (String, Integer)) -- optional expression argument
             | Label String Integer -- the int is the current location counter
             | NewLabel String
             | DS Integer
@@ -123,8 +123,6 @@ data Token = Lit Integer
             | Extern [String]
             | Public [String] -- FIXME: [String], just like Extern i think
             deriving (Show)
-
-newtype Expr = Expr { getStr :: String } deriving (Show)
 
 newtype EntryPoint = EntryPoint String deriving (Eq)
 
@@ -155,7 +153,7 @@ instruction = skipMany skipJunk *>
     <|> try newLabel 
     <|> try opcode <* loc (+1)
     <|> try label <* loc (+1)
-    <|> LitExpr <$> Expr <$> asmExprStr <*> getLoc <* loc (+1)
+    <|> LitExpr <$> asmExprStr <*> getLoc <* loc (+1)
 
 
 newLabel :: MyParser Token
@@ -203,7 +201,13 @@ opcode = do
     uppers <- map toUpper <$> many1 letter <?> "opcode" 
      -- try to read it as an Instruction
     case readMaybe uppers `mplus` readOpSynonym uppers of --alternatively, <|>
-        Just x -> return (Op x Nothing)
+        Just x -> if x `elem` argOps
+            then do
+                arg <- asmExprStr
+                loc (+1)
+                currentLoc <- getLoc
+                return (Op x (Just (arg, currentLoc)))
+            else return (Op x Nothing)
         Nothing -> fail "can't parse as opcode"
     where
         readOpSynonym :: String -> (Maybe Instruction)
@@ -212,6 +216,9 @@ opcode = do
         readOpSynonym "BF"    = Just BEQ
         readOpSynonym "POPPC" = Just RETURN
         readOpSynonym _       = Nothing
+        argOps :: [Instruction]
+        argOps = [PUSH, PUSHV, PUSHX, POP, POPX, BNE, BEQ, BR, 
+                CALL, RETN, ADDX, ADDSP] -- these instructions take arguments
 
 asmExprStr :: MyParser String
 asmExprStr = (do
