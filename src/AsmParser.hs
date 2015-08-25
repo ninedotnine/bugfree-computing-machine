@@ -53,10 +53,6 @@ readMaybe s = case reads s of
     _ -> Nothing
 #endif
 
-
-traceM :: (Monad m) => String -> m ()
-traceM str = trace str $ return ()
-
 parseEverything :: SourceName 
         -> String 
         -> Either ParseError (Integer, EntryPoint, [Token], Labels)
