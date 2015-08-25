@@ -43,23 +43,29 @@ labelChar :: EvalParser Char
 labelChar = letter <|> digit <|> oneOf "._"
 
 addop :: EvalParser (Val -> Val -> Val)
-addop = char '+' *> return (addVal (+))
-    <|> char '-' *> return (addVal subtract)
+addop = char '+' *> return addVal
+    <|> char '-' *> return subVal
 
 mulop :: EvalParser (Val -> Val -> Val)
-mulop = char '*' *> return (mulVal (*))
-    <|> char '/' *> return (mulVal div)
-    <|> char '%' *> return (mulVal rem)
+mulop = char '*' *> return (mulValWith (*))
+    <|> char '/' *> return (mulValWith div)
+    <|> char '%' *> return (mulValWith rem)
 
-addVal :: (Integer -> Integer -> Integer) -> Val -> Val -> Val
-addVal op (Abs x) (Abs y) = Abs (x `op` y)
-addVal op (Rel x) (Abs y) = Rel (x `op` y)
-addVal op (Abs x) (Rel y) = Rel (x `op` y)
-addVal _ (Rel _) (Rel _) = error "addVal: both operands can't be relocatable"
+addVal :: Val -> Val -> Val
+addVal (Abs x) (Abs y) = Abs (x + y)
+addVal (Rel x) (Abs y) = Rel (x + y)
+addVal (Abs x) (Rel y) = Rel (x + y)
+addVal (Rel _) (Rel _) = error "addVal: both operands can't be relocatable"
 
-mulVal :: (Integer -> Integer -> Integer) -> Val -> Val -> Val
-mulVal op (Abs x) (Abs y) = Abs (x `op` y)
-mulVal _ _ _ = error "mulVal: operands must be absolute"
+subVal :: Val -> Val -> Val
+subVal (Abs x) (Abs y) = Abs (x + y)
+subVal (Rel x) (Abs y) = Rel (x + y)
+subVal (Abs x) (Rel y) = Rel (x + y)
+subVal (Rel x) (Rel y) = Abs (x - y)
+
+mulValWith :: (Integer -> Integer -> Integer) -> Val -> Val -> Val
+mulValWith op (Abs x) (Abs y) = Abs (x `op` y)
+mulValWith _ _ _ = error "mulValWith: both operands must be absolute"
 
 intOrChar :: EvalParser Val
 intOrChar = Abs <$> (sign <*> (read <$> (many1 digit)) <?> "lit")
