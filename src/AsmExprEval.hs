@@ -71,9 +71,9 @@ litInt :: EvalParser Val
 litInt = benjamins <|> intOrChar
 
 benjamins :: EvalParser Val
-benjamins = do
-    num <- char '$' *> (sign <*> (read <$> (many1 digit)))
-    return (Rel num)
+-- in the first pass, the location is written immediately after the '$'. 
+-- a '$' expression is always relocatable.
+benjamins = Rel <$> (char '$' *> (sign <*> (read <$> (many1 digit))))
 
 intOrChar :: EvalParser Val
 intOrChar = Abs <$> (sign <*> (read <$> (many1 digit)) <?> "lit")
