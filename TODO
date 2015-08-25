@@ -7,7 +7,7 @@
 [x] public
 [x] equ
 [ ] labels silently truncated after 30 characters.
-[ ] check for multiply-defined labels
+[x] check for multiply-defined labels
 [x] magic '$'
 
 ---------- decommenter ----------
