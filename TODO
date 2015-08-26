@@ -6,7 +6,7 @@
 [x] extern
 [x] public
 [x] equ
-[ ] labels silently truncated after 30 characters.
+[x] labels silently truncated after 30 characters.
 [x] check for multiply-defined labels
 [x] magic '$'
 
