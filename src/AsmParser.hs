@@ -271,7 +271,7 @@ labelChar = letter <|> digit <|> oneOf "._"
 
 -- loc f applies f to the location counter
 loc :: (Integer -> Integer) -> MyParser ()
-loc = modifyState . (\f (i, s, labl, labels) -> (f i, s, labl, labels))
+loc = modifyState . (\f (i, s, scope, labels) -> (f i, s, scope, labels))
 
 -- returns the current location counter
 getLoc :: MyParser Integer
@@ -282,23 +282,23 @@ setEntry :: EntryPoint -> MyParser ()
 setEntry = modifyState . setEntry' where 
     -- pattern match the empty string
     setEntry' :: EntryPoint -> MyState -> MyState
-    setEntry' name (i, "", labl, labels) = (i, name, labl, labels) 
+    setEntry' name (i, "", scope, labels) = (i, name, scope, labels) 
     setEntry' _ _ = error "multiple entries?" -- FIXME: use parser monad fail
 
 addToLabels :: String -> Val -> MyParser ()
 addToLabels name val = do 
-    (i, ent, labl, labels) <- getState
+    (i, ent, scope, labels) <- getState
     let truncName = take 30 name -- silently truncate after 30 characters
     if truncName `Map.member` labels
         then error $ "multiply defined label: " ++ name
-        else putState (i, ent, labl, Map.insert truncName val labels)
+        else putState (i, ent, scope, Map.insert truncName val labels)
 
 setLabelPrefix :: String -> MyParser ()
 setLabelPrefix = modifyState . setLabelPrefix' where
     setLabelPrefix' str (i, ent, _, labels) = (i, ent, str, labels)
 
 getLabelPrefix :: MyParser String
-getLabelPrefix = getState >>= \(_, _, labl, _) -> return labl
+getLabelPrefix = getState >>= \(_, _, scope, _) -> return scope
 
 
 -- FIXME: figure out how to delete all of this. labels are cool now.
