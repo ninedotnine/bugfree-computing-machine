@@ -40,7 +40,7 @@ main :: IO ()
 main = do
     (filename, input) <- getFileData
     let result :: Either ParseError (Integer, EntryPoint, [Token], Labels)
-        result = parseEverything filename input 
+        result = runAsmParser filename input
     case result of
         Left err -> putStrLn $ "HEY! NOPE!" ++ (show err)
         Right r -> outputResult filename r
