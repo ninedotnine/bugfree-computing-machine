@@ -288,9 +288,10 @@ setEntry = modifyState . setEntry' where
 addToLabels :: String -> Val -> MyParser ()
 addToLabels name val = do 
     (i, ent, labl, labels) <- getState
-    if name `Map.member` labels
+    let truncName = take 30 name -- silently truncate after 30 characters
+    if truncName `Map.member` labels
         then error $ "multiply defined label: " ++ name
-        else putState (i, ent, labl, Map.insert name val labels)
+        else putState (i, ent, labl, Map.insert truncName val labels)
 
 setLabelPrefix :: String -> MyParser ()
 setLabelPrefix = modifyState . setLabelPrefix' where
