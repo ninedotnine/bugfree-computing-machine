@@ -9,7 +9,7 @@ module AsmParser (Instruction(..),
                 EntryPoint(..),
                 Val(..),
                 Labels,
-                parseEverything) where 
+                runAsmParser) where
 
 import Text.ParserCombinators.Parsec hiding (try, label, labels, (<|>))
 -- import Text.Parsec.Prim hiding (runParser)
@@ -53,19 +53,10 @@ readMaybe s = case reads s of
     _ -> Nothing
 #endif
 
-parseEverything :: SourceName 
-        -> String 
-        -> Either ParseError (Integer, EntryPoint, [Token], Labels)
-parseEverything name str = do
-    let eith :: Either ParseError (Integer, EntryPoint, [Token], Labels)
-        (eith) = parseEverything' name str
-    case eith of
-        Left err -> Left err
-        Right (i, m, xs, labels) -> return (i, m, xs, labels)
-
-parseEverything' :: SourceName -> String 
-        -> (Either ParseError (Integer, EntryPoint, [Token], Labels))
-parseEverything' = runParser instructions (0, "", "", Map.singleton "SP" (Abs 0))
+runAsmParser :: SourceName -> String ->
+                Either ParseError (Integer, EntryPoint, [Token], Labels)
+runAsmParser name input = runParser instructions initState name input
+    where initState = (0, "", "", Map.singleton "SP" (Abs 0))
 
 {-
 MyParser is a type 
