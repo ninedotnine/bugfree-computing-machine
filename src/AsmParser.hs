@@ -20,7 +20,6 @@ import Text.Parsec.Prim hiding (runParser, label, labels, (<|>))
 -- import Control.Monad (join)
 import Control.Monad
 -- import Control.Monad.Identity
--- import Control.Monad.Writer (Writer, runWriter, tell, lift)
 -- import Control.Monad.State (runState, evalState, execState)
 -- import Control.Applicative hiding (many, (<|>))
 import Control.Applicative hiding (many, optional)
@@ -63,7 +62,6 @@ MyParser is a type
 ParsecT is a monad transformer
 String is the stream type
 MyState is the state. 
-Writer Labels is the transformed monad.
 -}
 type MyParser a = Parsec String MyState a
 
@@ -159,9 +157,7 @@ labelName = (localLabel <|> globalLabel) <* skipMany skipJunk <?> "label"
 newLocalLabel :: MyParser String
 newLocalLabel = do
     name <- localLabel <* spaces <* char ':'
---     traceM $ ">>> name is: " ++ name
     pos <- getLoc -- get the current position in the count
---     lift $ tell (Map.singleton name pos) -- add it to the map of labels
     addToLabels name (Rel pos) -- add it to the map of labels
     return name
 
@@ -170,7 +166,6 @@ newGlobalLabel = do
     name <- globalLabel <* spaces <* char ':'
     setLabelPrefix name -- new current scope
     pos <- getLoc -- get the current position in the count
---     lift $ tell (Map.singleton name pos) -- add it to the map of labels
     addToLabels name (Rel pos) -- add it to the map of labels
     return name
 
@@ -179,7 +174,6 @@ localLabel = do
     char '@'
     tailer <- many labelChar
     header <- getLabelPrefix
---     traceM $ header is: " ++ header
     return (header ++ '@' : tailer) -- join them with '@' to prevent clashes
 
 globalLabel :: MyParser String
