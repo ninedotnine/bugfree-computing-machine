@@ -8,3 +8,4 @@ parser combinators
 extensions: 
     scoped type variables
     flexible instances
+    cpp
