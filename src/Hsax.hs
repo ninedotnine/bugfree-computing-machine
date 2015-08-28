@@ -141,7 +141,7 @@ printDWTemp' (res, loc) = do
         Left err -> error $ "problem with expression:\n" ++ show err
         Right val -> do
             when (isRelocatable val) (addReloc loc)
-            return $ show val ++ " # " ++ show val
+            return $ show val
 
 isRelocatable :: Val -> Bool
 isRelocatable (Rel _) = True
