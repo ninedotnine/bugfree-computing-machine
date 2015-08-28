@@ -6,7 +6,7 @@
 
 module AsmParser (Instruction(..), 
                 Token(..), 
-                EntryPoint(..),
+                EntryLabel(..),
                 Val(..),
                 Labels,
                 runAsmParser) where
@@ -53,7 +53,7 @@ readMaybe s = case reads s of
 #endif
 
 runAsmParser :: SourceName -> String ->
-                Either ParseError (Integer, EntryPoint, [Token], Labels)
+                Either ParseError (Integer, EntryLabel, [Token], Labels)
 runAsmParser name input = runParser instructions initState name input
     where initState = (0, "", "", Map.singleton "SP" (Abs 0))
 
@@ -68,7 +68,7 @@ type MyParser a = Parsec String MyState a
 {-
 i use the Integer to count words, both so i can output the text length and 
     so i can track where the labels are.
-the EntryPoint is the name of the entry point after it has been found. 
+the EntryLabel is the name of the entry point after it has been found. 
     it is the empty string if no entry point is found.
 the last String is the name of the current non-local label.
     it does not need to be known outside of the parsing stage.
@@ -76,7 +76,7 @@ when a label is parsed, a String and Integer pair is added to the Map
     the String in this case is the name of the label; 
         the Integer is its location. 
 -}
-type MyState = (Integer, EntryPoint, String, Labels)
+type MyState = (Integer, EntryLabel, String, Labels)
 
 type Labels = Map.Map String Val
 
@@ -99,23 +99,23 @@ data Token = Lit Integer
             | DS Integer
             | DW [Integer]
             | EQU String Integer 
-            | Entry EntryPoint
+            | Entry EntryLabel
             | Extern [String]
             | Public [String]
             deriving (Show)
 
-newtype EntryPoint = EntryPoint String deriving (Eq)
+newtype EntryLabel = EntryLabel String deriving (Eq)
 
 type Expr = (String, Integer) -- Integer is the location to add to reloc dict
 
-instance Show EntryPoint where 
-    show (EntryPoint name) = name
-instance IsString EntryPoint where
-    fromString = EntryPoint
+instance Show EntryLabel where 
+    show (EntryLabel name) = name
+instance IsString EntryLabel where
+    fromString = EntryLabel
 
 --------------------------------- parser begins here
 
-instructions :: MyParser (Integer, EntryPoint, [Token], Labels)
+instructions :: MyParser (Integer, EntryLabel, [Token], Labels)
 instructions = do 
     res <- join <$> many (try instruction) `sepBy` skipJunk
     skipMany skipJunk *> eof
@@ -267,10 +267,10 @@ getLoc :: MyParser Integer
 getLoc = getState >>= \(i, _, _, _) -> return i
 
 -- setEntry "main" makes the entry point "main", provided it isn't already set
-setEntry :: EntryPoint -> MyParser ()
+setEntry :: EntryLabel -> MyParser ()
 setEntry = modifyState . setEntry' where 
     -- pattern match the empty string
-    setEntry' :: EntryPoint -> MyState -> MyState
+    setEntry' :: EntryLabel -> MyState -> MyState
     setEntry' name (i, "", scope, labels) = (i, name, scope, labels) 
     setEntry' _ _ = error "multiple entries?" -- FIXME: use parser monad fail
 
@@ -348,8 +348,8 @@ asmEntry = do
     header <- letter
     tailer <- many labelChar
     let name = (header:tailer)
-    setEntry (EntryPoint name)
-    return (Entry (EntryPoint name))
+    setEntry (EntryLabel name)
+    return (Entry (EntryLabel name))
 
 asmExtern :: MyParser Token 
 asmExtern = do
