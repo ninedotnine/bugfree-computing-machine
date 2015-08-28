@@ -94,7 +94,14 @@ the writer: ([Integer], [String], [String])
         gen :: Token -> Writer ([Integer], [String], [String]) String
 --         gen (DW xs) = return $ concat $ intersperse "\n" (map show xs)
         gen (DW xs) = do
-            text <- printDWTemp labels xs
+            let (exprs, locs) = unzip xs
+                results :: [Either ParseError Val]
+                results = map (eval labels) exprs
+            text <- forM (zip results locs) (\(res, loc) -> case res of
+                    Left err -> error $ "bad expression:\n" ++ show err
+                    Right val -> do
+                        when (isRelocatable val) (addReloc loc)
+                        return $ show val)
             return (concat (intersperse "\n" text))
         gen (DS x) = return $ ':' : show x
         gen (Entry x) = return $ "# entry found: " ++ show x
@@ -123,25 +130,7 @@ the writer: ([Integer], [String], [String])
         gen (Public names) = addPublic names >>
             return ("# public here: " ++ (concat $ intersperse ", " $ names))
 
-
-
 --------------------------------------------
-
--- FIXME: clean these up
-printDWTemp :: Labels -> [Expr] -> Writer ([Integer],[String],[String]) [String]
-printDWTemp labels strsAndLocs = do
-    let (exprs, locs) = unzip strsAndLocs
-        results :: [Either ParseError Val]
-        results = map (eval labels) exprs
-    mapM printDWTemp' $ zip results locs
-
-printDWTemp' :: (Either ParseError Val, Integer) -> Writer ([Integer],[String],[String]) String
-printDWTemp' (res, loc) = do
-    case res of
-        Left err -> error $ "problem with expression:\n" ++ show err
-        Right val -> do
-            when (isRelocatable val) (addReloc loc)
-            return $ show val
 
 isRelocatable :: Val -> Bool
 isRelocatable (Rel _) = True
