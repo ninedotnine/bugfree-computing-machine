@@ -67,7 +67,7 @@ outputResult filename (textLength, entry, toks, labels) = do
 
     let (text, metadata) = runWriter (unlines <$> mapM gen toks)
         (relocs, exts, pubs) = metadata :: ([Integer], [String], [String])
-    putStrLn text
+    putStr text
 
     putStrLn "# -------------------- METADATA --------------------"
     putStrLn $ "# relocs: " ++ show relocs
