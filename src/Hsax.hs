@@ -80,6 +80,8 @@ outputResult filename (textLength, entry, toks, labels) = do
 
     putStrLn "% ENTRY, EXTERN, and PUBLIC references"
     unless (entry == EntryLabel "") $ putStrLn $ 
+        -- (!) is unsafe, but should be fine here 
+        -- because i used these very labels to populate the map 
         "ENTRY " ++ show entry ++ " " ++ (show (labels ! show entry))
     mapM_ (putStrLn . ("EXTERN "++ )) exts -- FIXME addrs follow label
     forM_ pubs $ putStrLn . (\x -> "PUBLIC " ++ x ++ ' ':show (labels ! x))
@@ -104,21 +106,15 @@ the writer: ([Integer], [String], [String])
         gen (Op x maybeArg) = case maybeArg of
             Nothing -> return $ show (fromEnum x) ++ " # " ++ show x
             Just (e, loc) -> case eval labels e of
-                Right (arg :: Val) -> do
-                    when (isRelocatable arg) (addReloc loc)
-                    return $ show (fromEnum x) ++ " # " ++ show x
-                            ++ "\n" ++ show arg
+                Right (arg :: Val) -> ((show (fromEnum x) ++ " # " ++  show x 
+                    ++ "\n") ++) <$> genVal (arg, loc)
                 Left err -> error $ "problem with expression:\n" ++ show err
         gen (Lit x) = return $ show x
         gen (LitExpr (e, loc)) = case eval labels e of
-            Right x -> do
-                when (isRelocatable x) (addReloc loc)
-                return $ show x
+            Right x -> genVal (x, loc)
             -- if Left, it means one of the two expr parsers is malfunctioning
             Left err -> error $ "expression " ++ e ++ '\n':(show err) 
         gen (NewLabel str) = return $ "# " ++ str
---             -- (!) is unsafe, but should be fine here 
---             -- because i used these very labels to populate the map 
         gen (EQU name val) = -- FIXME make this check relocatableness
             return ("# equ here: " ++ name ++ " = " ++ show val)
         gen (Extern names) = addExtern names >>
