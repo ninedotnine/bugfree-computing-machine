@@ -109,7 +109,6 @@ the writer: ([Integer], [String], [String])
                 Right (arg :: Val) -> ((show (fromEnum x) ++ " # " ++  show x 
                     ++ "\n") ++) <$> genVal (arg, loc)
                 Left err -> error $ "problem with expression:\n" ++ show err
-        gen (Lit x) = return $ show x
         gen (LitExpr (e, loc)) = case eval labels e of
             Right x -> genVal (x, loc)
             -- if Left, it means one of the two expr parsers is malfunctioning

@@ -90,11 +90,10 @@ instance Show Val where
 
 {-
 Token is an algebraic data type
-a Lit can be a number like 65 or a letter like 'a
+a LitExpr can have a number like 65 or a letter like 'a, or a more complex expr
 an Op is any of the opcodes
 -}
-data Token = Lit Integer
-            | LitExpr Expr
+data Token = LitExpr Expr
             | Op Instruction (Maybe Expr)
             | NewLabel String
             | DS Integer
