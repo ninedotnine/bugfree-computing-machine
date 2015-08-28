@@ -15,6 +15,7 @@ import Data.Time (getCurrentTime, formatTime, defaultTimeLocale)
 -- import Text.ParserCombinators.Parsec (parse)
 -- import Text.ParserCombinators.Parsec (ParseError)
 -- import Text.Parsec hiding (labels)
+import Data.Either (partitionEithers)
 import Text.Parsec (ParseError)
 -- import Text.Read (readMaybe)
 import Control.Monad
@@ -92,14 +93,13 @@ the writer: ([Integer], [String], [String])
             [String] is the publics
 -}
         gen :: Token -> Writer ([Integer], [String], [String]) String
-        gen (DW xs) = do
-            let (exprs, locs) = unzip xs
-                results :: [Either ParseError Val]
-                results = map (eval labels) exprs
-            (concat . intersperse "\n") <$>
-                forM (zip results locs) (\(res, loc) -> case res of
-                    Left err -> error $ "bad expression:\n" ++ show err
-                    Right val -> do
+        gen (DW xs) = let
+                (exprs, locs) = unzip xs
+                (lefts, rights) = partitionEithers $ map (eval labels) exprs
+            in if (not . null) lefts
+                then error $ "bad expression:\n" ++ show (head lefts)
+                else (concat . intersperse "\n") <$> forM (zip rights locs)
+                    (\(val, loc) -> do
                         when (isRelocatable val) (addReloc loc)
                         return $ show val)
         gen (DS x) = return $ ':' : show x
