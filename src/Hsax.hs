@@ -92,7 +92,10 @@ the writer: ([Integer], [String], [String])
             [String] is the publics
 -}
         gen :: Token -> Writer ([Integer], [String], [String]) String
-        gen (DW xs) = return $ concat $ intersperse "\n" (map show xs)
+--         gen (DW xs) = return $ concat $ intersperse "\n" (map show xs)
+        gen (DW xs) = do
+            text <- printDWTemp labels xs
+            return (concat (intersperse "\n" text))
         gen (DS x) = return $ ':' : show x
         gen (Entry x) = return $ "# entry found: " ++ show x
         gen (Op x maybeArg) = case maybeArg of
@@ -123,6 +126,22 @@ the writer: ([Integer], [String], [String])
 
 
 --------------------------------------------
+
+-- FIXME: clean these up
+printDWTemp :: Labels -> [Expr] -> Writer ([Integer],[String],[String]) [String]
+printDWTemp labels strsAndLocs = do
+    let (exprs, locs) = unzip strsAndLocs
+        results :: [Either ParseError Val]
+        results = map (eval labels) exprs
+    mapM printDWTemp' $ zip results locs
+
+printDWTemp' :: (Either ParseError Val, Integer) -> Writer ([Integer],[String],[String]) String
+printDWTemp' (res, loc) = do
+    case res of
+        Left err -> error $ "problem with expression:\n" ++ show err
+        Right val -> do
+            when (isRelocatable val) (addReloc loc)
+            return $ show val ++ " # " ++ show val
 
 isRelocatable :: Val -> Bool
 isRelocatable (Rel _) = True
