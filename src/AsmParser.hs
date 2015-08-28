@@ -137,7 +137,7 @@ instruction = skipMany skipJunk *>
     <|> try opcode <* loc (+1)
     <|> try label <* loc (+1)
 --     <|> LitExpr <$> (,) <$> asmExprStr <*> getLoc <* loc (+1)
-    <|> asmExpr -- FIXME: eventually remove this. no naked exprs.
+    <|> LitExpr <$> asmExpr -- FIXME: eventually remove this. no naked exprs.
 
 newLabel :: MyParser Token
 newLabel = NewLabel <$> (newGlobalLabel <|> newLocalLabel) <* skipMany skipJunk
@@ -181,12 +181,8 @@ opcode = do
      -- try to read it as an Instruction
     case readMaybe uppers `mplus` readOpSynonym uppers of --alternatively, <|>
         Just x -> if x `elem` argOps
-            then do
-                arg <- asmExprStr
-                loc (+1)
-                currentLoc <- getLoc
-                return (Op x (Just (arg, currentLoc)))
-            else return (Op x Nothing)
+            then return . Op x . Just =<< asmExpr
+            else return $ Op x Nothing
         Nothing -> fail "can't parse as opcode"
     where
         readOpSynonym :: String -> (Maybe Instruction)
@@ -199,12 +195,12 @@ opcode = do
         argOps = [PUSH, PUSHV, PUSHX, POP, POPX, BNE, BEQ, BR, 
                 CALL, RETN, ADDX, ADDSP] -- these instructions take arguments
 
-asmExpr :: MyParser Token
+asmExpr :: MyParser Expr
 asmExpr = do
     str <- asmExprStr
     loc (+1)
     place <- getLoc
-    return $ LitExpr (str, place)
+    return (str, place)
 
 asmExprStr :: MyParser String
 asmExprStr = (do
