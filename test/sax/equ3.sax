@@ -1,0 +1,21 @@
+; stuff is an absolute value 400
+stuff equ (99*4) + 4
+
+main:   call lpar
+        pushv (2 * stuff)
+        print
+        call rpar
+        call done
+
+lpar: pushv '(
+      printc
+      return
+
+rpar: pushv ')
+      printc
+      return
+
+done: 
+    pushv 10
+    printc
+    halt
