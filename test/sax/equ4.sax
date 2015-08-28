@@ -1,0 +1,34 @@
+; stuff is an absolute value 400
+stuff equ (99*4) + 4
+NL equ 2+8
+
+main:   
+    pushv 50
+    call printnum
+    pushv (2 * stuff)
+    call printnum
+    halt
+
+
+write_string:
+    swap
+@1: dupl
+    indir
+    dupl
+    beq (@2)
+    printc
+    pushv   NL/10 ; 1
+    add
+    br  (@1)
+@2: addsp   (2)
+    return
+
+printnum:
+    swap
+    pushv @arrow
+    call write_string
+    print
+    pushv NL
+    printc
+    return
+@arrow: DW "---> ",0
