@@ -9,6 +9,7 @@ module AsmParser (Instruction(..),
                 EntryLabel(..),
                 Val(..),
                 Labels,
+                Expr,
                 runAsmParser) where
 
 import Text.ParserCombinators.Parsec hiding (try, label, labels, (<|>))
@@ -39,7 +40,7 @@ import qualified Data.Map as Map (Map, singleton, member, insert)
 import qualified Data.Map.Strict as Map (Map, singleton, member, insert)
 #endif
 
-import Debug.Trace (trace)
+import Debug.Trace (trace, traceM)
 
 import Instructions
 
@@ -97,7 +98,7 @@ data Token = Lit Integer
             | Op Instruction (Maybe Expr)
             | NewLabel String
             | DS Integer
-            | DW [Integer]
+            | DW [Expr]
             | EQU String Integer 
             | Entry EntryLabel
             | Extern [String]
@@ -329,18 +330,21 @@ asmDS = do
 asmDW :: MyParser Token
 asmDW = do
     caseInsensitiveString "dw" *> skipSpaces <?> "DW"
---     args <- intOrChar `sepBy1` (char ',' *> spaces)
     args <- fmap join dwArgs
     -- a DW should increase the location counter by the number of arguments
-    loc (\x -> x + (genericLength args))
     return (DW args)
 
-dwArgs :: MyParser [[Integer]]
-dwArgs = (fmap (:[]) intOrChar <|> litString) `sepBy1` (char ',' *> spaces)
+dwArgs :: MyParser [[Expr]]
+dwArgs = (fmap (:[]) (asmExpr) <|> litString) `sepBy1` (char ',' *> spaces)
 
-litString :: MyParser [Integer]
-litString = map (toInteger . ord) 
-        <$> (char '\"' *> anyChar `manyTill` char '\"')
+litString :: MyParser [Expr]
+litString = do
+    line <- (char '\"' *> anyChar `manyTill` char '\"')
+    loc (+(genericLength line))
+    let strs :: [String]
+        strs = map (show . ord) line
+    return $ zip strs (repeat (0))
+
 
 asmEntry :: MyParser Token
 asmEntry = do 
