@@ -92,17 +92,16 @@ the writer: ([Integer], [String], [String])
             [String] is the publics
 -}
         gen :: Token -> Writer ([Integer], [String], [String]) String
---         gen (DW xs) = return $ concat $ intersperse "\n" (map show xs)
         gen (DW xs) = do
             let (exprs, locs) = unzip xs
                 results :: [Either ParseError Val]
                 results = map (eval labels) exprs
-            text <- forM (zip results locs) (\(res, loc) -> case res of
+            (concat . intersperse "\n") <$>
+                forM (zip results locs) (\(res, loc) -> case res of
                     Left err -> error $ "bad expression:\n" ++ show err
                     Right val -> do
                         when (isRelocatable val) (addReloc loc)
                         return $ show val)
-            return (concat (intersperse "\n" text))
         gen (DS x) = return $ ':' : show x
         gen (Entry x) = return $ "# entry found: " ++ show x
         gen (Op x maybeArg) = case maybeArg of
