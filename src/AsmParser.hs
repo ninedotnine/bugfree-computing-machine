@@ -91,12 +91,10 @@ instance Show Val where
 Token is an algebraic data type
 a Lit can be a number like 65 or a letter like 'a
 an Op is any of the opcodes
-a Label is a label
 -}
 data Token = Lit Integer
             | LitExpr Expr
             | Op Instruction (Maybe Expr)
-            | Label String Integer -- the int is the current location counter
             | NewLabel String
             | DS Integer
             | DW [Integer]
@@ -126,7 +124,6 @@ instructions = do
 
 instruction :: MyParser Token
 instruction = skipMany skipJunk *>
---     fmap Lit intOrChar <* loc (+1)
     try asmEQU
     <|> try asmDS 
     <|> try asmDW 
@@ -134,17 +131,11 @@ instruction = skipMany skipJunk *>
     <|> try asmExtern 
     <|> try asmPublic
     <|> try newLabel 
-    <|> try opcode <* loc (+1)
-    <|> try label <* loc (+1)
---     <|> LitExpr <$> (,) <$> asmExprStr <*> getLoc <* loc (+1)
-    <|> LitExpr <$> asmExpr -- FIXME: eventually remove this. no naked exprs.
+    <|> opcode <* loc (+1)
 
 newLabel :: MyParser Token
 newLabel = NewLabel <$> (newGlobalLabel <|> newLocalLabel) <* skipMany skipJunk
         <?> "label"
-
-label :: MyParser Token
-label = Label <$> labelName <*> getLoc
 
 labelName :: MyParser String
 labelName = (localLabel <|> globalLabel) <* skipMany skipJunk <?> "label"

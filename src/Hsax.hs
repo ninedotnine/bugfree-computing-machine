@@ -111,11 +111,8 @@ the writer: ([Integer], [String], [String])
             -- if Left, it means one of the two expr parsers is malfunctioning
             Left err -> error $ "expression " ++ e ++ '\n':(show err) 
         gen (NewLabel str) = return $ "# " ++ str
-        gen (Label str loc) = let val = labels ! str in do
-            -- (!) is unsafe, but should be fine here 
-            -- because i used these very labels to populate the map 
-            when (isRelocatable val) (addReloc loc)
-            return $ show val ++ "     # label: " ++ str
+--             -- (!) is unsafe, but should be fine here 
+--             -- because i used these very labels to populate the map 
         gen (EQU name val) = -- FIXME make this check relocatableness
             return ("# equ here: " ++ name ++ " = " ++ show val)
         gen (Extern names) = addExtern names >>
