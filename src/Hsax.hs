@@ -39,13 +39,13 @@ import AsmExprEval
 main :: IO ()
 main = do
     (filename, input) <- getFileData
-    let result :: Either ParseError (Integer, EntryPoint, [Token], Labels)
+    let result :: Either ParseError (Integer, EntryLabel, [Token], Labels)
         result = runAsmParser filename input
     case result of
         Left err -> putStrLn $ "HEY! NOPE!" ++ (show err)
         Right r -> outputResult filename r
 
-outputResult :: FilePath -> (Integer, EntryPoint, [Token], Labels) -> IO ()
+outputResult :: FilePath -> (Integer, EntryLabel, [Token], Labels) -> IO ()
 outputResult filename (textLength, entry, toks, labels) = do
     putStrLn "%SXX+Object Module"
     putStrLn $ "# object module for file: " ++ filename
@@ -78,7 +78,7 @@ outputResult filename (textLength, entry, toks, labels) = do
     mapM_ print relocs
 
     putStrLn "% ENTRY, EXTERN, and PUBLIC references"
-    unless (entry == EntryPoint "") $ putStrLn $ 
+    unless (entry == EntryLabel "") $ putStrLn $ 
         "ENTRY " ++ show entry ++ " " ++ (show (labels ! show entry))
     mapM_ (putStrLn . ("EXTERN "++ )) exts -- FIXME addrs follow label
     forM_ pubs $ putStrLn . (\x -> "PUBLIC " ++ x ++ ' ':show (labels ! x))
