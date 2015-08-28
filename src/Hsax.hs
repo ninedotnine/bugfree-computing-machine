@@ -95,13 +95,10 @@ the writer: ([Integer], [String], [String])
         gen :: Token -> Writer ([Integer], [String], [String]) String
         gen (DW xs) = let
                 (exprs, locs) = unzip xs
-                (lefts, rights) = partitionEithers $ map (eval labels) exprs
-            in if (not . null) lefts
-                then error $ "bad expression:\n" ++ show (head lefts)
-                else (concat . intersperse "\n") <$> forM (zip rights locs)
-                    (\(val, loc) -> do
-                        when (isRelocatable val) (addReloc loc)
-                        return $ show val)
+                (errs, vals) = partitionEithers $ map (eval labels) exprs
+            in if (not . null) errs
+                then error $ "bad expression:\n" ++ show (head errs)
+                else concat . intersperse "\n" <$> mapM genVal (zip vals locs)
         gen (DS x) = return $ ':' : show x
         gen (Entry x) = return $ "# entry found: " ++ show x
         gen (Op x maybeArg) = case maybeArg of
@@ -110,7 +107,7 @@ the writer: ([Integer], [String], [String])
                 Right (arg :: Val) -> do
                     when (isRelocatable arg) (addReloc loc)
                     return $ show (fromEnum x) ++ " # " ++ show x
-                            ++ "\n" ++ show arg ++ " # " ++ e
+                            ++ "\n" ++ show arg
                 Left err -> error $ "problem with expression:\n" ++ show err
         gen (Lit x) = return $ show x
         gen (LitExpr (e, loc)) = case eval labels e of
@@ -128,6 +125,9 @@ the writer: ([Integer], [String], [String])
             return ("# extern here: " ++ (concat $ intersperse ", " $ names))
         gen (Public names) = addPublic names >>
             return ("# public here: " ++ (concat $ intersperse ", " $ names))
+        genVal (val, loc) = do
+            when (isRelocatable val) (addReloc loc)
+            return $ show val
 
 --------------------------------------------
 
