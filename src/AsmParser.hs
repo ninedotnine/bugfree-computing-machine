@@ -137,12 +137,7 @@ instruction = skipMany skipJunk *>
     <|> try opcode <* loc (+1)
     <|> try label <* loc (+1)
 --     <|> LitExpr <$> (,) <$> asmExprStr <*> getLoc <* loc (+1)
-    <|> do 
-        str <- asmExprStr
-        place <- getLoc
-        loc (+1)
-        return $ LitExpr (str, place)
-
+    <|> asmExpr -- FIXME: eventually remove this. no naked exprs.
 
 newLabel :: MyParser Token
 newLabel = NewLabel <$> (newGlobalLabel <|> newLocalLabel) <* skipMany skipJunk
@@ -203,6 +198,13 @@ opcode = do
         argOps :: [Instruction]
         argOps = [PUSH, PUSHV, PUSHX, POP, POPX, BNE, BEQ, BR, 
                 CALL, RETN, ADDX, ADDSP] -- these instructions take arguments
+
+asmExpr :: MyParser Token
+asmExpr = do
+    str <- asmExprStr
+    loc (+1)
+    place <- getLoc
+    return $ LitExpr (str, place)
 
 asmExprStr :: MyParser String
 asmExprStr = (do
