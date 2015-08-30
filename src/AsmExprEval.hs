@@ -32,7 +32,11 @@ var = do
     labels <- getState
     case Map.lookup name labels of
         Nothing -> fail $ "undefined in pass 2: " ++ name
-        Just x -> return x
+--         Just x -> return x
+        Just x -> case x of
+            Undef _ -> fail $ "undefined in pass 2: " ++ name
+            Def v -> return v
+
 
 labelName :: EvalParser String
 labelName = do
