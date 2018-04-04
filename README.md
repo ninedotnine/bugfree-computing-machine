@@ -1,6 +1,8 @@
 bugfree-computing-machine
 =========================
 
+> Great repository names are short and memorable. Need inspiration? How about bugfree-computing-machine.
+
 bugfree computing machine is a suite for the eXtended Stack Machine. 
 
 The eXtended Stack Machine is a simplified CPU architecture created by Timothy 
